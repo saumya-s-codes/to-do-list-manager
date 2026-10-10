@@ -5,7 +5,6 @@
  */
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import papyrusBg from "./assets/papyrus-bg.jpg";
-import pkg from "../package.json";
 import {
   Download, Sun, Pencil, Plus, Moon, Check, X, Eye, LayoutGrid, CalendarDays, Timer,
   BarChart3, CheckCircle2, MoreHorizontal, Zap, Target, ClipboardList, Hourglass,
@@ -13,8 +12,9 @@ import {
   Palette, Leaf, Star, Flower2, Flame, ArrowLeft,
 } from "lucide-react";
 
-// Shown at the bottom of Settings. It comes from "version" in package.json, so bump it there.
-const APP_VERSION = pkg.version;
+// Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
+const APP_VERSION = "2.5.3";
+const CHROME_COLOR = "#F6F3EC";   // status-bar tint: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
 const HEADERS = ["Title", "List", "Category", "Effort", "Impact", "Matrix", "Due date", "Created", "Completed", "Completed from"];
@@ -658,18 +658,6 @@ const todaySort = (list) => {
 };
 const isToday = (ms) => !!ms && new Date(ms).toDateString() === new Date().toDateString();
 const uid = () => Math.random().toString(36).slice(2, 10);
-// Installed to the iPhone home screen? And does the page extend under the status bar (translucent status bar)?
-const isStandalone = () => { try { return window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches; } catch (_) { return false; } };
-const topInset = () => {
-  try {
-    const d = document.createElement("div");
-    d.style.cssText = "position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top);visibility:hidden";
-    document.body.appendChild(d);
-    const h = d.offsetHeight;
-    d.remove();
-    return h;
-  } catch (_) { return 0; }
-};
 // a small buzz on phones that support it, so taps feel physical
 const buzz = (p = 10) => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (_) { /* ignore */ } };
 
@@ -2966,21 +2954,18 @@ export default function App() {
     return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("pagehide", flush); };
   }, []);
 
-  // Keep the phone's status-bar / browser tint in step with the theme. Without this, iOS can hold on to the previous
-  // theme's colour after you switch (for example Vibrant's blue showing above Botanical's green).
+  // The phone's status bar / browser tint: a fixed, neutral colour that suits every theme. iOS only reads this colour when the
+  // app starts, so a per-theme colour would go stale after switching themes (a red bar above a blue header, for example).
   useEffect(() => {
-    if (!state) return;
-    const t = THEMES[state.themeId] || THEMES[DEFAULT_THEME];
-    const color = t.vars["--eve-bg"] || t.vars["--btn-bg"];   // the colour of the top bar
-    const oldMeta = document.querySelector('meta[name="theme-color"]');
-    if (oldMeta) oldMeta.remove();
+    const old = document.querySelector('meta[name="theme-color"]');
+    if (old) old.remove();
     const m = document.createElement("meta");
     m.setAttribute("name", "theme-color");
-    m.setAttribute("content", color);
+    m.setAttribute("content", CHROME_COLOR);
     document.head.appendChild(m);
-    document.documentElement.style.backgroundColor = color;
-    document.body.style.backgroundColor = color;
-  }, [state && state.themeId]);
+    document.documentElement.style.backgroundColor = CHROME_COLOR;
+    document.body.style.backgroundColor = CHROME_COLOR;
+  }, []);
 
   // A gentle nudge to back up: at most once a day, only if there's something worth saving and no backup for a week
   useEffect(() => {
@@ -3084,15 +3069,7 @@ export default function App() {
       toast(`Deleted “${name}”`, { label: "Undo", run: () => update(() => prev) });
     },
     addCategory: (name) => update((s) => (s.categories.some((c) => c.toLowerCase() === name.toLowerCase()) ? {} : { categories: [...s.categories, name] })),
-    setTheme: (id) => {
-      update(() => ({ themeId: id }));
-      // In an installed iPhone app with the default status bar, iOS only reads the status-bar colour when the app starts.
-      // So after a theme change we save, then restart the page, and the top of the screen matches the new theme.
-      // (With the translucent status bar the page draws that area itself, so no restart is needed.)
-      if (id !== state.themeId && isStandalone() && topInset() === 0 && !lockedRef.current) {
-        saveState({ ...state, themeId: id }).then(() => setTimeout(() => window.location.reload(), 150));
-      }
-    },
+    setTheme: (id) => update(() => ({ themeId: id })),
     // A backup is the whole app state as a JSON file. It uses the same save/share path as the Excel export.
     backupData: async () => {
       const payload = { app: "clear-the-deck", version: APP_VERSION, savedAt: new Date().toISOString(),
