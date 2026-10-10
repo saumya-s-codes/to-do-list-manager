@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "2.5.3";
+const APP_VERSION = "2.5.5";
 const CHROME_COLOR = "#F6F3EC";   // status-bar tint: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -2967,18 +2967,18 @@ export default function App() {
     document.body.style.backgroundColor = CHROME_COLOR;
   }, []);
 
-  // A gentle nudge to back up: at most once a day, only if there's something worth saving and no backup for a week
+  // A gentle nudge to back up: at most once a day, only with 10+ tasks and no backup for a week; stays on screen for 5 seconds
   useEffect(() => {
     if (!loaded || lockedRef.current) return;
     const s = stateRef.current;
     const stale = !s.lastBackupAt || Date.now() - s.lastBackupAt > 7 * 864e5;
-    if (!stale || s.items.length < 5 || s.backupNudgeOn === iso()) return;
+    if (!stale || s.items.length < 10 || s.backupNudgeOn === iso()) return;
     const t = setTimeout(() => {
       setState((x) => ({ ...x, backupNudgeOn: iso() }));
       setToastMsg({ m: s.lastBackupAt ? "It’s been over a week since your last backup." : "You haven’t backed up your tasks yet.",
         a: { label: "Back up", run: () => setSheet({ type: "backup" }) } });
       clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setToastMsg(null), 9000);
+      toastTimer.current = setTimeout(() => setToastMsg(null), 5000);
     }, 2500);
     return () => clearTimeout(t);
   }, [loaded]);
