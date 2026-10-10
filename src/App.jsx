@@ -743,12 +743,71 @@ function makeSeed() {
   ];
 }
 
-const STORAGE_KEY = "clear-the-deck:v4";   // bumped so the richer sample data loads fresh
+// !!! NEVER change this key. Changing it makes the app look for data in a new place, so everything saved under the old key
+// looks lost. If the shape of the saved data ever changes, migrate it when loading instead.
+const STORAGE_KEY = "clear-the-deck:v4";
+const SNAP_PREFIX = `${STORAGE_KEY}:bak:`;   // automatic daily snapshots live under this prefix
+
+// Returns { state } on success, { state: null } on a true first run, and { unreadable: true } if saved data exists but
+// couldn't be read. In that last case the app must NOT save, or it would overwrite data that may be recoverable.
 async function loadState() {
-  try { const r = await window.storage.get(STORAGE_KEY); return r ? JSON.parse(r.value) : null; } catch { return null; }
+  try {
+    const r = await window.storage.get(STORAGE_KEY);
+    return { state: r ? JSON.parse(r.value) : null };
+  } catch (e) {
+    try {
+      const l = await window.storage.list(STORAGE_KEY);
+      if (l && Array.isArray(l.keys) && l.keys.includes(STORAGE_KEY)) return { state: null, unreadable: true };
+    } catch (_) { /* ignore */ }
+    return { state: null };   // nothing saved yet
+  }
 }
 async function saveState(s) {
   try { await window.storage.set(STORAGE_KEY, JSON.stringify(s)); } catch { /* storage unavailable: stay in memory */ }
+}
+// One automatic snapshot per day (taken the first time the app opens that day), keeping the last 7
+async function snapshotOncePerDay(s) {
+  try {
+    const key = SNAP_PREFIX + new Date().toLocaleDateString("en-CA");
+    try { await window.storage.get(key); return; } catch { /* none yet today */ }
+    await window.storage.set(key, JSON.stringify(s));
+    const l = await window.storage.list(SNAP_PREFIX);
+    const keys = ((l && l.keys) || []).sort();
+    while (keys.length > 7) await window.storage.delete(keys.shift());
+  } catch { /* snapshots are best-effort */ }
+}
+// Looks through this browser's storage for ANY saved copy of the app's data, whatever key it was saved under.
+// Used by Back up & restore, so data that is saved but not currently being shown can be found and brought back.
+function findStoredCandidates() {
+  const out = [];
+  try {
+    for (const k of Object.keys(localStorage)) {
+      if (!k.includes("clear-the-deck") || k.includes(":bak:")) continue;
+      try {
+        const st = JSON.parse(localStorage.getItem(k));
+        if (st && Array.isArray(st.items) && Array.isArray(st.categories)) out.push({ key: k, state: st, count: st.items.length });
+      } catch { /* not ours */ }
+    }
+  } catch { /* storage unavailable */ }
+  return out;
+}
+const candidateLabel = (k) => k === STORAGE_KEY ? "Saved data (original location)"
+  : k === "clear-the-deck:" + STORAGE_KEY ? "Saved data (since the GitHub update)" : k;
+
+async function listSnapshots() {
+  try {
+    const l = await window.storage.list(SNAP_PREFIX);
+    const keys = ((l && l.keys) || []).sort().reverse();
+    const out = [];
+    for (const key of keys) {
+      try {
+        const r = await window.storage.get(key);
+        const st = JSON.parse(r.value);
+        out.push({ key, day: key.slice(SNAP_PREFIX.length), state: st, count: (st.items || []).length });
+      } catch { /* skip unreadable snapshots */ }
+    }
+    return out;
+  } catch { return []; }
 }
 
 /* ═══════════════════════════════ styles ═══════════════════════════════════ */
@@ -2671,6 +2730,54 @@ function Evening({ ctx, items, close }) {
   );
 }
 
+function BackupSheet({ ctx, close }) {
+  const [snaps, setSnaps] = useState(null);
+  const [found] = useState(() => findStoredCandidates());
+  useEffect(() => { let alive = true; listSnapshots().then((l) => { if (alive) setSnaps(l); }); return () => { alive = false; }; }, []);
+  const readFile = (file) => {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try { const j = JSON.parse(String(r.result)); if (ctx.restoreState(j.state || j)) close(); }
+      catch { ctx.toast("Couldn’t read that file"); }
+    };
+    r.readAsText(file);
+  };
+  return (
+    <Sheet title="Back up & restore" onClose={close}>
+      <div className="cd-sub" style={{ marginBottom: 10 }}>Your tasks are saved in this browser. A backup file is a safety copy you can keep anywhere.</div>
+      <button className="cd-ghost" style={{ marginTop: 0 }} onClick={() => ctx.backupData()}><Download size={18} /> Download a backup</button>
+      <label className="cd-ghost" style={{ cursor: "pointer" }}>
+        <RotateCcw size={18} /> Restore from a backup file
+        <input type="file" accept=".json,application/json" hidden onChange={(e) => { readFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+      </label>
+      <div className="cd-fl" style={{ marginTop: 18 }}>Saved data found on this device</div>
+      <div className="cd-catlist">
+        {found.length === 0 && <div className="cd-sub">Nothing else found.</div>}
+        {found.map((c) => (
+          <div className="cd-catitem" key={c.key}>
+            <span style={{ minWidth: 0 }}>{candidateLabel(c.key)}</span>
+            <span className="n">{c.count} {c.count === 1 ? "task" : "tasks"}</span>
+            <button className="cd-pill" onClick={() => { if (ctx.restoreState(c.state)) close(); }}>Restore</button>
+          </div>
+        ))}
+      </div>
+      <div className="cd-fl" style={{ marginTop: 18 }}>Automatic backups (one a day, last 7 days)</div>
+      <div className="cd-catlist">
+        {snaps === null && <div className="cd-sub">Looking…</div>}
+        {snaps && snaps.length === 0 && <div className="cd-sub">None yet. One is saved the first time you open the app each day.</div>}
+        {snaps && snaps.map((sn) => (
+          <div className="cd-catitem" key={sn.key}>
+            <span>{sn.day}</span>
+            <span className="n">{sn.count} {sn.count === 1 ? "task" : "tasks"}</span>
+            <button className="cd-pill" onClick={() => { if (ctx.restoreState(sn.state)) close(); }}>Restore</button>
+          </div>
+        ))}
+      </div>
+    </Sheet>
+  );
+}
+
 function CatManager({ ctx, items, close }) {
   const [name, setName] = useState("");
   const count = (c) => items.filter((i) => i.category === c).length;
@@ -2730,6 +2837,7 @@ function Settings({ ctx, themeId, close }) {
         })}
       </div>
       <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "cats" })}><FolderIcon size={18} /> Manage categories</button>
+      <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "backup" })}><Download size={18} /> Back up &amp; restore</button>
       <div className="cd-setrow">
         <button className="cd-ghost" onClick={() => ctx.exportData()}><Download size={18} /> Export</button>
         <button className="cd-ghost" style={{ color: "var(--danger)" }} onClick={() => { ctx.resetData("empty"); close(); }}><Trash2 size={18} /> Clear all</button>
@@ -2757,6 +2865,7 @@ export default function App() {
   const toastTimer = useRef(null);
   const [vvh, setVvh] = useState(null);
   const stateRef = useRef(null); stateRef.current = state;
+  const lockedRef = useRef(false);            // true when saved data exists but couldn't be read: never save over it
   const [burst, setBurst] = useState(0);        // confetti
   const burstTimer = useRef(null);
   const [dayKey, setDayKey] = useState(iso());
@@ -2803,9 +2912,17 @@ export default function App() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const s = await loadState();
+      const { state: s, unreadable } = await loadState();
+      if (!alive) return;
+      lockedRef.current = !!unreadable;
+      if (unreadable) {
+        setToastMsg({ m: "Couldn’t read your saved data, so nothing will be saved this time. Reload to try again." });
+        clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToastMsg(null), 9000);
+      }
+      if (s) snapshotOncePerDay(s);
       // an old saved theme name (from before the five new themes) falls back to the default
-      if (alive) setState(s
+      setState(s
         ? { ...s, themeId: THEMES[s.themeId] ? s.themeId : DEFAULT_THEME, items: s.items.map(normalizeItem) }
         : { items: makeSeed(), categories: DEFAULT_CATS, themeId: DEFAULT_THEME });
     })();
@@ -2814,14 +2931,14 @@ export default function App() {
 
   // Save shortly after the last change, so a burst of edits (drag-reorders, rapid taps) is one write
   useEffect(() => {
-    if (!state) return;
+    if (!state || lockedRef.current) return;
     const t = setTimeout(() => saveState(state), 400);
     return () => clearTimeout(t);
   }, [state]);
 
   // ...and save immediately if the app is hidden or closed inside that 0.4 s
   useEffect(() => {
-    const flush = () => { if (stateRef.current) saveState(stateRef.current); };
+    const flush = () => { if (stateRef.current && !lockedRef.current) saveState(stateRef.current); };
     const onVis = () => { if (document.visibilityState === "hidden") flush(); };
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("pagehide", flush);
@@ -2914,6 +3031,24 @@ export default function App() {
     },
     addCategory: (name) => update((s) => (s.categories.some((c) => c.toLowerCase() === name.toLowerCase()) ? {} : { categories: [...s.categories, name] })),
     setTheme: (id) => update(() => ({ themeId: id })),
+    // A backup is the whole app state as a JSON file. It uses the same save/share path as the Excel export.
+    backupData: async () => {
+      const payload = { app: "clear-the-deck", version: APP_VERSION, savedAt: new Date().toISOString(),
+        state: { items, categories, themeId: state.themeId, cleanedOn: state.cleanedOn } };
+      try {
+        await saveFile(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), `clear-the-deck-backup-${new Date().toLocaleDateString("en-CA")}.json`);
+        toast("Backup saved");
+      } catch (e) { if (!e || e.name !== "AbortError") toast("Couldn’t save the backup"); }
+    },
+    restoreState: (st) => {
+      if (!st || !Array.isArray(st.items) || !Array.isArray(st.categories)) { toast("That isn’t a Clear the Deck backup"); return false; }
+      const prev = { items, categories, themeId: state.themeId, cleanedOn: state.cleanedOn };
+      lockedRef.current = false;   // restoring is an explicit choice, so saving is safe again
+      update(() => ({ items: st.items.map(normalizeItem), categories: st.categories,
+        ...(st.themeId && THEMES[st.themeId] ? { themeId: st.themeId } : {}), ...(st.cleanedOn ? { cleanedOn: st.cleanedOn } : {}) }));
+      toast("Backup restored", { label: "Undo", run: () => update(() => prev) });
+      return true;
+    },
     exportData: async () => {
       if (!items.length) { toast("Nothing to export yet"); return; }
       try { const n = await downloadExport(items); toast(`Exported ${n} ${n === 1 ? "item" : "items"}`); }
@@ -2964,6 +3099,7 @@ export default function App() {
         {sheet?.type === "evening" && <Evening ctx={ctx} items={items} close={close} />}
         {sheet?.type === "settings" && <Settings ctx={ctx} themeId={state.themeId} close={close} />}
         {sheet?.type === "cats" && <CatManager ctx={ctx} items={items} close={close} />}
+        {sheet?.type === "backup" && <BackupSheet ctx={ctx} close={close} />}
         {burst ? <Confetti key={burst} /> : null}
         {toastMsg && (
           <div className={"cd-toast" + (toastMsg.a ? " act" : "")} role="status">
