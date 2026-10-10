@@ -1,8 +1,8 @@
 {
   "name": "clear-the-deck",
-  "version": "0.1.0",
   "private": true,
-  "description": "A mobile-first task app: capture, choose, do what matters.",
+  "version": "2.3.0",
+  "description": "A mobile-first task app: capture, sort, and clear your deck. Six themes.",
   "type": "module",
   "scripts": {
     "dev": "vite",
