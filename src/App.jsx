@@ -585,8 +585,12 @@ const THEMES = {
       "--btn-ink": "#FFFFFF",
       "--eve-bg": "#FFFFFF",        // the top card and the Evening Clean Up card are white, like your screenshot
       "--eve-ink": "#12181B",
-      "--head-margin": "10px 14px 6px",
+      "--head-margin": "calc(env(safe-area-inset-top) + 10px) 14px 6px",
       "--head-radius": "22px",
+      "--head-pad-top": "18px",
+      "--head-pad-top-sm": "14px",
+      "--head-act-top": "18px",
+      "--safe-bg": "#3F6B52",   // status-bar strip: dark, because the top card itself is white
       "--headbtn-bg": "#E4EEE8",
       "--headbtn-ink": "#3F6B52",
       "--hero-bg": "#FFFFFF",
@@ -654,6 +658,18 @@ const todaySort = (list) => {
 };
 const isToday = (ms) => !!ms && new Date(ms).toDateString() === new Date().toDateString();
 const uid = () => Math.random().toString(36).slice(2, 10);
+// Installed to the iPhone home screen? And does the page extend under the status bar (translucent status bar)?
+const isStandalone = () => { try { return window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches; } catch (_) { return false; } };
+const topInset = () => {
+  try {
+    const d = document.createElement("div");
+    d.style.cssText = "position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top);visibility:hidden";
+    document.body.appendChild(d);
+    const h = d.offsetHeight;
+    d.remove();
+    return h;
+  } catch (_) { return 0; }
+};
 // a small buzz on phones that support it, so taps feel physical
 const buzz = (p = 10) => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (_) { /* ignore */ } };
 
@@ -1083,11 +1099,13 @@ const CSS = FONT_IMPORT + `
 .cd-reorder-hint{font-size:12.5px;color:var(--muted);margin:-2px 0 4px}
 
 /* page header: a fixed bar above the scrolling area (like the nav below it), the same size on every page */
-.cd-headcard{position:relative;flex:none;z-index:4;display:flex;flex-direction:column;justify-content:center;min-height:104px;padding:calc(18px + env(safe-area-inset-top)) 20px 12px;margin:var(--head-margin,0);border-radius:var(--head-radius,0);
+/* With the translucent status bar (index.html), the page draws behind the clock and battery. This strip fills that area. */
+.cd::before{content:"";position:absolute;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--safe-bg,var(--eve-bg,var(--btn-bg)));z-index:6;pointer-events:none}
+.cd-headcard{position:relative;flex:none;z-index:4;display:flex;flex-direction:column;justify-content:center;min-height:104px;padding:var(--head-pad-top,calc(18px + env(safe-area-inset-top))) 20px 12px;margin:var(--head-margin,0);border-radius:var(--head-radius,0);
   background:var(--bar-stripe,none) no-repeat left bottom / 100% 4px,var(--eve-bg,var(--btn-bg));color:var(--eve-ink,var(--btn-ink));box-shadow:var(--shadow)}
 .cd-headcard .cd-h1{margin:2px 0 3px}
 .cd-headcard .cd-date,.cd-headcard .cd-sub{color:inherit;opacity:.85}
-.cd-headact{position:absolute;top:calc(18px + env(safe-area-inset-top));right:16px;display:flex;align-items:center;gap:8px}
+.cd-headact{position:absolute;top:var(--head-act-top,calc(18px + env(safe-area-inset-top)));right:16px;display:flex;align-items:center;gap:8px}
 .cd-headact>button:not(.cd-undo){width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--headbtn-bg,color-mix(in srgb,currentColor 16%,transparent));color:var(--headbtn-ink,inherit)}
 .cd-headcard .cd-undo{background:var(--headbtn-bg,color-mix(in srgb,currentColor 16%,transparent));color:var(--headbtn-ink,inherit)}
 /* thought dump: the dark, vibrant box */
@@ -1111,7 +1129,7 @@ const CSS = FONT_IMPORT + `
 .cd-scroll>.cd-hint{margin:14px 0 0}
 .cd-empty{background:var(--card);border-radius:var(--radius-lg);box-shadow:var(--shadow);margin-top:14px}
 .cd-progress{margin-top:10px}
-@media(max-height:720px){.cd-headcard{min-height:96px;padding:calc(14px + env(safe-area-inset-top)) 20px 10px}}
+@media(max-height:720px){.cd-headcard{min-height:96px;padding:var(--head-pad-top-sm,calc(14px + env(safe-area-inset-top))) 20px 10px}}
 /* Inbox buttons: solid card background, so they read clearly over the artwork */
 .cd-tcard,.cd-tcard.someday,.cd-tcard.watch,.cd-tcard.prio{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
 .cd-selwrap.pill .cd-select{background:var(--card);box-shadow:var(--shadow);border:1px solid var(--line)}
@@ -2954,9 +2972,12 @@ export default function App() {
     if (!state) return;
     const t = THEMES[state.themeId] || THEMES[DEFAULT_THEME];
     const color = t.vars["--eve-bg"] || t.vars["--btn-bg"];   // the colour of the top bar
-    let m = document.querySelector('meta[name="theme-color"]');
-    if (!m) { m = document.createElement("meta"); m.setAttribute("name", "theme-color"); document.head.appendChild(m); }
+    const oldMeta = document.querySelector('meta[name="theme-color"]');
+    if (oldMeta) oldMeta.remove();
+    const m = document.createElement("meta");
+    m.setAttribute("name", "theme-color");
     m.setAttribute("content", color);
+    document.head.appendChild(m);
     document.documentElement.style.backgroundColor = color;
     document.body.style.backgroundColor = color;
   }, [state && state.themeId]);
@@ -3063,7 +3084,15 @@ export default function App() {
       toast(`Deleted “${name}”`, { label: "Undo", run: () => update(() => prev) });
     },
     addCategory: (name) => update((s) => (s.categories.some((c) => c.toLowerCase() === name.toLowerCase()) ? {} : { categories: [...s.categories, name] })),
-    setTheme: (id) => update(() => ({ themeId: id })),
+    setTheme: (id) => {
+      update(() => ({ themeId: id }));
+      // In an installed iPhone app with the default status bar, iOS only reads the status-bar colour when the app starts.
+      // So after a theme change we save, then restart the page, and the top of the screen matches the new theme.
+      // (With the translucent status bar the page draws that area itself, so no restart is needed.)
+      if (id !== state.themeId && isStandalone() && topInset() === 0 && !lockedRef.current) {
+        saveState({ ...state, themeId: id }).then(() => setTimeout(() => window.location.reload(), 150));
+      }
+    },
     // A backup is the whole app state as a JSON file. It uses the same save/share path as the Excel export.
     backupData: async () => {
       const payload = { app: "clear-the-deck", version: APP_VERSION, savedAt: new Date().toISOString(),
