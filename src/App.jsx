@@ -2745,7 +2745,10 @@ function BackupSheet({ ctx, close }) {
   };
   return (
     <Sheet title="Back up & restore" onClose={close}>
-      <div className="cd-sub" style={{ marginBottom: 10 }}>Your tasks are saved in this browser. A backup file is a safety copy you can keep anywhere.</div>
+      <div className="cd-sub" style={{ marginBottom: 4 }}>Your tasks are saved in this browser. A backup file is a safety copy you can keep anywhere.</div>
+      <div className="cd-sub" style={{ marginBottom: 10, fontWeight: 600 }}>
+        Last backup: {ctx.lastBackupAt ? new Date(ctx.lastBackupAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "never"}
+      </div>
       <button className="cd-ghost" style={{ marginTop: 0 }} onClick={() => ctx.backupData()}><Download size={18} /> Download a backup</button>
       <label className="cd-ghost" style={{ cursor: "pointer" }}>
         <RotateCcw size={18} /> Restore from a backup file
@@ -2945,6 +2948,35 @@ export default function App() {
     return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("pagehide", flush); };
   }, []);
 
+  // Keep the phone's status-bar / browser tint in step with the theme. Without this, iOS can hold on to the previous
+  // theme's colour after you switch (for example Vibrant's blue showing above Botanical's green).
+  useEffect(() => {
+    if (!state) return;
+    const t = THEMES[state.themeId] || THEMES[DEFAULT_THEME];
+    const color = t.vars["--eve-bg"] || t.vars["--btn-bg"];   // the colour of the top bar
+    let m = document.querySelector('meta[name="theme-color"]');
+    if (!m) { m = document.createElement("meta"); m.setAttribute("name", "theme-color"); document.head.appendChild(m); }
+    m.setAttribute("content", color);
+    document.documentElement.style.backgroundColor = color;
+    document.body.style.backgroundColor = color;
+  }, [state && state.themeId]);
+
+  // A gentle nudge to back up: at most once a day, only if there's something worth saving and no backup for a week
+  useEffect(() => {
+    if (!loaded || lockedRef.current) return;
+    const s = stateRef.current;
+    const stale = !s.lastBackupAt || Date.now() - s.lastBackupAt > 7 * 864e5;
+    if (!stale || s.items.length < 5 || s.backupNudgeOn === iso()) return;
+    const t = setTimeout(() => {
+      setState((x) => ({ ...x, backupNudgeOn: iso() }));
+      setToastMsg({ m: s.lastBackupAt ? "It’s been over a week since your last backup." : "You haven’t backed up your tasks yet.",
+        a: { label: "Back up", run: () => setSheet({ type: "backup" }) } });
+      clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => setToastMsg(null), 9000);
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [loaded]);
+
   // While the saved data loads, show a plain neutral screen (not a theme), so no theme flashes before yours appears
   if (!state) {
     return (
@@ -2979,6 +3011,7 @@ export default function App() {
     toast,
     setSheet,
     themeIcon: theme.icon || Sun,
+    lastBackupAt: state.lastBackupAt,
     unsorted: items.filter(isUnlabeled).length,
     goTab: (k) => { setTab(k); setJustDone(new Set()); },
     cleaned: state.cleanedOn === iso(),
@@ -3037,6 +3070,7 @@ export default function App() {
         state: { items, categories, themeId: state.themeId, cleanedOn: state.cleanedOn } };
       try {
         await saveFile(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), `clear-the-deck-backup-${new Date().toLocaleDateString("en-CA")}.json`);
+        update(() => ({ lastBackupAt: Date.now() }));
         toast("Backup saved");
       } catch (e) { if (!e || e.name !== "AbortError") toast("Couldn’t save the backup"); }
     },
