@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "3.4";
-const CHROME_COLOR = "#F6F3EC";   // status-bar tint: a soft neutral cream
+const APP_VERSION = "3.5";
+const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
 const HEADERS = ["Title", "List", "Category", "Effort", "Impact", "Matrix", "Due date", "Created", "Completed", "Completed from"];
@@ -339,7 +339,7 @@ const THEMES = {
       "--radius-md": "14px",
       "--radius-pill": "999px",
       "--shadow": "0 4px 14px rgba(107,93,69,.12)",
-      "--nav-bg": "rgba(251,247,239,.94)",
+      "--nav-bg": "#FBF7EF",
       "--nav-active": "#A93C41",
       "--scrim": "rgba(60,45,30,.4)",
       "--q1": "#788F5B", "--q1-bg": "#E1E6D3",
@@ -393,7 +393,7 @@ const THEMES = {
       "--radius-md": "14px",
       "--radius-pill": "999px",
       "--shadow": "0 1px 2px rgba(60,64,67,.28), 0 1px 4px 1px rgba(60,64,67,.12)",
-      "--nav-bg": "rgba(255,255,255,.96)",
+      "--nav-bg": "#FFFFFF",
       "--nav-active": "#1A73E8",
       "--scrim": "rgba(32,33,36,.42)",
       "--q1": "#34A853", "--q1-bg": "#E6F4EA",
@@ -445,7 +445,7 @@ const THEMES = {
       "--radius-md": "14px",
       "--radius-pill": "999px",
       "--shadow": "0 4px 14px rgba(90,80,40,.10)",
-      "--nav-bg": "rgba(252,249,243,.92)",
+      "--nav-bg": "#FCF9F3",
       "--nav-active": "#5A6A3A",
       "--scrim": "rgba(46,46,40,.4)",
       "--q1": "#6F8A5C", "--q1-bg": "#E2EAD3",
@@ -501,7 +501,7 @@ const THEMES = {
       "--radius-md": "15px",
       "--radius-pill": "999px",
       "--shadow": "0 4px 18px rgba(95,114,190,.15)",
-      "--nav-bg": "rgba(250,249,254,.92)",
+      "--nav-bg": "#FAF9FE",
       "--nav-active": "#5F72BE",
       "--scrim": "rgba(43,49,88,.4)",
       "--q1": "#7F8FD4", "--q1-bg": "#E3E7F9",
@@ -556,7 +556,7 @@ const THEMES = {
       "--radius-md": "18px",
       "--radius-pill": "999px",
       "--shadow": "0 6px 20px rgba(140,100,180,.13)",
-      "--nav-bg": "rgba(252,248,253,.92)",
+      "--nav-bg": "#FCF8FD",
       "--nav-active": "#835AA6",
       "--scrim": "rgba(58,46,70,.4)",
       "--q1": "#7FA283", "--q1-bg": "#E1EDE2",
@@ -618,7 +618,7 @@ const THEMES = {
       "--radius-md": "14px",
       "--radius-pill": "999px",
       "--shadow": "0 1px 2px rgba(20,30,25,.05), 0 6px 18px rgba(20,30,25,.06)",
-      "--nav-bg": "rgba(255,255,255,.96)",
+      "--nav-bg": "#FFFFFF",
       "--nav-active": "#3F6B52",
       "--scrim": "rgba(18,24,27,.38)",
       "--q1": "#4C9A6A", "--q1-bg": "#E6F2EA",
@@ -839,11 +839,11 @@ async function listSnapshots() {
 /* ═══════════════════════════════ styles ═══════════════════════════════════ */
 
 const CSS = FONT_IMPORT + `
-.cd-outer{position:fixed;inset:0;display:flex;justify-content:center;align-items:stretch;background:#CFC8BC;overflow:hidden;overscroll-behavior:none}
+.cd-outer{position:fixed;inset:0;display:flex;justify-content:center;align-items:stretch;background:var(--chrome-bg,#F6F3EC);overflow:hidden;overscroll-behavior:none}
 .cd, .cd *{box-sizing:border-box}
 .cd{position:relative;width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;overflow:hidden;
   background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
-@media(min-width:520px){.cd-outer{align-items:center;padding:20px 0}.cd{height:min(880px,calc(100vh - 40px));border-radius:38px;box-shadow:0 30px 80px rgba(0,0,0,.35)}}
+@media(min-width:520px){.cd-outer{align-items:center;padding:20px 0;background:var(--outer-bg,#CFC8BC)}.cd{height:min(880px,calc(100vh - 40px));border-radius:38px;box-shadow:0 30px 80px rgba(0,0,0,.35)}}
 :where(.cd) button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .cd button:focus-visible,.cd input:focus-visible,.cd textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 :where(.cd) input,:where(.cd) textarea{font:inherit;color:var(--text)}
@@ -3058,18 +3058,20 @@ export default function App() {
     return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("pagehide", flush); };
   }, []);
 
-  // The phone's status bar / browser tint: a fixed, neutral colour that suits every theme. iOS only reads this colour when the
-  // app starts, so a per-theme colour would go stale after switching themes (a red bar above a blue header, for example).
+  // The phone's status bar / browser tint is the active theme's bottom-bar colour: a soft white that suits that theme. iOS only reads
+  // it when the app starts, so after switching themes it can keep the previous theme's soft white until the next launch (barely visible).
   useEffect(() => {
+    const t = THEMES[state && state.themeId] || THEMES[DEFAULT_THEME];
+    const color = t.vars["--nav-bg"] || CHROME_COLOR;
     const old = document.querySelector('meta[name="theme-color"]');
     if (old) old.remove();
     const m = document.createElement("meta");
     m.setAttribute("name", "theme-color");
-    m.setAttribute("content", CHROME_COLOR);
+    m.setAttribute("content", color);
     document.head.appendChild(m);
-    document.documentElement.style.backgroundColor = CHROME_COLOR;
-    document.body.style.backgroundColor = CHROME_COLOR;
-  }, []);
+    document.documentElement.style.backgroundColor = color;
+    document.body.style.backgroundColor = color;
+  }, [state && state.themeId]);
 
   // A gentle nudge to back up: at most once a day, only with 10+ tasks and no backup for a week; stays on screen for 5 seconds
   useEffect(() => {
@@ -3218,7 +3220,7 @@ export default function App() {
   const activeTab = tab === "completed" ? "dashboard" : tab;   // Completed is reached from the Dashboard
 
   return (
-    <div className="cd-outer" style={{ background: theme.outer }}>
+    <div className="cd-outer" style={{ "--chrome-bg": theme.vars["--nav-bg"], "--outer-bg": theme.outer }}>
       <style>{CSS}</style>
       <div className={"cd" + (vvh ? " kb" : "")} style={{ ...theme.vars, "--kb": (vvh || 0) + "px" }} data-theme={state.themeId}
         onPointerDown={(e) => {
