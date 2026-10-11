@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "3.6";
+const APP_VERSION = "3.7";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -172,8 +172,28 @@ async function downloadExport(items) {
    long pages), both painted on the scrolling area with background-attachment:local.
    ════════════════════════════════════════════════════════════════════════════ */
 
-const FONT_IMPORT =
-  "@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;500;600;700&family=Courier+Prime:wght@400&family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Klee+One:wght@400;600&family=Lato:wght@400;700&family=Manrope:wght@500;600;700;800&family=Nixie+One&family=Plus+Jakarta+Sans:wght@400&family=Rouge+Script&family=Roboto:wght@400;500;700&family=Poppins:wght@600;700&display=swap');\n";
+// Fonts load through ordinary <link> tags, NOT an @import inside the app's own CSS. An @import makes some browsers (Safari) hold back the
+// whole stylesheet until the font download finishes, which showed the app as raw unstyled text for a split second at start-up.
+const FONT_URL = "https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;500;600;700&family=Courier+Prime:wght@400&family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Klee+One:wght@400;600&family=Lato:wght@400;700&family=Manrope:wght@500;600;700;800&family=Nixie+One&family=Plus+Jakarta+Sans:wght@400&family=Rouge+Script&family=Roboto:wght@400;500;700&family=Poppins:wght@600;700&display=swap";
+const fontsLoaded = typeof document === "undefined" ? Promise.resolve() : new Promise((resolve) => {
+  const add = (rel, href, cross) => { const l = document.createElement("link"); l.rel = rel; l.href = href; if (cross) l.crossOrigin = ""; document.head.appendChild(l); return l; };
+  add("preconnect", "https://fonts.googleapis.com");
+  add("preconnect", "https://fonts.gstatic.com", true);
+  const sheet = add("stylesheet", FONT_URL);
+  sheet.onload = resolve; sheet.onerror = resolve;   // offline or blocked: carry on with the fallback fonts
+  setTimeout(resolve, 1500);                          // never wait longer than this
+});
+const BOOT_T0 = Date.now();   // when the app started: the total wait for fonts is counted from here
+const firstFamily = (v) => (v || "").split(",")[0].replace(/['"]/g, "").trim();
+// Wait (briefly) for the fonts a theme uses, so a screen never shows in fallback fonts and then jumps
+function loadThemeFonts(themeId, maxWait = 1500) {
+  const v = (THEMES[themeId] || THEMES[DEFAULT_THEME]).vars;
+  const faces = [[v["--display-weight"], v["--font-display"]], [v["--display-weight-sm"] || v["--display-weight"], v["--font-display-sm"] || v["--font-display"]],
+    [400, v["--font-body"]], [500, v["--font-body"]], [700, v["--font-body"]]];
+  const load = fontsLoaded.then(() => Promise.all(faces.map(([w, f]) =>
+    (document.fonts ? document.fonts.load(`${w} 16px "${firstFamily(f)}"`, "Clear the deck. 0123") : Promise.resolve()).catch(() => {}))));
+  return Promise.race([load, new Promise((r) => setTimeout(r, maxWait))]);
+}
 
 /* ───────── illustrations ─────────
    Each theme has two layers, both painted on the scrolling area so they move with the page:
@@ -838,7 +858,7 @@ async function listSnapshots() {
 
 /* ═══════════════════════════════ styles ═══════════════════════════════════ */
 
-const CSS = FONT_IMPORT + `
+const CSS = `
 .cd-outer{position:fixed;inset:0;display:flex;justify-content:center;align-items:stretch;background:var(--chrome-bg,#F6F3EC);overflow:hidden;overscroll-behavior:none}
 .cd, .cd *{box-sizing:border-box}
 .cd{position:relative;width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;overflow:hidden;
@@ -2977,6 +2997,7 @@ export default function App() {
   const stateRef = useRef(null); stateRef.current = state;
   const lockedRef = useRef(false);            // true when saved data exists but couldn't be read: never save over it
   const [burst, setBurst] = useState(0);        // confetti
+  const [fontsReady, setFontsReady] = useState(false);   // the saved theme's fonts are loaded
   const [radarMode, setRadarMode] = useState("watching");   // which Radar list is showing
   const burstTimer = useRef(null);
   const [dayKey, setDayKey] = useState(iso());
@@ -3092,8 +3113,16 @@ export default function App() {
     return () => clearTimeout(t);
   }, [loaded]);
 
-  // While the saved data loads, show a plain neutral screen (not a theme), so no theme flashes before yours appears
-  if (!state) {
+  // Once the saved theme is known, wait for its fonts before showing the app
+  useEffect(() => {
+    if (!loaded || fontsReady) return;
+    let alive = true;
+    loadThemeFonts(stateRef.current.themeId, Math.max(0, 1500 - (Date.now() - BOOT_T0))).then(() => { if (alive) setFontsReady(true); });   // 1.5 s in total from app start, never longer
+    return () => { alive = false; };
+  }, [loaded, fontsReady]);
+
+  // While the saved data and fonts load, show a plain neutral screen (not a theme), so no theme flashes before yours appears
+  if (!state || !fontsReady) {
     return (
       <div className="cd-outer" style={{ background: CHROME_COLOR }}>
         <style>{CSS}</style>
@@ -3180,7 +3209,7 @@ export default function App() {
       toast(`Deleted “${name}”`, { label: "Undo", run: () => update(() => prev) });
     },
     addCategory: (name) => update((s) => (s.categories.some((c) => c.toLowerCase() === name.toLowerCase()) ? {} : { categories: [...s.categories, name] })),
-    setTheme: (id) => update(() => ({ themeId: id })),
+    setTheme: (id) => { loadThemeFonts(id).then(() => update(() => ({ themeId: id }))); },
     // A backup is the whole app state as a JSON file. It uses the same save/share path as the Excel export.
     backupData: async () => {
       const payload = { app: "clear-the-deck", version: APP_VERSION, savedAt: new Date().toISOString(),
