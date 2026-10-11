@@ -1,0 +1,4 @@
+index.html                       -> your project's top folder (replace)
+public/apple-touch-icon.png      -> the public folder (replace). This is the icon iPhone uses on the Home Screen.
+public/icon-192.png, icon-512.png, favicon.png -> the public folder (new)
+public/splash/                   -> the 11 plain launch pictures go inside public/splash (replace the ones there)
