@@ -9,11 +9,11 @@ import {
   Download, Sun, Pencil, Plus, Moon, Check, X, Eye, LayoutGrid, CalendarDays, Timer,
   BarChart3, CheckCircle2, MoreHorizontal, Zap, Target, ClipboardList, Hourglass,
   Trash2, ArrowRight, Calendar, Inbox, RotateCcw, Sparkles, AlertCircle, ArrowUp,
-  Palette, Leaf, Star, Flower2, Flame, ArrowLeft,
+  Palette, Leaf, Star, Flower2, Flame, ArrowLeft, Radar,
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "2.5.8";
+const APP_VERSION = "3.4";
 const CHROME_COLOR = "#F6F3EC";   // status-bar tint: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -164,16 +164,16 @@ async function downloadExport(items) {
    Five themes, built from the mockups:
      papyrus     Playful Modernism   paper, autumn red, denim · Fraunces + Inter
      vibrant     Google × Meta       blue, coral, yellow · Poppins + Inter
-     botanical   Leaves × Barley     olive, sage, clay · Lora + Inter
-     celestial   Blue Moon           twilight blue + gold · Cormorant Garamond + Inter
-     sanctuary   Lavender × Sage     lavender, blush, sage · Playfair Display + Inter
+     botanical   Leaves × Barley     olive, sage, clay · Manrope + Lato
+     celestial   Blue Moon           twilight blue + gold · Nixie One + Comfortaa
+     sanctuary   Lavender × Sage     lavender, blush, sage · Rouge Script + Klee One
 
    Illustrations are small inline SVGs in each theme's --deco var. Each theme has a HERO (top of every page) and a TILE (repeats down
    long pages), both painted on the scrolling area with background-attachment:local.
    ════════════════════════════════════════════════════════════════════════════ */
 
 const FONT_IMPORT =
-  "@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600&family=Roboto:wght@400;500;700&family=Poppins:wght@600;700&display=swap');\n";
+  "@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;500;600;700&family=Courier+Prime:wght@400&family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Klee+One:wght@400;600&family=Lato:wght@400;700&family=Manrope:wght@500;600;700;800&family=Nixie+One&family=Plus+Jakarta+Sans:wght@400&family=Rouge+Script&family=Roboto:wght@400;500;700&family=Poppins:wght@600;700&display=swap');\n";
 
 /* ───────── illustrations ─────────
    Each theme has two layers, both painted on the scrolling area so they move with the page:
@@ -436,9 +436,9 @@ const THEMES = {
       "--panel-deco": PANEL_BOTANICAL,
       "--hero-ink": "#FBF8EE",
       "--c-green": "#6F8A5C", "--c-yellow": "#C2A25E", "--c-blue": "#7C9AAE", "--c-orange": "#C47A3F",   // colour-coding for the Inbox toggles
-      "--font-display": "Lora,'Iowan Old Style',Georgia,serif",
-      "--font-body": "Inter,-apple-system,'Segoe UI',system-ui,sans-serif",
-      "--display-weight": "500",
+      "--font-display": "Manrope,'Avenir Next','Segoe UI',system-ui,sans-serif",
+      "--font-body": "Lato,-apple-system,'Segoe UI',system-ui,sans-serif",
+      "--display-weight": "700",
       "--display-transform": "none",
       "--display-spacing": "-0.01em",
       "--radius-lg": "20px",
@@ -489,11 +489,14 @@ const THEMES = {
       "--panel-deco": PANEL_CELESTIAL,
       "--hero-ink": "#FFFFFF",
       "--c-green": "#4E9A7A", "--c-yellow": "#D8BD88", "--c-blue": "#5F72BE", "--c-orange": "#E0A070",   // colour-coding for the Inbox toggles
-      "--font-display": "'Cormorant Garamond','Iowan Old Style',Garamond,Georgia,serif",
-      "--font-body": "Inter,-apple-system,'Segoe UI',system-ui,sans-serif",
-      "--display-weight": "600",
+      "--font-display": "'Nixie One','Iowan Old Style',Georgia,serif",   // page title and big card titles
+      "--font-display-sm": "Comfortaa,'Avenir Next','Segoe UI',system-ui,sans-serif",   // smaller headings
+      "--display-weight-sm": "700",
+      "--display-scale": "1.1",   // Nixie One runs small,
+      "--font-body": "Comfortaa,-apple-system,'Segoe UI',system-ui,sans-serif",
+      "--display-weight": "400",
       "--display-transform": "none",
-      "--display-spacing": "-0.005em",
+      "--display-spacing": "0.01em",
       "--radius-lg": "22px",
       "--radius-md": "15px",
       "--radius-pill": "999px",
@@ -541,11 +544,14 @@ const THEMES = {
       "--panel-deco": PANEL_SANCTUARY,
       "--hero-ink": "#FFFFFF",
       "--c-green": "#7FA283", "--c-yellow": "#E0B867", "--c-blue": "#8BA6D6", "--c-orange": "#E39A6B",   // colour-coding for the Inbox toggles
-      "--font-display": "'Playfair Display','Iowan Old Style',Georgia,serif",
-      "--font-body": "Inter,-apple-system,'Segoe UI',system-ui,sans-serif",
-      "--display-weight": "500",
+      "--font-display": "'Rouge Script',cursive,Georgia,serif",   // page title and big card titles
+      "--font-display-sm": "'Klee One','Avenir Next','Segoe UI',system-ui,sans-serif",   // smaller headings
+      "--display-weight-sm": "600",
+      "--display-scale": "1.35",   // Rouge Script runs very small,
+      "--font-body": "'Klee One',-apple-system,'Segoe UI',system-ui,sans-serif",
+      "--display-weight": "400",
       "--display-transform": "none",
-      "--display-spacing": "-0.01em",
+      "--display-spacing": "0",
       "--radius-lg": "26px",
       "--radius-md": "18px",
       "--radius-pill": "999px",
@@ -600,11 +606,14 @@ const THEMES = {
       "--dump-ink": "#FFFFFF",
       "--danger": "#D13B3B",
       "--c-green": "#4C9A6A", "--c-yellow": "#D9A21B", "--c-blue": "#3F73C8", "--c-orange": "#D98A2B",   // colour-coding for the Inbox toggles
-      "--font-display": "'Plus Jakarta Sans','Avenir Next','Segoe UI',system-ui,sans-serif",
+      "--font-display": "'Courier Prime','Courier New',Courier,monospace",   // page title and big card titles
+      "--font-display-sm": "'Plus Jakarta Sans','Avenir Next','Segoe UI',system-ui,sans-serif",   // smaller headings
+      "--display-weight-sm": "400",
+      "--display-scale": "0.88",   // Courier is wide, so the title is a little smaller,
       "--font-body": "'Plus Jakarta Sans',Inter,-apple-system,'Segoe UI',system-ui,sans-serif",
-      "--display-weight": "800",
+      "--display-weight": "400",
       "--display-transform": "none",
-      "--display-spacing": "-0.025em",
+      "--display-spacing": "-0.02em",
       "--radius-lg": "22px",
       "--radius-md": "14px",
       "--radius-pill": "999px",
@@ -638,13 +647,26 @@ const dueInfo = (due) => {
   }
   return { text: fmtShort(due), cls: "" };
 };
-// Keeps items consistent: Watching items carry no date; only Today items carry a Today position (pos) and only Watching items a Watching position (wpos)
+// Keeps items consistent: only Today items carry a Today position (pos) and only Watching items a Watching position (wpos)
 const normalizeItem = (i) => {
   let o = i;
-  if (o.status === "watching" && o.due) o = { ...o, due: null };
   if (o.status !== "today" && o.pos != null) o = { ...o, pos: null };
   if (o.status !== "watching" && o.wpos != null) o = { ...o, wpos: null };
   return o;
+};
+// ── How dates and urgency fit together (used everywhere) ──────────────────────────────────────────────────────
+//   Now   = due today (or overdue)   → lives on Today
+//   Next  = due within 3 days        → lives in Future (Inbox sets +3 days)
+//   Later = due further out          → lives in Future (Inbox sets +7 days)
+// Someday and Watching are parking places (see clearParked): neither holds an urgency, and Someday holds no date. An item gets urgency when it moves to Today or Future.
+const daysFromToday = (d) => Math.round((parseDay(d) - parseDay(iso())) / 864e5);
+const urgencyForDate = (due) => { const n = daysFromToday(due); return n <= 0 ? "now" : n <= 3 ? "next" : "later"; };
+//   Someday  : no date, no urgency (keeps effort and impact)
+//   Watching : no urgency, no effort (keeps its due date and impact)
+const clearParked = (i) => {
+  if (i.status === "watching") return { ...i, urgency: null, effort: null };
+  if (i.status === "future" && i.someday) return { ...i, due: null, urgency: null };
+  return i;
 };
 // Today's order: your manual order first; anything new (no position yet) follows, due-today ones first
 const todaySort = (list) => {
@@ -833,15 +855,15 @@ const CSS = FONT_IMPORT + `
 .cd-scroll::-webkit-scrollbar{display:none}
 
 .cd-date{color:var(--muted);font-size:14px}
-.cd-h1{font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);letter-spacing:var(--display-spacing);font-size:34px;line-height:1.08;margin:4px 0 4px}
+.cd-h1{font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);letter-spacing:var(--display-spacing);font-size:calc(34px*var(--display-scale,1));line-height:1.08;margin:4px 0 4px}
 .cd-sub{color:var(--muted);font-size:14.5px;margin:0}
-.cd-h2{font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);letter-spacing:var(--display-spacing);font-size:21px;margin:0}
+.cd-h2{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);letter-spacing:var(--display-spacing);font-size:21px;margin:0}
 .cd-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .cd-iconbtn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--accent);flex:none}
 .cd-plus{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);flex:none;box-shadow:var(--shadow)}
 
 .cd-panel{background:var(--panel);border-radius:var(--radius-lg);padding:16px;margin-top:18px}
-.cd-panel h3{font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);font-size:19px;margin:0}
+.cd-panel h3{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);font-size:19px;margin:0}
 .cd-panel p{margin:2px 0 12px;color:var(--muted);font-size:13.5px}
 .cd-dump{position:relative;background:var(--dump-bg,var(--card));border-radius:var(--radius-md)}
 .cd-dump textarea{display:block;width:100%;min-height:110px;resize:none;border:0;background:transparent;padding:14px;outline-offset:-2px;border-radius:var(--radius-md)}
@@ -869,7 +891,7 @@ const CSS = FONT_IMPORT + `
 .cd-chip{display:inline-block;padding:3px 11px;border-radius:var(--radius-pill);font-size:12.5px;font-weight:500;white-space:nowrap}
 .cd-pill{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;flex:none;border-radius:var(--radius-pill);font-size:12.5px;font-weight:600;background:var(--accent-soft);color:var(--accent)}
 .cd-empty{text-align:center;color:var(--muted);padding:30px 10px}
-.cd-empty b{display:block;color:var(--text);font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);font-size:19px;margin-bottom:4px}
+.cd-empty b{display:block;color:var(--text);font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);font-size:19px;margin-bottom:4px}
 
 .cd-nav{display:flex;border-top:1px solid var(--line);background:var(--nav-bg);padding:8px 4px calc(10px + env(safe-area-inset-bottom));backdrop-filter:blur(10px)}
 .cd-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);position:relative;padding:4px 0}
@@ -885,7 +907,7 @@ const CSS = FONT_IMPORT + `
 
 .cd-group{border-radius:var(--radius-lg);margin-top:14px;overflow:hidden;background:var(--card);box-shadow:var(--shadow)}
 .cd-ghead{display:flex;align-items:center;gap:10px;padding:13px 16px}
-.cd-ghead .t{font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);font-size:18px}
+.cd-ghead .t{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);font-size:18px}
 .cd-ghead .s{font-size:12.5px;color:var(--muted);margin-top:1px}
 .cd-gcount{margin-left:auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--card);color:var(--text);flex:none}
 .cd-gbody{padding:0 16px 4px;background:var(--card)}
@@ -893,7 +915,7 @@ const CSS = FONT_IMPORT + `
 
 .cd-row.cd-wrow{gap:14px;padding:14px 4px 14px 14px;margin-bottom:10px;border:0;border-radius:var(--radius-lg);background:var(--card);box-shadow:var(--shadow)}
 .cd-wrow .eye{width:44px;height:44px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
-.cd-wrow .cd-row-title{font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);letter-spacing:var(--display-spacing);font-size:17px;line-height:1.25}
+.cd-wrow .cd-row-title{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);letter-spacing:var(--display-spacing);font-size:17px;line-height:1.25}
 .cd-wrow .cd-meta{margin-top:5px;font-size:13.5px}
 .cd-wrow .cd-more{width:30px}
 .cd-host{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
@@ -934,12 +956,12 @@ const CSS = FONT_IMPORT + `
 .cd-card-d .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
 .cd-card-d .hd span{font-size:12.5px;color:var(--muted)}
 .cd-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 8px;text-align:center}
-.cd-stat b{display:block;font-family:var(--font-display);font-weight:var(--display-weight);font-size:30px;line-height:1.1}
+.cd-stat b{display:block;font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));font-size:30px;line-height:1.1}
 .cd-stat span{font-size:12.5px;color:var(--muted)}
 .cd-stat.warn b{color:var(--danger)}
 .cd-stat.hot b{color:var(--accent)}
 .cd-focus{display:flex;align-items:center;gap:16px}
-.cd-focus .n{font-family:var(--font-display);font-weight:var(--display-weight);font-size:44px;color:var(--accent);line-height:1}
+.cd-focus .n{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));font-size:44px;color:var(--accent);line-height:1}
 .cd-bar{flex:1;height:9px;border-radius:5px;background:var(--panel);overflow:hidden;margin:6px 0 8px}
 .cd-bar i{display:block;height:100%;border-radius:5px;transition:width .3s}
 .cd-cat{display:grid;grid-template-columns:88px 1fr 22px;align-items:center;gap:10px;margin:9px 0;font-size:13.5px}
@@ -963,7 +985,7 @@ const CSS = FONT_IMPORT + `
 .cd-pills{display:flex;gap:6px}
 .cd-pills .cd-segbtn{flex:1;text-align:center;padding:9px 4px}
 .cd-two2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.cd-stitle{font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);font-size:22px;margin:0;flex:1;min-width:0;overflow-wrap:anywhere}
+.cd-stitle{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);font-size:22px;margin:0;flex:1;min-width:0;overflow-wrap:anywhere}
 .cd-menu button{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;border-bottom:1px solid var(--line);text-align:left;font-weight:500}
 .cd-menu button:last-child{border-bottom:0}
 .cd-menu .del{color:var(--danger)}
@@ -991,7 +1013,7 @@ const CSS = FONT_IMPORT + `
 .cd-evebtn{display:flex;align-items:center;gap:12px;width:100%;padding:11px 16px 11px 12px;border-radius:var(--radius-lg);background:var(--eve-bg,var(--btn-bg));color:var(--eve-ink,var(--btn-ink));text-align:left;box-shadow:var(--shadow)}
 .cd-evebtn .ic{width:38px;height:38px;border-radius:50%;background:color-mix(in srgb,currentColor 16%,transparent);display:grid;place-items:center;flex:none}
 .cd-evebtn .tx{flex:1;min-width:0}
-.cd-evebtn b{display:block;font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);font-size:17px;line-height:1.2}
+.cd-evebtn b{display:block;font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);font-size:17px;line-height:1.2}
 .cd-evebtn small{display:block;opacity:.88;font-size:12.5px;margin-top:1px}
 .cd-evebtn.closed{background:var(--panel);color:var(--text);box-shadow:none}
 .cd-evebtn.closed .ic{background:var(--accent);color:var(--accent-ink)}
@@ -1004,9 +1026,9 @@ const CSS = FONT_IMPORT + `
 .cd-evego.pri small{color:inherit;opacity:.85}
 .cd-evego.pri svg{color:inherit}
 .cd-sumrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.cd-sumrow b{font-family:var(--font-display);font-weight:var(--display-weight);font-size:18px}
+.cd-sumrow b{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));font-size:18px}
 .cd-scroll.lock{overflow:hidden;touch-action:none;overscroll-behavior:none}
-@media(max-height:720px){.cd-h1{font-size:28px}.cd-stack2{margin-top:12px}}
+@media(max-height:720px){.cd-h1{font-size:calc(28px*var(--display-scale,1))}.cd-stack2{margin-top:12px}}
 .cd-stack2{position:relative;margin-top:18px}
 .cd-under{position:absolute;inset:0;background:var(--card);border-radius:var(--radius-lg);box-shadow:var(--shadow);border:1px solid var(--line);transform-origin:50% 100%;will-change:transform}
 .cd-selwrap{position:relative}
@@ -1048,7 +1070,7 @@ const CSS = FONT_IMPORT + `
 .cd-tleft{display:grid;grid-template-rows:1fr 1fr;gap:12px}
 .cd-tcard{position:relative;display:block;text-align:left;border-radius:var(--radius-lg);padding:14px 14px 12px;border:1px solid var(--line);color:var(--text);min-width:0}
 .cd-tcard .ic{display:block}
-.cd-tcard b{display:block;font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);letter-spacing:var(--display-spacing);font-size:20px;line-height:1.1;margin-top:10px}
+.cd-tcard b{display:block;font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);letter-spacing:var(--display-spacing);font-size:20px;line-height:1.1;margin-top:10px}
 .cd-tcard small{display:block;color:var(--muted);font-size:12.5px;line-height:1.25;margin-top:3px}
 .cd-tcard .go{position:absolute;top:11px;right:11px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--text) 8%,transparent);color:var(--muted)}
 .cd-tcard.someday{background:var(--q2-bg)}
@@ -1191,7 +1213,7 @@ const CSS = FONT_IMPORT + `
 .cd-quad .cd-tcard.watch{grid-area:watch}
 .cd-quad .cd-prio{grid-area:prio;position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:3px;width:auto;height:auto;min-height:104px;margin:0;padding:12px 14px;border-radius:var(--radius-lg);text-align:left}
 .cd-quad .cd-prio .go{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,currentColor 12%,transparent)}
-.cd-quad .cd-prio b{font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);font-size:20px;line-height:1.1}
+.cd-quad .cd-prio b{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);font-size:20px;line-height:1.1}
 .cd-quad .cd-prio small{font-size:12px;font-weight:500;opacity:.85}
 .cd-toggles{grid-area:tog;display:flex;flex-direction:column;justify-content:center;padding:4px 12px;border-radius:var(--radius-lg);background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
 .cd-toggles .cd-trow{padding:5px 0;color:var(--text)}
@@ -1220,7 +1242,18 @@ const CSS = FONT_IMPORT + `
 .cd-quad.locked .cd-prio.ready{box-shadow:none}
 .cd-catrow.shake{animation:cd-shake .45s}
 .cd.kb .cd-nav,.cd.kb .cd-evebar{display:none}
+.cd.kb{padding-bottom:var(--kb)}
+.cd.kb .cd-scrim{bottom:var(--kb)}
+.cd-quad .cd-tcard small{display:block;font-size:11.5px;line-height:1.25}   /* one-liners stay visible on short screens too */
+/* Radar: a Watching / Someday switch under the header */
+.cd-parkbar{flex:none;padding:12px 20px 2px}
+.cd-parkbar .cd-seg{margin-top:0;gap:8px}
+.cd-parkbar .cd-segbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.cd-segbtn .cd-cnt{margin-left:2px;font-weight:700;opacity:.75}
+/* Clean has no bold anywhere: every weight is Regular (400), on every screen, sheet, tag and button */
+.cd[data-theme="clean"],.cd[data-theme="clean"] *{font-weight:400 !important}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
+body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
 .cd button,.cd select{touch-action:manipulation}
 .cd-nav{-webkit-backdrop-filter:blur(10px)}
 .cd-scroll{animation:cd-fade .18s ease-out}
@@ -1549,11 +1582,12 @@ function CatText({ name, catStyle }) {
 
 function ItemRow({ item, ctx, trailing, hideDue = false, focusLabel = false, rowProps }) {
   const done = item.status === "done";
-  const showDue = item.due && !hideDue && !done;   // finished tasks don't show a due date
+  const parked = !!item.someday || item.status === "watching";
+  const showDue = item.due && !hideDue && !done && !item.someday;   // finished tasks don't show a due date
   const di = item.due ? (done ? { text: fmtShort(item.due), cls: "" } : dueInfo(item.due)) : null;
   const isFocus = focusLabel && item.effort === "deep" && item.impact === "high";
-  const showImpact = !!item.impact && !focusLabel && !done;
-  const urgent = (item.urgency === "now" || !!item.urgent) && !done;
+  const showImpact = !!item.impact && !focusLabel && !done && item.status !== "watching";
+  const urgent = (item.urgency === "now" || !!item.urgent) && !done && !parked && (!item.due || item.due <= iso());
   const hasMeta = item.category || showDue || isFocus || showImpact || urgent;
   const { className: extraCls = "", ...rp } = rowProps || {};
   return (
@@ -1669,7 +1703,7 @@ function TodayView({ ctx, items }) {
 const AUTO_SAVE = false;   // true = a card saves itself once category, effort and impact are set. Off: only the Prioritize card sorts it.
 
 // The task is the star: big type that scales down for long titles
-const inboxTitleSize = (t) => { const n = (t || "").length; return n <= 16 ? 42 : n <= 30 ? 36 : n <= 50 ? 30 : n <= 80 ? 25 : 21; };
+const inboxTitleSize = (t) => { const n = (t || "").length; const px = n <= 16 ? 42 : n <= 30 ? 36 : n <= 50 ? 30 : n <= 80 ? 25 : 21; return `calc(${px}px * min(var(--display-scale, 1), 1.2))`; };
 
 function InboxView({ ctx, items }) {
   const [skipped, setSkipped] = useState([]);
@@ -1765,7 +1799,7 @@ function InboxView({ ctx, items }) {
     setFront(null);
     ctx.patchItem(cur.id, { status: "watching", category: draft.category || cur.category });
     setHandled((h) => h + 1);
-    ctx.toast("Moved to Watching");
+    ctx.toast("Moved to Watching", { label: "View", run: () => ctx.goRadar("watching") });
   };
   const park = () => {
     if (!cur) return;
@@ -1776,7 +1810,7 @@ function InboxView({ ctx, items }) {
       category: draft.category || cur.category, effort: draft.effort || cur.effort, impact: draft.impact || cur.impact,
     });
     setHandled((h) => h + 1);
-    ctx.toast("Parked in Someday");
+    ctx.toast("Moved to Someday", { label: "View", run: () => ctx.goRadar("someday") });
   };
   const del = () => {
     if (!cur) return;
@@ -1934,7 +1968,7 @@ function InboxView({ ctx, items }) {
             {editing ? (
               <div className="cd-card-title">
                 <textarea ref={editRef} className="cd-card-edit" rows={1} autoFocus value={editText} maxLength={200}
-                  style={{ "--edit-size": inboxTitleSize(editText) + "px" }}
+                  style={{ "--edit-size": inboxTitleSize(editText) }}
                   onChange={(e) => setEditText(e.target.value)} onBlur={commitEdit}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.blur(); } }}
                   enterKeyHint="done" aria-label="Card text" />
@@ -1980,12 +2014,12 @@ function InboxView({ ctx, items }) {
           <button className="cd-tcard someday" onClick={() => fling("park")}>
             <Sparkles size={26} className="ic" />
             <span className="go"><ChevRight /></span>
-            <b>Someday</b><small>Save for later</small>
+            <b>Someday</b><small>Save it. No date</small>
           </button>
           <button className="cd-tcard watch" onClick={() => fling("watch")}>
             <Eye size={26} className="ic" />
             <span className="go"><ChevRight /></span>
-            <b>Watch it</b><small>Track this</small>
+            <b>Watch it</b><small>Track it. No date</small>
           </button>
         </div>
       </div>
@@ -2004,7 +2038,6 @@ function FutureView({ ctx, items }) {
   const attnIds = new Set(attn.map((i) => i.id));
   const matrixItems = base.filter((i) => !i.someday && i.effort && i.impact && !attnIds.has(i.id));
   const calItems = base.filter((i) => !i.someday && i.due).sort((a, b) => a.due.localeCompare(b.due));
-  const somedayItems = base.filter((i) => i.someday);
   const undated = base.filter((i) => i.status === "future" && !i.someday && !i.due).length;
 
   const toToday = (i) => i.status === "done" ? null : (
@@ -2032,7 +2065,7 @@ function FutureView({ ctx, items }) {
     <div className="cd-scroll">
 
       <div className="cd-seg">
-        {[["matrix", "Matrix"], ["calendar", "Calendar"], ["someday", "Someday"]].map(([k, l]) => (
+        {[["matrix", "Matrix"], ["calendar", "Calendar"]].map(([k, l]) => (
           <button key={k} className={"cd-segbtn" + (mode === k ? " on" : "")} onClick={() => setMode(k)}>{l}</button>
         ))}
       </div>
@@ -2106,23 +2139,6 @@ function FutureView({ ctx, items }) {
         </>
       )}
 
-      {mode === "someday" && (
-        <>
-          {somedayItems.length > 0 && (
-            <div className="cd-group">
-              <div className="cd-ghead" style={{ background: "var(--q2-bg)" }}>
-                <Sparkles size={22} style={{ color: "var(--q2)", flex: "none" }} />
-                <div><div className="t">Someday</div><div className="s">Ideas parked for later.</div></div>
-                <span className="cd-gcount">{somedayItems.length}</span>
-              </div>
-              <div className="cd-gbody">
-                {somedayItems.map((i) => <ItemRow key={i.id} item={i} ctx={ctx} trailing={toToday(i)} />)}
-              </div>
-            </div>
-          )}
-          {somedayItems.length === 0 && <div className="cd-empty"><b>Someday is empty.</b>Park ideas here from your Inbox, or from an item’s menu.</div>}
-        </>
-      )}
     </div>
     </>
   );
@@ -2172,7 +2188,7 @@ function WatchGroup({ g, ctx, scrollRef, onSent }) {
     setSw({ id: item.id, x: -w, mode: "fly", armed: true, h });
     setTimeout(() => setSw({ id: item.id, x: -w, mode: "collapse", armed: true, h }), 200);
     setTimeout(() => {
-      ctx.patchItem(item.id, { status: "inbox", effort: null, impact: null });   // back to Inbox to get its effort and impact
+      ctx.patchItem(item.id, { status: "inbox", urgency: null });   // back to Inbox, labels pre-filled, to get urgency and a date
       onSent(item);   // the Undo button at the top of the page remembers it
       setSw(null);
       leaving.current = false;
@@ -2286,6 +2302,7 @@ function WatchGroup({ g, ctx, scrollRef, onSent }) {
                 <Check_ done={done} onClick={() => ctx.toggleDone(i.id)} label={done ? "Mark not done" : "Mark done"} />
                 <button className="cd-row-main" onClick={() => ctx.openMenu(i.id)} aria-label={`Options for ${i.title}`}>
                   <span className="cd-row-title">{i.title}</span>
+                  {i.due && !done && <span className="cd-meta"><span className={dueInfo(i.due).cls}>{dueInfo(i.due).text}</span></span>}
                 </button>
                 <button className="cd-more" onClick={() => ctx.openMenu(i.id)} aria-label="More actions"><MoreHorizontal size={20} /></button>
               </div>
@@ -2297,7 +2314,7 @@ function WatchGroup({ g, ctx, scrollRef, onSent }) {
   );
 }
 
-function WatchingView({ ctx, items }) {
+function WatchingList({ ctx, items }) {
   const scrollRef = useRef(null);
   const [history, setHistory] = useState([]);   // cards sent to Inbox from here, newest last, so each can be undone
   const onSent = (item) => setHistory((h) => [...h.slice(-19), item]);
@@ -2317,8 +2334,6 @@ function WatchingView({ ctx, items }) {
     .map((name) => ({ name, items: list.filter((i) => (i.category && known.has(i.category) ? i.category : null) === name) }))
     .filter((g) => g.items.length);
   return (
-    <>
-      <PageHead ctx={ctx} title="Watching" sub="Swipe left for Inbox · hold to reorder" />
     <div className="cd-host">
     <div className="cd-scroll" ref={scrollRef} style={{ paddingBottom: 110 }}>
       <div style={{ marginTop: 6 }}>
@@ -2332,6 +2347,57 @@ function WatchingView({ ctx, items }) {
       <button className="cd-plus" onClick={() => ctx.setSheet({ type: "edit", id: null, status: "watching" })} aria-label="Add watched item"><Plus size={26} /></button>
     </div>
     </div>
+  );
+}
+
+// Someday ideas: one card, newest parking first
+function SomedayList({ ctx, items }) {
+  const list = items.filter((i) => i.someday && (i.status === "future" || (i.status === "done" && i.doneFrom === "future" && ctx.justDone.has(i.id))));
+  const toToday = (i) => i.status === "done" ? null : (
+    <button className="cd-pill" onClick={() => { ctx.moveToToday(i.id); ctx.toast("Moved to Today"); }}>
+      <ArrowRight size={12} /> Today
+    </button>
+  );
+  return (
+    <div className="cd-scroll">
+      {list.length > 0 && (
+        <div className="cd-group" style={{ marginTop: 4 }}>
+          <div className="cd-ghead" style={{ background: "var(--q2-bg)" }}>
+            <Sparkles size={22} style={{ color: "var(--q2)", flex: "none" }} />
+            <div><div className="t">Someday</div><div className="s">Ideas for later. No date.</div></div>
+            <span className="cd-gcount">{list.length}</span>
+          </div>
+          <div className="cd-gbody">
+            {list.map((i) => <ItemRow key={i.id} item={i} ctx={ctx} trailing={toToday(i)} />)}
+          </div>
+        </div>
+      )}
+      {list.length === 0 && <div className="cd-empty"><b>Someday is empty.</b>Park ideas here from your Inbox, or from an item’s menu.</div>}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════ RADAR ════════════════════════════════════
+   Watching (waiting on something) and Someday (ideas for later) in one place: things on your radar, not on your plate. Neither has an urgency. */
+
+function RadarView({ ctx, items }) {
+  const mode = ctx.radarMode;
+  const watchingN = items.filter((i) => i.status === "watching").length;
+  const somedayN = items.filter((i) => i.status === "future" && i.someday).length;
+  const tabs = [["watching", "Watching", Eye, watchingN], ["someday", "Someday", Sparkles, somedayN]];
+  return (
+    <>
+      <PageHead ctx={ctx} title="Radar" sub={mode === "watching" ? "Swipe left for Inbox · hold to reorder" : "Ideas for later. No date, no urgency."} />
+      <div className="cd-parkbar">
+        <div className="cd-seg" role="tablist" aria-label="Radar lists">
+          {tabs.map(([k, l, Icon, n]) => (
+            <button key={k} role="tab" aria-selected={mode === k} className={"cd-segbtn" + (mode === k ? " on" : "")} onClick={() => ctx.setRadarMode(k)}>
+              <Icon size={15} />{l}<span className="cd-cnt">{n}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      {mode === "watching" ? <WatchingList ctx={ctx} items={items} /> : <SomedayList ctx={ctx} items={items} />}
     </>
   );
 }
@@ -2353,7 +2419,7 @@ function Donut({ segs, total }) {
         acc += len;
         return s.count ? el : null;
       })}
-      <text x="50" y="49" textAnchor="middle" fontSize="19" fontWeight="700" fill="var(--text)" style={{ fontFamily: "var(--font-display)" }}>{total}</text>
+      <text x="50" y="49" textAnchor="middle" fontSize="19" fontWeight="700" fill="var(--text)" style={{ fontFamily: "var(--font-display-sm, var(--font-display))" }}>{total}</text>
       <text x="50" y="62" textAnchor="middle" fontSize="8" fill="var(--muted)">items</text>
     </svg>
   );
@@ -2363,9 +2429,10 @@ function DashboardView({ ctx, items }) {
   const t = iso();
   const open = items.filter((i) => i.status !== "done");
   const finished = items.filter((i) => i.status === "done" && isToday(i.doneAt)).length;
-  const dueToday = open.filter((i) => i.due === t).length;
-  const overdue = open.filter((i) => i.due && i.due < t).length;
-  const future = open.filter((i) => i.status === "future").length;
+  const dated = open.filter((i) => !i.someday);   // Someday items are parked: no date, so they never count as due or overdue
+  const dueToday = dated.filter((i) => i.due === t).length;
+  const overdue = dated.filter((i) => i.due && i.due < t).length;
+  const future = dated.filter((i) => i.status === "future").length;
   const watching = open.filter((i) => i.status === "watching").length;
 
   const focus = items.filter((i) => i.effort === "deep" && i.impact === "high" &&
@@ -2378,7 +2445,7 @@ function DashboardView({ ctx, items }) {
   byCat.sort((a, b) => b.count - a.count);
   const maxCat = Math.max(1, ...byCat.map((c) => c.count));
 
-  const matrix = items.filter((i) => (i.status === "future" || i.status === "today") && i.effort && i.impact);   // open Today + Future items that have both labels
+  const matrix = items.filter((i) => ((i.status === "future" && !i.someday) || i.status === "today") && i.effort && i.impact);   // open Today + Future items that have both labels
   const segs = QUADS.map((q) => ({ key: q.key, title: q.title, color: `var(--q${q.n})`, count: matrix.filter((i) => quadOf(i) === q.key).length }));
   const quadLabel = { "quick-high": "Quick + High", "deep-high": "Deep + High", "quick-low": "Quick + Low", "deep-low": "Deep + Low" };
 
@@ -2527,18 +2594,18 @@ function CompletedView({ ctx, items }) {
 /* ═══════════════════════════════ SHEETS ═══════════════════════════════════ */
 
 function ItemMenu({ ctx, item, close }) {
-  const act = (fn, msg) => () => { fn(); close(); if (msg) ctx.toast(msg); };
-  const p = (patch, msg) => act(() => ctx.patchItem(item.id, patch), msg);
+  const act = (fn, msg, view) => () => { fn(); close(); if (msg) ctx.toast(msg, view ? { label: "View", run: () => ctx.goRadar(view) } : undefined); };
+  const p = (patch, msg, view) => act(() => ctx.patchItem(item.id, patch), msg, view);
   const rows = [];
   const done = item.status === "done";
-  if (!done && item.status !== "watching") rows.push({ Icon: Calendar, label: "Edit date", run: () => ctx.setSheet({ type: "date", id: item.id }) });
+  if (!done && !item.someday) rows.push({ Icon: Calendar, label: "Edit date", run: () => ctx.setSheet({ type: "date", id: item.id }) });
   if (item.status !== "today" && item.status !== "watching" && !done) rows.push({ Icon: ArrowRight, label: "Move to Today", run: act(() => ctx.moveToToday(item.id), "Moved to Today") });
   if (item.status === "today") rows.push({ Icon: ArrowUp, label: "Move to top", run: act(() => ctx.moveToTop(item.id), "Moved to the top") });
-  if (item.status === "today") rows.push({ Icon: CalendarDays, label: "Move to Future", run: p({ status: "future" }, "Moved to Future") });
-  if (item.status === "future" && !item.someday) rows.push({ Icon: Sparkles, label: "Move to Someday", run: p({ someday: true }, "Parked in Someday") });
-  if (item.status === "future" && item.someday) rows.push({ Icon: Sparkles, label: "Move out of Someday", run: p({ someday: false }, "Back in the matrix") });
-  if (item.status === "today" || item.status === "future") rows.push({ Icon: Eye, label: "Mark as Watching", run: p({ status: "watching", someday: false }, "Moved to Watching") });
-  if (item.status === "watching") rows.push({ Icon: LayoutGrid, label: "Send to Inbox", run: p({ status: "inbox", effort: null, impact: null }, "Sent to Inbox") });
+  if (item.status === "today") rows.push({ Icon: CalendarDays, label: "Move to Future", run: p({ status: "future", urgency: "later", due: offsetDay(7) }, `Moved to Future · Later, due ${fmtShort(offsetDay(7))}`) });
+  if (item.status === "future" && !item.someday) rows.push({ Icon: Sparkles, label: "Move to Someday", run: p({ someday: true }, "Moved to Someday", "someday") });
+  if (item.status === "future" && item.someday) rows.push({ Icon: Sparkles, label: "Move out of Someday", run: p({ status: "inbox", someday: false, urgency: null, due: null }, "Sent to Inbox to set urgency") });
+  if (item.status === "today" || item.status === "future") rows.push({ Icon: Eye, label: "Mark as Watching", run: p({ status: "watching", someday: false }, "Moved to Watching", "watching") });
+  if (item.status === "watching") rows.push({ Icon: LayoutGrid, label: "Send to Inbox", run: p({ status: "inbox", urgency: null }, "Sent to Inbox") });
   if (done) rows.push({ Icon: RotateCcw, label: "Restore", run: act(() => ctx.toggleDone(item.id), "Restored") });
   rows.push({ Icon: Pencil, label: "Edit details", run: () => ctx.setSheet({ type: "edit", id: item.id }) });
   rows.push({ Icon: Trash2, label: "Delete", cls: "del", run: act(() => ctx.removeItem(item.id), "Deleted") });
@@ -2557,7 +2624,7 @@ function ItemMenu({ ctx, item, close }) {
 
 function DateEditor({ ctx, item, close }) {
   const [due, setDue] = useState(item.due || "");
-  const save = () => { if (!due) return; ctx.patchItem(item.id, { due }); close(); ctx.toast("Date saved"); };
+  const save = () => { if (!due) return; ctx.patchItem(item.id, { due, urgency: urgencyForDate(due) }); close(); ctx.toast("Date saved"); };
   const quick = [["Today", offsetDay(0)], ["Tomorrow", offsetDay(1)], ["Next week", offsetDay(7)]];
   return (
     <Sheet title="Edit date" onClose={close}>
@@ -2570,7 +2637,7 @@ function DateEditor({ ctx, item, close }) {
       <div className="cd-fl">Due date</div>
       <input className="cd-input" type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Due date" />
       <button className="cd-primary" disabled={!due} onClick={save}>Save date</button>
-      {item.due && <button className="cd-ghost" onClick={() => { ctx.patchItem(item.id, { due: null }); close(); ctx.toast("Date cleared"); }}>Clear date</button>}
+      {item.due && <button className="cd-ghost" onClick={() => { ctx.patchItem(item.id, { due: null, urgency: null }); close(); ctx.toast("Date cleared"); }}>Clear date</button>}
     </Sheet>
   );
 }
@@ -2585,8 +2652,15 @@ function Editor({ ctx, item, initialStatus, close }) {
   const save = () => {
     const title = d.title.trim();
     if (!title) return;
-    const payload = { ...d, title, due: d.status === "watching" ? null : (d.due || null),
+    const parked = d.status === "watching" || (d.status === "future" && !!item?.someday);
+    const noDate = d.status === "future" && !!item?.someday;   // Someday has no date; Watching may have one
+    const payload = { ...d, title, due: noDate ? null : (d.due || null),
       someday: d.status === "future" || d.status === "done" ? !!item?.someday : false };
+    if (!parked && d.due !== (item?.due || "")) payload.urgency = d.due ? urgencyForDate(d.due) : null;   // the date changed, so urgency follows it
+    else if (!parked && item && d.status !== item.status) {                                              // moved between Today and Future: the date follows
+      if (d.status === "today") { payload.urgency = "now"; payload.due = iso(); }
+      else if (d.status === "future") { payload.urgency = "later"; payload.due = offsetDay(7); }
+    } else if (!parked && !item && d.status === "today" && !d.due) { payload.urgency = "now"; payload.due = iso(); }   // new task added straight to Today
     delete payload.doneOn;
     if (item?.status === "done" && d.doneOn) {   // a new completion date keeps the original time of day
       const [y, m, dd] = d.doneOn.split("-").map(Number);
@@ -2621,13 +2695,12 @@ function Editor({ ctx, item, initialStatus, close }) {
       )}
       <div className="cd-fl">Category</div>
       <CategoryPicker categories={ctx.categories} value={d.category} onChange={(c) => set("category", c)} onAdd={ctx.addCategory} />
-      {d.status !== "watching" && (
-        <div className="cd-two2">
-          <div><div className="cd-fl">Effort</div><Pills options={EFFORT_OPTS} value={d.effort} onChange={(v) => set("effort", v)} /></div>
-          <div><div className="cd-fl">Impact</div><Pills options={IMPACT_OPTS} value={d.impact} onChange={(v) => set("impact", v)} /></div>
-        </div>
-      )}
-      {d.status !== "watching" && (
+      <div className="cd-two2">
+        {d.status !== "watching" && <div><div className="cd-fl">Effort</div><Pills options={EFFORT_OPTS} value={d.effort} onChange={(v) => set("effort", v)} /></div>}
+        <div><div className="cd-fl">Impact</div><Pills options={IMPACT_OPTS} value={d.impact} onChange={(v) => set("impact", v)} /></div>
+      </div>
+      {item?.someday && d.status === "future" && <div className="cd-hint" style={{ textAlign: "left" }}>Someday items have no date. Move it to Today, or out of Someday, to date it.</div>}
+      {!(d.status === "future" && item?.someday) && (
         <>
           <div className="cd-fl">Due date</div>
           <input className="cd-input" type="date" value={d.due} onChange={(e) => set("due", e.target.value)} aria-label="Due date" />
@@ -2642,7 +2715,7 @@ function Editor({ ctx, item, initialStatus, close }) {
 function Evening({ ctx, items, close }) {
   const [queue] = useState(() => todaySort(items.filter((i) => i.status === "today")).map((i) => i.id));
   const [idx, setIdx] = useState(0);
-  const [log, setLog] = useState({ tomorrow: 0, future: 0, watching: 0 });
+  const [log, setLog] = useState({ tomorrow: 0, week: 0, future: 0, watching: 0 });
   const [history, setHistory] = useState([]);   // every choice, so each can be undone
   const [leaving, setLeaving] = useState(false);
   const [enterFrom, setEnterFrom] = useState(1); // 1 = new card slides in from the right, -1 = undo brings it back from the left
@@ -2654,14 +2727,21 @@ function Evening({ ctx, items, close }) {
   // If an item vanished mid-flow, skip past it
   useEffect(() => { if (inFlow && !cur) setIdx((i) => i + 1); }, [inFlow, cur]);
 
+  // the same dates the Inbox urgency toggle uses: Next = +3 days, Later = +7 days
+  const dueFor = (v) => offsetDay(URGENCY_OPTS.find((o) => o.v === v).days);
+  const snapOf = (c) => ({ status: c.status, due: c.due, someday: c.someday, doneAt: c.doneAt, doneFrom: c.doneFrom, urgency: c.urgency || null, effort: c.effort || null, impact: c.impact || null });
+  // Tomorrow = Now: the task stays on the deck and its date becomes tomorrow, so it reads "due today" when tomorrow comes
+  const rollToTomorrow = { urgency: "now", due: offsetDay(1) };
   const choose = (kind) => {
     if (!cur || leaving) return;
-    const before = { status: cur.status, due: cur.due, someday: cur.someday, doneAt: cur.doneAt, doneFrom: cur.doneFrom };
+    const before = snapOf(cur);
     const id = cur.id, at = idx;
     setLeaving(true);                       // the card slides away first...
     setTimeout(() => {                      // ...then the next one arrives
       if (kind === "done") ctx.toggleDone(id);
-      if (kind === "future") ctx.patchItem(id, { status: "future" });
+      if (kind === "tomorrow") ctx.patchItem(id, rollToTomorrow);   // Now
+      if (kind === "week") ctx.patchItem(id, { status: "future", someday: false, urgency: "next", due: dueFor("next") });     // Next
+      if (kind === "future") ctx.patchItem(id, { status: "future", someday: false, urgency: "later", due: dueFor("later") });   // Later
       if (kind === "watching") ctx.patchItem(id, { status: "watching" });
       if (kind !== "done") setLog((l) => ({ ...l, [kind]: l[kind] + 1 }));
       setHistory((h) => [...h, { kind, id, before, idxBefore: at }]);
@@ -2673,7 +2753,9 @@ function Evening({ ctx, items, close }) {
   const keepRest = () => {
     if (leaving) return;
     const n = queue.length - idx;
-    setHistory((h) => [...h, { kind: "rest", n, idxBefore: idx }]);
+    const befores = queue.slice(idx).map((id) => items.find((x) => x.id === id)).filter(Boolean).map((c) => ({ id: c.id, before: snapOf(c) }));
+    befores.forEach((b) => ctx.patchItem(b.id, rollToTomorrow));   // every remaining task rolls to tomorrow
+    setHistory((h) => [...h, { kind: "rest", n, idxBefore: idx, befores }]);
     setLog((l) => ({ ...l, tomorrow: l.tomorrow + n }));
     setIdx(queue.length);
   };
@@ -2682,6 +2764,7 @@ function Evening({ ctx, items, close }) {
     const e = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
     if (e.id) ctx.patchItem(e.id, e.before);                                    // put the task back as it was
+    if (e.befores) e.befores.forEach((b) => ctx.patchItem(b.id, b.before));       // ...or all of them, for "keep the rest"
     if (e.kind === "rest") setLog((l) => ({ ...l, tomorrow: l.tomorrow - e.n }));
     else if (e.kind !== "done") setLog((l) => ({ ...l, [e.kind]: l[e.kind] - 1 }));
     setEnterFrom(-1);
@@ -2703,9 +2786,9 @@ function Evening({ ctx, items, close }) {
           <Chip name={cur.category} catStyle={ctx.catStyle} />
         </div>
         <div className="cd-evegrid">
-          <button className="cd-evego pri" onClick={() => choose("done")}><Check size={20} />Done<small>I finished it</small></button>
-          <button className="cd-evego" onClick={() => choose("tomorrow")}><Sun size={20} />Tomorrow<small>Stays on the deck</small></button>
-          <button className="cd-evego" onClick={() => choose("future")}><CalendarDays size={20} />Future<small>Not this week</small></button>
+          <button className="cd-evego pri" onClick={() => choose("tomorrow")}><Sun size={20} />Tomorrow<small>Now · stays on deck</small></button>
+          <button className="cd-evego" onClick={() => choose("week")}><Calendar size={20} />This week<small>Next · {fmtShort(dueFor("next"))}</small></button>
+          <button className="cd-evego" onClick={() => choose("future")}><CalendarDays size={20} />Future<small>Later · {fmtShort(dueFor("later"))}</small></button>
           <button className="cd-evego" onClick={() => choose("watching")}><Eye size={20} />Watch<small>Check back later</small></button>
         </div>
         {queue.length - idx > 1 && <button className="cd-ghost" onClick={keepRest}>Keep the rest for tomorrow</button>}
@@ -2721,6 +2804,7 @@ function Evening({ ctx, items, close }) {
   const rows = [
     ["Finished today", finished],
     ["Kept for tomorrow", log.tomorrow],
+    ["Moved to this week", log.week],
     ["Moved to Future", log.future],
     ["Moved to Watching", log.watching],
   ].filter(([, n]) => n > 0);
@@ -2876,7 +2960,7 @@ const TABS = [
   { k: "today", label: "Today", Icon: CheckCircle2 },
   { k: "inbox", label: "Inbox", Icon: Inbox },
   { k: "future", label: "Future", Icon: CalendarDays },
-  { k: "watching", label: "Watching", Icon: Timer },
+  { k: "radar", label: "Radar", Icon: Radar },
   { k: "dashboard", label: "Dashboard", Icon: BarChart3 },
 ];
 
@@ -2890,6 +2974,7 @@ export default function App() {
   const stateRef = useRef(null); stateRef.current = state;
   const lockedRef = useRef(false);            // true when saved data exists but couldn't be read: never save over it
   const [burst, setBurst] = useState(0);        // confetti
+  const [radarMode, setRadarMode] = useState("watching");   // which Radar list is showing
   const burstTimer = useRef(null);
   const [dayKey, setDayKey] = useState(iso());
   const [justDone, setJustDone] = useState(() => new Set());   // finished during this visit to a tab; cleared when you switch tabs
@@ -2921,23 +3006,20 @@ export default function App() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
+    let closeTimer = null;
     const f = () => {
-      const kb = vv.scale < 1.05 && window.innerHeight - vv.height > 120;
-      setVvh(kb ? { h: vv.height, top: vv.offsetTop } : null);
-      if (kb && window.scrollY) window.scrollTo(0, 0);
+      const kbh = Math.round(window.innerHeight - vv.height - vv.offsetTop);   // keyboard height
+      const open = vv.scale < 1.05 && kbh > 120;
+      if (window.scrollY) window.scrollTo(0, 0);   // the page itself must never scroll
+      clearTimeout(closeTimer);
+      if (open) setVvh(kbh);
+      // when the keyboard closes, wait for it to finish sliding down before the bottom bars come back
+      else closeTimer = setTimeout(() => setVvh(null), 240);
     };
     f();
     vv.addEventListener("resize", f);
     vv.addEventListener("scroll", f);
-    // when the keyboard opens, bring the field you're typing in into view
-    const reveal = () => {
-      setTimeout(() => {
-        const a = document.activeElement;
-        if (a && (a.tagName === "TEXTAREA" || a.tagName === "INPUT") && a.scrollIntoView) a.scrollIntoView({ block: "center", behavior: "smooth" });
-      }, 250);
-    };
-    vv.addEventListener("resize", reveal);
-    return () => { vv.removeEventListener("resize", f); vv.removeEventListener("scroll", f); vv.removeEventListener("resize", reveal); };
+    return () => { clearTimeout(closeTimer); vv.removeEventListener("resize", f); vv.removeEventListener("scroll", f); };
   }, []);
 
   useEffect(() => {
@@ -3042,6 +3124,8 @@ export default function App() {
     lastBackupAt: state.lastBackupAt,
     unsorted: items.filter(isUnlabeled).length,
     goTab: (k) => { setTab(k); setJustDone(new Set()); },
+    radarMode, setRadarMode,
+    goRadar: (mode) => { setRadarMode(mode); setTab("radar"); setJustDone(new Set()); },
     cleaned: state.cleanedOn === iso(),
     markCleaned: () => { celebrate(); update(() => ({ cleanedOn: iso() })); },
     openMenu: (id) => setSheet({ type: "menu", id }),
@@ -3050,10 +3134,10 @@ export default function App() {
       return theme.catPalette[idx % theme.catPalette.length];
     },
     addItem: (p) => update((s) => ({
-      items: [...s.items, normalizeItem({ id: uid(), title: "", category: null, effort: null, impact: null, status: "inbox", due: null,
-        someday: false, createdAt: Date.now(), doneAt: null, doneFrom: null, ...p })],
+      items: [...s.items, normalizeItem(clearParked({ id: uid(), title: "", category: null, effort: null, impact: null, status: "inbox", due: null,
+        someday: false, createdAt: Date.now(), doneAt: null, doneFrom: null, ...p }))],
     })),
-    patchItem: (id, patch) => update((s) => ({ items: s.items.map((i) => (i.id === id ? normalizeItem({ ...i, ...patch }) : i)) })),
+    patchItem: (id, patch) => update((s) => ({ items: s.items.map((i) => (i.id === id ? normalizeItem(clearParked({ ...i, ...patch })) : i)) })),
     reorderToday: (ids) => update((s) => ({ items: s.items.map((i) => { const k = ids.indexOf(i.id); return k >= 0 ? { ...i, pos: k } : i; }) })),
     reorderWatching: (ids) => update((s) => ({ items: s.items.map((i) => { const k = ids.indexOf(i.id); return k >= 0 ? { ...i, wpos: k } : i; }) })),
     moveToTop: (id) => update((s) => {
@@ -3063,7 +3147,7 @@ export default function App() {
     // Moving something to Today reschedules it: a past due date becomes today, so it no longer reads as overdue
     moveToToday: (id) => update((s) => ({
       items: s.items.map((i) => (i.id === id
-        ? normalizeItem({ ...i, status: "today", someday: false, due: i.due && i.due < iso() ? iso() : i.due })
+        ? normalizeItem({ ...i, status: "today", someday: false, urgency: "now", due: iso() })
         : i)),
     })),
     removeItem: (id) => update((s) => ({ items: s.items.filter((i) => i.id !== id) })),
@@ -3130,13 +3214,13 @@ export default function App() {
   const dateItem = sheet?.type === "date" ? items.find((i) => i.id === sheet.id) : null;
   const close = () => setSheet(null);
 
-  const View = { today: TodayView, inbox: InboxView, future: FutureView, watching: WatchingView, dashboard: DashboardView, completed: CompletedView }[tab];
+  const View = { today: TodayView, inbox: InboxView, future: FutureView, dashboard: DashboardView, completed: CompletedView, radar: RadarView }[tab];
   const activeTab = tab === "completed" ? "dashboard" : tab;   // Completed is reached from the Dashboard
 
   return (
-    <div className="cd-outer" style={{ background: theme.outer, ...(vvh ? { bottom: "auto", top: vvh.top, height: vvh.h } : null) }}>
+    <div className="cd-outer" style={{ background: theme.outer }}>
       <style>{CSS}</style>
-      <div className={"cd" + (vvh ? " kb" : "")} style={theme.vars} data-theme={state.themeId}
+      <div className={"cd" + (vvh ? " kb" : "")} style={{ ...theme.vars, "--kb": (vvh || 0) + "px" }} data-theme={state.themeId}
         onPointerDown={(e) => {
           // Tapping anywhere that isn't a text field closes the keyboard
           const a = document.activeElement;
