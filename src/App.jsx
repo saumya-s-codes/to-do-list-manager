@@ -1,5 +1,5 @@
 /**
- * Clear the Deck: a mobile-first task app (Today, Inbox, Future, Watching, Dashboard, Completed)
+ * Clear the Day: a mobile-first task app (Today, Inbox, Future, Watching, Dashboard, Completed)
  * with six themes. Everything lives in this one file on purpose: themes, styles, views and logic.
  * Data is saved in the browser (see storage.js), and can be exported to Excel from Settings.
  */
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "3.7";
+const APP_VERSION = "4.8";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -143,7 +143,7 @@ async function saveFile(blob, filename) {
 // Exports everything as an Excel workbook. Resolves with the number of items exported.
 async function downloadExport(items) {
   const stamp = new Date().toLocaleDateString("en-CA");
-  await saveFile(await toXlsxBlob(items), `clear-the-deck-${stamp}.xlsx`);
+  await saveFile(await toXlsxBlob(items), `clear-the-day-${stamp}.xlsx`);
   return items.length;
 }
 
@@ -191,7 +191,7 @@ function loadThemeFonts(themeId, maxWait = 1500) {
   const faces = [[v["--display-weight"], v["--font-display"]], [v["--display-weight-sm"] || v["--display-weight"], v["--font-display-sm"] || v["--font-display"]],
     [400, v["--font-body"]], [500, v["--font-body"]], [700, v["--font-body"]]];
   const load = fontsLoaded.then(() => Promise.all(faces.map(([w, f]) =>
-    (document.fonts ? document.fonts.load(`${w} 16px "${firstFamily(f)}"`, "Clear the deck. 0123") : Promise.resolve()).catch(() => {}))));
+    (document.fonts ? document.fonts.load(`${w} 16px "${firstFamily(f)}"`, "Clear the day. 0123") : Promise.resolve()).catch(() => {}))));
   return Promise.race([load, new Promise((r) => setTimeout(r, maxWait))]);
 }
 
@@ -254,7 +254,7 @@ const TILE_CELESTIAL = svgUrl(430, 700,
   crescent(396, 40 + 440, 0.5, 0.8) + planet(26, 268, 1.1) + planet(412, 372, 0.7) +
   constel([[396, 480], [418, 506], [400, 540]]) + constel([[14, 380], [38, 404], [20, 436]], "#C9BFEF"));
 
-/* ── Soft Sanctuary pieces ── */
+/* ── Sanctuary pieces ── */
 const lavender = (stem = "#9DB89E", op = 0.6) =>
   `<g opacity="${op}"><path d="M0 0C-4 76 -20 146 -44 220" fill="none" stroke="${stem}" stroke-width="1.6" stroke-linecap="round"/>` +
   Array.from({ length: 10 }, (_, i) => {
@@ -342,6 +342,10 @@ const THEMES = {
       "--accent": "#A93C41",
       "--accent-ink": "#FFF8F0",
       "--accent-soft": "#F3D9D4",
+      "--someday-bg": "#3E7F86",
+      "--someday-ink": "#FFF8F0",
+      "--watch-bg": "#946A1B",
+      "--watch-ink": "#FFF8F0",
       "--btn-bg": "#A93C41",
       "--btn-ink": "#FFF8F0",
       "--danger": "#A8322F",
@@ -396,6 +400,10 @@ const THEMES = {
       "--accent": "#1A73E8",
       "--accent-ink": "#FFFFFF",
       "--accent-soft": "#E8F0FE",
+      "--someday-bg": "#188038",
+      "--someday-ink": "#FFFFFF",
+      "--watch-bg": "#B45F06",
+      "--watch-ink": "#FFFFFF",
       "--btn-bg": "#4285F4",
       "--btn-ink": "#FFFFFF",
       "--danger": "#D93025",
@@ -449,6 +457,10 @@ const THEMES = {
       "--accent": "#5A6A3A",
       "--accent-ink": "#FBF8EE",
       "--accent-soft": "#E2E7D0",
+      "--someday-bg": "#A4573B",
+      "--someday-ink": "#FBF8EE",
+      "--watch-bg": "#4B6C7A",
+      "--watch-ink": "#FBF8EE",
       "--btn-bg": "#5A6A3A",
       "--btn-ink": "#FBF8EE",
       "--danger": "#B5483A",
@@ -501,6 +513,10 @@ const THEMES = {
       "--accent": "#5F72BE",
       "--accent-ink": "#FFFFFF",
       "--accent-soft": "#E2E7F8",
+      "--someday-bg": "#34816C",
+      "--someday-ink": "#FFFFFF",
+      "--watch-bg": "#966F1E",
+      "--watch-ink": "#FFFFFF",
       "--btn-bg": "#5F72BE",
       "--btn-ink": "#FFFFFF",
       "--danger": "#C4455A",
@@ -515,6 +531,7 @@ const THEMES = {
       "--display-scale": "1.1",   // Nixie One runs small,
       "--font-body": "Comfortaa,-apple-system,'Segoe UI',system-ui,sans-serif",
       "--display-weight": "400",
+      "--card-title-weight": "700",   // the text on the big cards is bold (Nixie One has one weight, so the phone makes it bold)
       "--display-transform": "none",
       "--display-spacing": "0.01em",
       "--radius-lg": "22px",
@@ -533,7 +550,7 @@ const THEMES = {
 
   /* ───────── 05. SOFT SANCTUARY — lavender, blush, sage ───────── */
   sanctuary: {
-    name: "Soft Sanctuary",
+    name: "Sanctuary",
     blurb: "Gentle, dreamy, peaceful",
     icon: Flower2,   // the settings button
     dark: false,
@@ -557,6 +574,10 @@ const THEMES = {
       "--accent": "#835AA6",
       "--accent-ink": "#FFFFFF",
       "--accent-soft": "#EADCF4",
+      "--someday-bg": "#B24F78",
+      "--someday-ink": "#FFFFFF",
+      "--watch-bg": "#4F8260",
+      "--watch-ink": "#FFFFFF",
       "--btn-bg": "#835AA6",
       "--btn-ink": "#FFFFFF",
       "--danger": "#C2455F",
@@ -607,6 +628,10 @@ const THEMES = {
       "--accent": "#3F6B52",
       "--accent-ink": "#FFFFFF",
       "--accent-soft": "#E4EEE8",
+      "--someday-bg": "#4458A8",
+      "--someday-ink": "#FFFFFF",
+      "--watch-bg": "#B0661A",
+      "--watch-ink": "#FFFFFF",
       "--btn-bg": "#3F6B52",
       "--btn-ink": "#FFFFFF",
       "--eve-bg": "#FFFFFF",        // the top card and the Evening Clean Up card are white, like your screenshot
@@ -658,6 +683,7 @@ const offsetDay = (n) => { const d = new Date(); d.setDate(d.getDate() + n); ret
 const parseDay = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
 const fmtShort = (s) => parseDay(s).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 // "3 days overdue" / "Due today" / "Fri, Oct 16"
+const shortDay = (d) => parseDay(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });   // Oct 14
 const dueInfo = (due) => {
   const t = iso();
   if (due === t) return { text: "Due today", cls: "today" };
@@ -668,11 +694,32 @@ const dueInfo = (due) => {
   return { text: fmtShort(due), cls: "" };
 };
 // Keeps items consistent: only Today items carry a Today position (pos) and only Watching items a Watching position (wpos)
+// Colours you can give a category yourself (background, text). A category with no colour of its own uses the theme's colours.
+const CAT_COLORS = [
+  { name: "Rose", pair: ["#F7DADF", "#A8324A"] }, { name: "Orange", pair: ["#FBE3CF", "#B5530F"] },
+  { name: "Amber", pair: ["#F8EBC2", "#8A6200"] }, { name: "Green", pair: ["#DDEEDA", "#2F7A3A"] },
+  { name: "Teal", pair: ["#D2EEEA", "#1B7A70"] }, { name: "Sky", pair: ["#D9E9FA", "#2465B3"] },
+  { name: "Indigo", pair: ["#E1E2FA", "#4247B0"] }, { name: "Purple", pair: ["#EADBF6", "#7B3AA8"] },
+  { name: "Pink", pair: ["#F9D9EA", "#B02F7C"] }, { name: "Slate", pair: ["#E3E6EB", "#48515F"] },
+];
 const normalizeItem = (i) => {
   let o = i;
   if (o.status !== "today" && o.pos != null) o = { ...o, pos: null };
   if (o.status !== "watching" && o.wpos != null) o = { ...o, wpos: null };
-  return o;
+  return enforceComplete(o);
+};
+// THE RULE: a task on Today or in Future (Someday is parked, so it's exempt) ALWAYS has a date, an urgency, an effort and an impact.
+// Every way an item can be added, changed, loaded or restored goes through normalizeItem, so this can't be broken.
+//  - Effort and impact need a person to choose them, so a task missing either waits in the Inbox until they're set.
+//  - A date and an urgency can be worked out from each other (or from where the task is), so those are filled in automatically.
+const enforceComplete = (o) => {
+  if (!((o.status === "today" || o.status === "future") && !o.someday)) return o;
+  if (!o.effort || !o.impact) return { ...o, status: "inbox", someday: false, due: null, pos: null };
+  let { due, urgency } = o;
+  if (due && !urgency) urgency = urgencyForDate(due);
+  else if (urgency && !due) due = urgency === "now" ? iso() : offsetDay(urgency === "next" ? 3 : 7);
+  else if (!due && !urgency) { if (o.status === "today") { urgency = "now"; due = iso(); } else { urgency = "later"; due = offsetDay(7); } }
+  return due === o.due && urgency === o.urgency ? o : { ...o, due, urgency };
 };
 // ── How dates and urgency fit together (used everywhere) ──────────────────────────────────────────────────────
 //   Now   = due today (or overdue)   → lives on Today
@@ -811,15 +858,16 @@ async function loadState() {
 async function saveState(s) {
   try { await window.storage.set(STORAGE_KEY, JSON.stringify(s)); } catch { /* storage unavailable: stay in memory */ }
 }
-// One automatic snapshot per day (taken the first time the app opens that day), keeping the last 7
+// ONE automatic backup, replaced every day: it is taken the first time the app opens each day, and it replaces the previous day's.
+// Today's copy is written first and only then are older ones removed, so there is never a moment with no backup.
 async function snapshotOncePerDay(s) {
   try {
     const key = SNAP_PREFIX + new Date().toLocaleDateString("en-CA");
-    try { await window.storage.get(key); return; } catch { /* none yet today */ }
-    await window.storage.set(key, JSON.stringify(s));
+    let have = true;
+    try { await window.storage.get(key); } catch { have = false; }
+    if (!have) await window.storage.set(key, JSON.stringify(s));
     const l = await window.storage.list(SNAP_PREFIX);
-    const keys = ((l && l.keys) || []).sort();
-    while (keys.length > 7) await window.storage.delete(keys.shift());
+    for (const k of (l && l.keys) || []) if (k !== key) await window.storage.delete(k);
   } catch { /* snapshots are best-effort */ }
 }
 // Looks through this browser's storage for ANY saved copy of the app's data, whatever key it was saved under.
@@ -963,12 +1011,12 @@ const CSS = `
 .cd-progress{height:6px;border-radius:3px;background:var(--panel);overflow:hidden;margin-top:6px}
 .cd-progress i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
 .cd-card{position:relative;background:var(--card);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:6px 16px 8px;z-index:1;touch-action:none;user-select:none;-webkit-user-select:none;will-change:transform}
-.cd-card-title{font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);letter-spacing:var(--display-spacing);font-size:32px;text-align:center;line-height:1.12;padding:26px 8px 10px;overflow-wrap:anywhere}
+.cd-card-title{font-family:var(--font-display);font-weight:var(--card-title-weight,var(--display-weight));text-transform:var(--display-transform);letter-spacing:var(--display-spacing);font-size:32px;text-align:center;line-height:1.12;padding:26px 8px 10px;overflow-wrap:anywhere}
 .cd-hint{text-align:center;font-size:12.5px;color:var(--muted);margin-top:14px}
 .cd-cardact{position:absolute;right:8px;bottom:8px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:transparent;color:var(--muted);opacity:.55;z-index:2}
 .cd-cardact:active{opacity:1;color:var(--danger)}
 .cd .cd-card-edit{display:block;width:100%;border:0;background:transparent;resize:none;overflow:hidden;text-align:center;
-  font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);letter-spacing:var(--display-spacing);
+  font-family:var(--font-display);font-weight:var(--card-title-weight,var(--display-weight));text-transform:var(--display-transform);letter-spacing:var(--display-spacing);
   line-height:1.12;padding:0;margin:0;outline:none;user-select:text;-webkit-user-select:text;touch-action:auto;
   font-size:var(--edit-size,32px) !important}
 
@@ -1037,14 +1085,20 @@ const CSS = `
 .cd-evebtn small{display:block;opacity:.88;font-size:12.5px;margin-top:1px}
 .cd-evebtn.closed{background:var(--panel);color:var(--text);box-shadow:none}
 .cd-evebtn.closed .ic{background:var(--accent);color:var(--accent-ink)}
-.cd-evetitle{font-family:var(--font-display);font-weight:var(--display-weight);text-transform:var(--display-transform);font-size:25px;text-align:center;line-height:1.2;padding:22px 6px 12px;overflow-wrap:anywhere}
-.cd-evegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
-.cd-evego{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:14px;border-radius:var(--radius-md);background:var(--panel);text-align:left;font-weight:600}
-.cd-evego small{font-weight:400;font-size:12px;color:var(--muted)}
-.cd-evego svg{color:var(--accent);margin-bottom:4px}
+.cd-evetitle{font-family:var(--font-display);font-weight:var(--card-title-weight,var(--display-weight));text-transform:var(--display-transform);font-size:25px;text-align:center;line-height:1.2;padding:22px 6px 12px;overflow-wrap:anywhere}
+.cd-evegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.cd-evego{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:10px 4px;min-height:72px;border-radius:var(--radius-md);background:var(--panel);text-align:center;font-weight:600;font-size:14px;line-height:1.15}
+.cd-evego small{font-weight:400;font-size:11px;color:var(--muted)}
+.cd-evego svg{color:var(--accent);margin-bottom:3px}
 .cd-evego.pri{background:var(--accent);color:var(--accent-ink)}
 .cd-evego.pri small{color:inherit;opacity:.85}
 .cd-evego.pri svg{color:inherit}
+.cd-evego{background:var(--accent);color:var(--accent-ink)}   /* every Evening Clean Up button is dark */
+.cd-evego small{color:inherit;opacity:.85}
+.cd-evego svg{color:inherit}
+.cd-evego.all{background:var(--accent-soft);color:var(--accent)}   /* the sixth button, "Everything to tomorrow", is a different color */
+.cd-evego.all small,.cd-evego.all svg{color:inherit}
+.cd-evego:disabled{opacity:.38}
 .cd-sumrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 .cd-sumrow b{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));font-size:18px}
 .cd-scroll.lock{overflow:hidden;touch-action:none;overscroll-behavior:none}
@@ -1116,8 +1170,8 @@ const CSS = `
 .cd-tcard.prio .cd-mini{pointer-events:auto}
 .cd-tcard.prio.ready{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .cd-evehead{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.cd-evecard{margin-top:12px;padding:18px 12px 16px;border-radius:var(--radius-lg);background:var(--panel);text-align:center;animation:cd-evein .42s cubic-bezier(.2,.9,.3,1.15) both}
-.cd-evecard .cd-evetitle{padding:6px 6px 10px}
+.cd-evecard{margin-top:12px;padding:26px 16px 22px;min-height:min(32vh,250px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:var(--radius-lg);background:var(--panel);text-align:center;animation:cd-evein .42s cubic-bezier(.2,.9,.3,1.15) both}
+.cd-evecard .cd-evetitle{padding:6px 6px 10px;font-size:calc(29px * min(var(--display-scale, 1), 1.2))}
 .cd-evecard.out{animation:none;transform:translateX(calc(var(--from,44px) * -1)) scale(.94);opacity:0;transition:transform .17s ease-in,opacity .17s ease-in}
 @keyframes cd-evein{0%{opacity:0;transform:translateX(var(--from,44px)) scale(.92)}55%{opacity:1}100%{opacity:1;transform:none}}
 .cd-bump{display:inline-block;animation:cd-bump .35s ease-out}
@@ -1176,7 +1230,9 @@ const CSS = `
 .cd-setrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .cd-setrow .cd-ghost{margin-top:0}
 .cd-version{text-align:center;color:var(--muted);font-size:12px;margin-top:14px}
-.cd-boot{width:10px;height:10px;border-radius:50%;background:#B9B5AC;animation:cd-pulse 1s ease-in-out infinite}
+.cd-bootmark{width:96px;height:96px;filter:drop-shadow(0 8px 16px rgba(130,55,25,.22));animation:cd-breathe 1.9s ease-in-out .7s infinite}   /* it holds still at first, then breathes if loading takes a while */
+.cd-bootmark svg{display:block;width:100%;height:100%}
+@keyframes cd-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 @keyframes cd-pulse{0%,100%{opacity:.25}50%{opacity:1}}
 /* ───── v2.1: Inbox controls, effects ───── */
 .cd-dock{padding:4px 20px 14px}
@@ -1275,6 +1331,41 @@ const CSS = `
 /* The top 8px of every screen is the soft white of the bottom bar. iOS tints the status bar from the top edge of the page,
    so this keeps the bar soft white on every theme instead of picking up a coloured header. */
 .cd-topstrip{flex:none;height:8px;background:var(--nav-bg)}
+.cd.booting .cd-scroll,.cd.booting .cd-scrim{animation:none}   /* the app appears at once at launch, with no fade */
+.cd-catdot{width:26px;height:26px;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1.5px var(--line);flex:none;padding:0;cursor:pointer}
+.cd-swatches{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 4px 12px}
+.cd-swatch{width:30px;height:30px;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 1.5px var(--line);padding:0;cursor:pointer}
+.cd-swatch.on{box-shadow:0 0 0 2.5px var(--text)}
+.cd-swatch.reset{width:auto;height:30px;padding:0 12px;border-radius:999px;border:0;background:var(--panel);color:var(--muted);font-size:12.5px;box-shadow:none}
+.cd-delopt{display:block;width:100%;text-align:left;padding:14px;border-radius:var(--radius-md);background:var(--panel);margin-top:12px;border:2px solid transparent}
+.cd-delopt.on{border-color:var(--accent)}
+.cd-delopt b{display:block;font-size:15.5px}
+.cd-delopt span{display:block;font-size:13px;color:var(--muted);margin-top:3px}
+.cd-delpick{margin-top:10px;display:flex;flex-direction:column;gap:10px}
+/* ── One colour for each kind of button, the same on every screen ──
+   accent  : Prioritize, Today, Tomorrow, This week, Future
+   someday : every Someday button        watch : every Watch button */
+.cd-quad .cd-prio{background:var(--accent);color:var(--accent-ink);border:0;box-shadow:none;opacity:.55}      /* dimmed until all three are set, then full colour */
+.cd-quad .cd-prio.ready{opacity:1;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 42%,transparent)}
+.cd-quad.locked .cd-prio{opacity:.42}
+.cd-quad .cd-tcard.someday,.cd-quad .cd-tcard.watch{border-color:transparent;box-shadow:none}
+.cd-quad .cd-tcard.someday{background:var(--someday-bg);color:var(--someday-ink)}
+.cd-quad .cd-tcard.watch{background:var(--watch-bg);color:var(--watch-ink)}
+.cd-quad .cd-tcard.someday .ic,.cd-quad .cd-tcard.watch .ic,.cd-quad .cd-tcard.someday small,.cd-quad .cd-tcard.watch small{color:inherit}
+.cd-quad .cd-tcard.someday small,.cd-quad .cd-tcard.watch small{opacity:.9}
+.cd-quad .cd-tcard.someday .go,.cd-quad .cd-tcard.watch .go{background:color-mix(in srgb,currentColor 20%,transparent);color:inherit}
+.cd-evego.someday{background:var(--someday-bg);color:var(--someday-ink)}
+.cd-evego.watch{background:var(--watch-bg);color:var(--watch-ink)}
+.cd-pill.sched{background:var(--accent);color:var(--accent-ink)}
+.cd-parkbar .cd-segbtn.someday.on{background:var(--someday-bg);color:var(--someday-ink)}
+.cd-parkbar .cd-segbtn.watch.on{background:var(--watch-bg);color:var(--watch-ink)}
+.cd-icomini{display:inline-block;width:24px;height:24px;flex:none}
+.cd-icomini svg,.cd-icobig svg,.cd-icotile svg{display:block;width:100%;height:100%}
+.cd-icoprev{display:flex;gap:14px;align-items:center;margin:6px 0 4px}
+.cd-icobig{display:block;width:76px;height:76px;flex:none;filter:drop-shadow(0 6px 12px rgba(0,0,0,.18))}
+.cd-icogrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:8px}
+.cd-icotile{aspect-ratio:1;display:block;padding:0;border-radius:14px;border:3px solid transparent;background:transparent;cursor:pointer}
+.cd-icotile.on{border-color:var(--text)}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
 .cd button,.cd select{touch-action:manipulation}
@@ -1319,6 +1410,39 @@ function Sheet({ title, onClose, children }) {
       </div>
     </div>
   );
+}
+
+// ── Loading icon: the picture shown while the app starts. Chosen in Settings, and also remembered under "ctd:icon" so the page
+//    can draw it before any script has loaded. (The same code is in index.html.) ──
+const BOOT_COLORS = { rust: ["#C25A35", "#A8441F"], teal: ["#3F9A93", "#2B7570"], plum: ["#9A62B8", "#774391"], olive: ["#7A8F4A", "#5A6A3A"], blue: ["#5F82D6", "#3F5FB0"], rose: ["#D4708F", "#B0506F"] };
+const BOOT_ART = "data:image/jpeg;base64,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";   // the illustration (a 288 px picture)
+const BOOT_GLYPHS = {
+  art: () => "",   // drawn as a picture by bootIconSvg below
+  check: (ink, dark) => `<rect x="24" y="24" width="52" height="52" rx="10" fill="${ink}"/><path d="M38 51 L47 60 L63 41" fill="none" stroke="${dark}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`,
+  flower: (ink, dark) => `<g fill="${ink}">${[0, 72, 144, 216, 288].map((a) => `<ellipse cx="50" cy="35" rx="10" ry="15.5" transform="rotate(${a} 50 50)"/>`).join("")}</g><circle cx="50" cy="50" r="8.5" fill="${dark}"/>`,
+  leaf: (ink, dark) => `<path d="M28 72 C24 44 44 24 74 26 C76 56 58 76 28 72 Z" fill="${ink}"/><path d="M30 70 L62 38" stroke="${dark}" stroke-width="4" stroke-linecap="round" fill="none"/>`,
+  moon: (ink, dark, uid) => `<defs><mask id="mn${uid}"><rect width="100" height="100" fill="#fff"/><circle cx="60" cy="42" r="23" fill="#000"/></mask></defs><circle cx="47" cy="52" r="25" fill="${ink}" mask="url(#mn${uid})"/><path d="M70 62 l2.2 5.6 5.8 2.2 -5.8 2.2 -2.2 5.8 -2.2 -5.8 -5.8 -2.2 5.8 -2.2z" fill="${ink}"/>`,
+  sun: (ink) => `<circle cx="50" cy="50" r="13.5" fill="${ink}"/><g stroke="${ink}" stroke-width="5.5" stroke-linecap="round">${[0, 45, 90, 135, 180, 225, 270, 315].map((a) => `<line x1="50" y1="22" x2="50" y2="29" transform="rotate(${a} 50 50)"/>`).join("")}</g>`,
+  butterfly: (ink, dark) => `<g fill="${ink}"><ellipse cx="36" cy="40" rx="14" ry="16" transform="rotate(-28 36 40)"/><ellipse cx="64" cy="40" rx="14" ry="16" transform="rotate(28 64 40)"/><ellipse cx="38" cy="63" rx="10" ry="12" transform="rotate(20 38 63)"/><ellipse cx="62" cy="63" rx="10" ry="12" transform="rotate(-20 62 63)"/></g><rect x="47.5" y="32" width="5" height="40" rx="2.5" fill="${dark}"/>`,
+  mountain: (ink) => `<path d="M18 74 L42 36 L55 56 L64 44 L82 74 Z" fill="${ink}"/><circle cx="72" cy="32" r="6" fill="${ink}"/>`,
+  heart: (ink) => `<path d="M50 74 C28 58 22 46 28 37 C34 28 45 30 50 39 C55 30 66 28 72 37 C78 46 72 58 50 74 Z" fill="${ink}"/>`,
+  star: (ink) => `<path d="M50 22 L58.5 41 L79 43.5 L63.5 57.5 L68 78 L50 67.5 L32 78 L36.5 57.5 L21 43.5 L41.5 41 Z" fill="${ink}" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/>`,
+  bolt: (ink) => `<path d="M57 20 L33 55 H48 L43 80 L67 44 H52 Z" fill="${ink}" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/>`,
+};
+const DEFAULT_BOOT_ICON = { g: "art", c: "rust" };
+const bootIconSvg = (pick, uid = "boot") => {
+  const g = pick && BOOT_GLYPHS[pick.g] ? pick.g : DEFAULT_BOOT_ICON.g;
+  const c = pick && BOOT_COLORS[pick.c] ? pick.c : DEFAULT_BOOT_ICON.c;
+  if (g === "art") return `<svg viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="cp${uid}"><rect width="100" height="100" rx="22.5"/></clipPath></defs><image href="${BOOT_ART}" width="100" height="100" preserveAspectRatio="xMidYMid slice" clip-path="url(#cp${uid})"/></svg>`;
+  const [top, bottom] = BOOT_COLORS[c];
+  const id = "bg" + uid;
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bottom}"/></linearGradient></defs><rect width="100" height="100" rx="22.5" fill="url(#${id})"/>${BOOT_GLYPHS[g]("#F5E6DA", bottom, uid)}</svg>`;
+};
+const readBootPick = () => { try { const v = JSON.parse(localStorage.getItem("ctd:icon")); return v && BOOT_GLYPHS[v.g] && BOOT_COLORS[v.c] ? v : null; } catch (e) { return null; } };
+const BOOT_AT_LOAD = readBootPick() || DEFAULT_BOOT_ICON;   // read at once, before the saved data has loaded, so the right icon is on screen from the first frame
+
+function BootMark() {
+  return <div className="cd-bootmark" role="status" aria-label="Loading" dangerouslySetInnerHTML={{ __html: bootIconSvg(BOOT_AT_LOAD, "boot") }} />;
 }
 
 function Chip({ name, catStyle }) {
@@ -1603,14 +1727,14 @@ function CatText({ name, catStyle }) {
   return <span className="cd-cattext" style={{ color: fg }}><i style={{ background: fg }} />{name}</span>;
 }
 
-function ItemRow({ item, ctx, trailing, hideDue = false, focusLabel = false, rowProps }) {
+function ItemRow({ item, ctx, trailing, hideDue = false, focusLabel = false, todayView = false, rowProps }) {
   const done = item.status === "done";
   const parked = !!item.someday || item.status === "watching";
-  const showDue = item.due && !hideDue && !done && !item.someday;   // finished tasks don't show a due date
+  const showDue = item.due && !hideDue && !done && !item.someday && !(todayView && item.due === iso());   // on Today, "Due today" says nothing new   // finished tasks don't show a due date
   const di = item.due ? (done ? { text: fmtShort(item.due), cls: "" } : dueInfo(item.due)) : null;
   const isFocus = focusLabel && item.effort === "deep" && item.impact === "high";
   const showImpact = !!item.impact && !focusLabel && !done && item.status !== "watching";
-  const urgent = (item.urgency === "now" || !!item.urgent) && !done && !parked && (!item.due || item.due <= iso());
+  const urgent = (item.urgency === "now" || !!item.urgent) && !done && !parked && !todayView && (!item.due || item.due <= iso());
   const hasMeta = item.category || showDue || isFocus || showImpact || urgent;
   const { className: extraCls = "", ...rp } = rowProps || {};
   return (
@@ -1673,7 +1797,7 @@ function TodayView({ ctx, items }) {
 
   return (
     <>
-    <PageHead ctx={ctx} title="Clear the deck." sub="Capture. Choose. Do what matters." />
+    <PageHead ctx={ctx} title="Clear the day." sub="Capture. Choose. Do what matters." />
     <div className="cd-scroll" ref={scrollRef}>
 
       <div className="cd-panel">
@@ -1707,7 +1831,7 @@ function TodayView({ ctx, items }) {
         <div className="cd-empty"><b>The deck is clear.</b>Add a task, or pull one in from Future.</div>
       )}
       <div className={"cd-list" + (shown.length ? " cd-cardlist" : "")} ref={reorder.contRef}>
-        {shown.map((i) => <ItemRow key={i.id} item={i} ctx={ctx} focusLabel rowProps={reorder.rowProps(i.id)} />)}
+        {shown.map((i) => <ItemRow key={i.id} item={i} ctx={ctx} focusLabel todayView rowProps={reorder.rowProps(i.id)} />)}
       </div>
     </div>
     <div className="cd-evebar">
@@ -2064,7 +2188,7 @@ function FutureView({ ctx, items }) {
   const undated = base.filter((i) => i.status === "future" && !i.someday && !i.due).length;
 
   const toToday = (i) => i.status === "done" ? null : (
-    <button className="cd-pill" onClick={() => { ctx.moveToToday(i.id); ctx.toast("Moved to Today"); }}>
+    <button className="cd-pill sched" onClick={() => { const lacks = !i.effort || !i.impact; ctx.moveToToday(i.id); ctx.toast(lacks ? "Needs effort and impact first, so it's waiting in the Inbox" : "Moved to Today"); }}>
       <ArrowRight size={12} /> Today
     </button>
   );
@@ -2377,7 +2501,7 @@ function WatchingList({ ctx, items }) {
 function SomedayList({ ctx, items }) {
   const list = items.filter((i) => i.someday && (i.status === "future" || (i.status === "done" && i.doneFrom === "future" && ctx.justDone.has(i.id))));
   const toToday = (i) => i.status === "done" ? null : (
-    <button className="cd-pill" onClick={() => { ctx.moveToToday(i.id); ctx.toast("Moved to Today"); }}>
+    <button className="cd-pill sched" onClick={() => { const lacks = !i.effort || !i.impact; ctx.moveToToday(i.id); ctx.toast(lacks ? "Needs effort and impact first, so it's waiting in the Inbox" : "Moved to Today"); }}>
       <ArrowRight size={12} /> Today
     </button>
   );
@@ -2414,7 +2538,7 @@ function RadarView({ ctx, items }) {
       <div className="cd-parkbar">
         <div className="cd-seg" role="tablist" aria-label="Radar lists">
           {tabs.map(([k, l, Icon, n]) => (
-            <button key={k} role="tab" aria-selected={mode === k} className={"cd-segbtn" + (mode === k ? " on" : "")} onClick={() => ctx.setRadarMode(k)}>
+            <button key={k} role="tab" aria-selected={mode === k} className={"cd-segbtn " + (k === "someday" ? "someday" : "watch") + (mode === k ? " on" : "")} onClick={() => ctx.setRadarMode(k)}>
               <Icon size={15} />{l}<span className="cd-cnt">{n}</span>
             </button>
           ))}
@@ -2616,29 +2740,47 @@ function CompletedView({ ctx, items }) {
 
 /* ═══════════════════════════════ SHEETS ═══════════════════════════════════ */
 
+// the same three colours as the buttons: scheduling = accent, Someday, Watch
+const MENU_TINT = { "Move to tomorrow": "var(--accent)", "Move to this week": "var(--accent)", "Move to future": "var(--accent)", "Move to Future": "var(--accent)", "Move to Today": "var(--accent)",
+  "Move to someday": "var(--someday-bg)", "Move to Someday": "var(--someday-bg)", "Move out of Someday": "var(--someday-bg)", "Move to watch": "var(--watch-bg)", "Mark as Watching": "var(--watch-bg)" };
 function ItemMenu({ ctx, item, close }) {
   const act = (fn, msg, view) => () => { fn(); close(); if (msg) ctx.toast(msg, view ? { label: "View", run: () => ctx.goRadar(view) } : undefined); };
   const p = (patch, msg, view) => act(() => ctx.patchItem(item.id, patch), msg, view);
   const rows = [];
   const done = item.status === "done";
-  if (!done && !item.someday) rows.push({ Icon: Calendar, label: "Edit date", run: () => ctx.setSheet({ type: "date", id: item.id }) });
-  if (item.status !== "today" && item.status !== "watching" && !done) rows.push({ Icon: ArrowRight, label: "Move to Today", run: act(() => ctx.moveToToday(item.id), "Moved to Today") });
-  if (item.status === "today") rows.push({ Icon: ArrowUp, label: "Move to top", run: act(() => ctx.moveToTop(item.id), "Moved to the top") });
-  if (item.status === "today") rows.push({ Icon: CalendarDays, label: "Move to Future", run: p({ status: "future", urgency: "later", due: offsetDay(7) }, `Moved to Future · Later, due ${fmtShort(offsetDay(7))}`) });
-  if (item.status === "future" && !item.someday) rows.push({ Icon: Sparkles, label: "Move to Someday", run: p({ someday: true }, "Moved to Someday", "someday") });
-  if (item.status === "future" && item.someday) rows.push({ Icon: Sparkles, label: "Move out of Someday", run: p({ status: "inbox", someday: false, urgency: null, due: null }, "Sent to Inbox to set urgency") });
-  if (item.status === "today" || item.status === "future") rows.push({ Icon: Eye, label: "Mark as Watching", run: p({ status: "watching", someday: false }, "Moved to Watching", "watching") });
-  if (item.status === "watching") rows.push({ Icon: LayoutGrid, label: "Send to Inbox", run: p({ status: "inbox", urgency: null }, "Sent to Inbox") });
-  if (done) rows.push({ Icon: RotateCcw, label: "Restore", run: act(() => ctx.toggleDone(item.id), "Restored") });
-  rows.push({ Icon: Pencil, label: "Edit details", run: () => ctx.setSheet({ type: "edit", id: item.id }) });
-  rows.push({ Icon: Trash2, label: "Delete", cls: "del", run: act(() => ctx.removeItem(item.id), "Deleted") });
-  const ei = rows.findIndex((r) => r.label === "Edit details");
-  if (ei > 0) rows.unshift(...rows.splice(ei, 1));   // Edit details goes to the top
+  // A future date puts the task in Future; one without its labels waits in the Inbox to be finished
+  const waits = !item.effort || !item.impact ? " (it needs effort and impact, so it's waiting in the Inbox)" : "";
+  if (item.status === "today") {
+    rows.push(
+      { Icon: Sun, label: "Move to tomorrow", run: p({ status: "future", someday: false, urgency: "now", due: offsetDay(1) }, "Moved to tomorrow" + waits) },
+      { Icon: Calendar, label: "Move to this week", run: p({ status: "future", someday: false, urgency: "next", due: offsetDay(3) }, `Moved to this week · due ${fmtShort(offsetDay(3))}` + waits) },
+      { Icon: CalendarDays, label: "Move to future", run: p({ status: "future", someday: false, urgency: "later", due: offsetDay(7) }, `Moved to Future · due ${fmtShort(offsetDay(7))}` + waits) },
+      { Icon: Sparkles, label: "Move to someday", run: p({ status: "future", someday: true }, "Moved to Someday", "someday") },
+      { Icon: Eye, label: "Move to watch", run: p({ status: "watching", someday: false }, "Moved to Watching", "watching") },
+      { Icon: Pencil, label: "Edit details", run: () => ctx.setSheet({ type: "edit", id: item.id }) },
+      { Icon: Trash2, label: "Delete", cls: "del", run: act(() => ctx.removeItem(item.id), "Deleted") },
+    );
+  } else {
+    if (!done && !item.someday) rows.push({ Icon: Calendar, label: "Edit date", run: () => ctx.setSheet({ type: "date", id: item.id }) });
+    if (item.status !== "today" && item.status !== "watching" && !done) rows.push({ Icon: ArrowRight, label: "Move to Today", run: act(() => ctx.moveToToday(item.id), !item.effort || !item.impact ? "Needs effort and impact first, so it's waiting in the Inbox" : "Moved to Today") });
+    if (item.status === "today") rows.push({ Icon: ArrowUp, label: "Move to top", run: act(() => ctx.moveToTop(item.id), "Moved to the top") });
+    if (item.status === "today") rows.push({ Icon: CalendarDays, label: "Move to Future", run: p({ status: "future", urgency: "later", due: offsetDay(7) }, `Moved to Future · Later, due ${fmtShort(offsetDay(7))}`) });
+    if (item.status === "inbox") rows.push({ Icon: Sparkles, label: "Move to Someday", run: p({ status: "future", someday: true }, "Moved to Someday", "someday") });
+    if (item.status === "future" && !item.someday) rows.push({ Icon: Sparkles, label: "Move to Someday", run: p({ someday: true }, "Moved to Someday", "someday") });
+    if (item.status === "future" && item.someday) rows.push({ Icon: Sparkles, label: "Move out of Someday", run: p({ status: "inbox", someday: false, urgency: null, due: null }, "Sent to Inbox to set urgency") });
+    if (item.status === "today" || item.status === "future") rows.push({ Icon: Eye, label: "Mark as Watching", run: p({ status: "watching", someday: false }, "Moved to Watching", "watching") });
+    if (item.status === "watching") rows.push({ Icon: LayoutGrid, label: "Send to Inbox", run: p({ status: "inbox", urgency: null }, "Sent to Inbox") });
+    if (done) rows.push({ Icon: RotateCcw, label: "Restore", run: act(() => ctx.toggleDone(item.id), "Restored") });
+    rows.push({ Icon: Pencil, label: "Edit details", run: () => ctx.setSheet({ type: "edit", id: item.id }) });
+    rows.push({ Icon: Trash2, label: "Delete", cls: "del", run: act(() => ctx.removeItem(item.id), "Deleted") });
+    const ei = rows.findIndex((r) => r.label === "Edit details");
+    if (ei > 0) rows.unshift(...rows.splice(ei, 1));   // Edit details goes to the top
+  }
   return (
     <Sheet title={item.title} onClose={close}>
       <div className="cd-menu">
         {rows.map(({ Icon, label, run, cls }) => (
-          <button key={label} className={cls} onClick={run}><Icon size={20} /> {label}</button>
+          <button key={label} className={cls} onClick={run}><Icon size={20} style={MENU_TINT[label] ? { color: MENU_TINT[label] } : undefined} /> {label}</button>
         ))}
       </div>
     </Sheet>
@@ -2672,9 +2814,11 @@ function Editor({ ctx, item, initialStatus, close }) {
     doneOn: item?.status === "done" && item?.doneAt ? iso(new Date(item.doneAt)) : "",   // date completed (finished tasks only)
   }));
   const set = (k, v) => setD((x) => ({ ...x, [k]: v }));
+  const active = d.status === "today" || (d.status === "future" && !item?.someday);   // Today and Future tasks need effort and impact
+  const missing = active && (!d.effort || !d.impact);
   const save = () => {
     const title = d.title.trim();
-    if (!title) return;
+    if (!title || missing) return;
     const parked = d.status === "watching" || (d.status === "future" && !!item?.someday);
     const noDate = d.status === "future" && !!item?.someday;   // Someday has no date; Watching may have one
     const payload = { ...d, title, due: noDate ? null : (d.due || null),
@@ -2694,7 +2838,7 @@ function Editor({ ctx, item, initialStatus, close }) {
     close();
     ctx.toast(item ? "Saved" : "Added");
   };
-  const needsInbox = d.status === "future" && (!d.category || !d.effort || !d.impact);
+  const needsInbox = d.status === "future" && !item?.someday && !d.category;
   return (
     <Sheet title={item ? "Edit item" : "New item"} onClose={close}>
       <input className="cd-input" placeholder="What needs doing?" value={d.title}
@@ -2729,8 +2873,9 @@ function Editor({ ctx, item, initialStatus, close }) {
           <input className="cd-input" type="date" value={d.due} onChange={(e) => set("due", e.target.value)} aria-label="Due date" />
         </>
       )}
-      <button className="cd-primary" disabled={!d.title.trim()} onClick={save}>{item ? "Save changes" : "Add item"}</button>
-      {needsInbox && <div className="cd-hint" style={{ marginTop: 10 }}>Unlabeled items wait in Inbox.</div>}
+      <button className="cd-primary" disabled={!d.title.trim() || missing} onClick={save}>{item ? "Save changes" : "Add item"}</button>
+      {missing && <div className="cd-hint" style={{ marginTop: 10 }}>Choose effort and impact to put this on {d.status === "today" ? "Today" : "Future"}. Every task there needs a date, urgency, effort and impact.</div>}
+      {!missing && needsInbox && <div className="cd-hint" style={{ marginTop: 10 }}>Items without a category wait in the Inbox.</div>}
     </Sheet>
   );
 }
@@ -2738,7 +2883,7 @@ function Editor({ ctx, item, initialStatus, close }) {
 function Evening({ ctx, items, close }) {
   const [queue] = useState(() => todaySort(items.filter((i) => i.status === "today")).map((i) => i.id));
   const [idx, setIdx] = useState(0);
-  const [log, setLog] = useState({ tomorrow: 0, week: 0, future: 0, watching: 0 });
+  const [log, setLog] = useState({ tomorrow: 0, week: 0, future: 0, someday: 0, watching: 0 });
   const [history, setHistory] = useState([]);   // every choice, so each can be undone
   const [leaving, setLeaving] = useState(false);
   const [enterFrom, setEnterFrom] = useState(1); // 1 = new card slides in from the right, -1 = undo brings it back from the left
@@ -2765,6 +2910,7 @@ function Evening({ ctx, items, close }) {
       if (kind === "tomorrow") ctx.patchItem(id, rollToTomorrow);   // Now
       if (kind === "week") ctx.patchItem(id, { status: "future", someday: false, urgency: "next", due: dueFor("next") });     // Next
       if (kind === "future") ctx.patchItem(id, { status: "future", someday: false, urgency: "later", due: dueFor("later") });   // Later
+      if (kind === "someday") ctx.patchItem(id, { status: "future", someday: true });   // parked: no date, no urgency
       if (kind === "watching") ctx.patchItem(id, { status: "watching" });
       if (kind !== "done") setLog((l) => ({ ...l, [kind]: l[kind] + 1 }));
       setHistory((h) => [...h, { kind, id, before, idxBefore: at }]);
@@ -2809,12 +2955,13 @@ function Evening({ ctx, items, close }) {
           <Chip name={cur.category} catStyle={ctx.catStyle} />
         </div>
         <div className="cd-evegrid">
-          <button className="cd-evego pri" onClick={() => choose("tomorrow")}><Sun size={20} />Tomorrow<small>Now · stays on deck</small></button>
-          <button className="cd-evego" onClick={() => choose("week")}><Calendar size={20} />This week<small>Next · {fmtShort(dueFor("next"))}</small></button>
-          <button className="cd-evego" onClick={() => choose("future")}><CalendarDays size={20} />Future<small>Later · {fmtShort(dueFor("later"))}</small></button>
-          <button className="cd-evego" onClick={() => choose("watching")}><Eye size={20} />Watch<small>Check back later</small></button>
+          <button className="cd-evego" onClick={() => choose("tomorrow")}><Sun size={18} />Tomorrow<small>Now</small></button>
+          <button className="cd-evego" onClick={() => choose("week")}><Calendar size={18} />This week<small>Next · {shortDay(dueFor("next"))}</small></button>
+          <button className="cd-evego" onClick={() => choose("future")}><CalendarDays size={18} />Future<small>Later · {shortDay(dueFor("later"))}</small></button>
+          <button className="cd-evego someday" onClick={() => choose("someday")}><Sparkles size={18} />Someday<small>No date</small></button>
+          <button className="cd-evego watch" onClick={() => choose("watching")}><Eye size={18} />Watch<small>Check back</small></button>
+          <button className="cd-evego all" disabled={queue.length - idx <= 1} onClick={keepRest}><ArrowRight size={18} />Everything<small>to tomorrow</small></button>
         </div>
-        {queue.length - idx > 1 && <button className="cd-ghost" onClick={keepRest}>Keep the rest for tomorrow</button>}
       </Sheet>
     );
   }
@@ -2829,6 +2976,7 @@ function Evening({ ctx, items, close }) {
     ["Kept for tomorrow", log.tomorrow],
     ["Moved to this week", log.week],
     ["Moved to Future", log.future],
+    ["Moved to Someday", log.someday],
     ["Moved to Watching", log.watching],
   ].filter(([, n]) => n > 0);
 
@@ -2877,6 +3025,7 @@ function BackupSheet({ ctx, close }) {
         Last backup: {ctx.lastBackupAt ? new Date(ctx.lastBackupAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "never"}
       </div>
       <button className="cd-ghost" style={{ marginTop: 0 }} onClick={() => ctx.backupData()}><Download size={18} /> Download a backup</button>
+      <div className="cd-sub" style={{ margin: "6px 2px 4px", fontSize: 12.5 }}>It is always saved as <b>clear-the-day-backup.json</b>. If Files asks, choose <b>Replace</b> so you only keep one copy.</div>
       <label className="cd-ghost" style={{ cursor: "pointer" }}>
         <RotateCcw size={18} /> Restore from a backup file
         <input type="file" accept=".json,application/json" hidden onChange={(e) => { readFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
@@ -2892,10 +3041,10 @@ function BackupSheet({ ctx, close }) {
           </div>
         ))}
       </div>
-      <div className="cd-fl" style={{ marginTop: 18 }}>Automatic backups (one a day, last 7 days)</div>
+      <div className="cd-fl" style={{ marginTop: 18 }}>Automatic backup (one copy, replaced each day)</div>
       <div className="cd-catlist">
         {snaps === null && <div className="cd-sub">Looking…</div>}
-        {snaps && snaps.length === 0 && <div className="cd-sub">None yet. One is saved the first time you open the app each day.</div>}
+        {snaps && snaps.length === 0 && <div className="cd-sub">None yet. It is saved the first time you open the app each day, and replaced the next day.</div>}
         {snaps && snaps.map((sn) => (
           <div className="cd-catitem" key={sn.key}>
             <span>{sn.day}</span>
@@ -2908,23 +3057,69 @@ function BackupSheet({ ctx, close }) {
   );
 }
 
+// Deleting a category that still has items: move them to another category, or send them back to the Inbox to be sorted again
+function DeleteCategory({ ctx, items, name, close }) {
+  const n = items.filter((i) => i.category === name).length;
+  const others = ctx.categories.filter((c) => c !== name);
+  const [mode, setMode] = useState(others.length ? "move" : "resort");
+  const [target, setTarget] = useState(others[0] || null);
+  const [fresh, setFresh] = useState("");
+  const dest = fresh.trim() || target;
+  const back = () => ctx.setSheet({ type: "cats" });
+  const go = () => { ctx.deleteCategory(name, mode === "move" ? { moveTo: dest } : {}); back(); };
+  return (
+    <Sheet title={`Delete “${name}”?`} onClose={back}>
+      <div className="cd-sub">“{name}” is on {n} {n === 1 ? "item" : "items"}. What should happen to {n === 1 ? "it" : "them"}?</div>
+      <button className={"cd-delopt" + (mode === "move" ? " on" : "")} onClick={() => setMode("move")}>
+        <b>Move {n === 1 ? "it" : "them"} to another category</b><span>Everything keeps its place and just gets the new category.</span>
+      </button>
+      {mode === "move" && (
+        <div className="cd-delpick">
+          {others.length > 0 && <div className="cd-pills" style={{ flexWrap: "wrap" }}>
+            {others.map((c) => <button key={c} className={"cd-segbtn sm" + (!fresh.trim() && target === c ? " on" : "")} onClick={() => { setTarget(c); setFresh(""); }}>{c}</button>)}
+          </div>}
+          <input className="cd-input" placeholder={others.length ? "Or a new category" : "Name a new category"} value={fresh} maxLength={24} onChange={(e) => setFresh(e.target.value)} aria-label="New category name" />
+        </div>
+      )}
+      <button className={"cd-delopt" + (mode === "resort" ? " on" : "")} onClick={() => setMode("resort")}>
+        <b>Re-sort {n === 1 ? "it" : "them"} in the Inbox</b><span>Open items go back to the Inbox to be sorted again. Finished tasks just lose the category.</span>
+      </button>
+      <button className="cd-primary" disabled={mode === "move" && !dest} onClick={go}>Delete “{name}”</button>
+      <button className="cd-ghost" onClick={back}>Cancel</button>
+    </Sheet>
+  );
+}
+
 function CatManager({ ctx, items, close }) {
   const [name, setName] = useState("");
+  const [picking, setPicking] = useState(null);   // the category whose colours are showing
   const count = (c) => items.filter((i) => i.category === c).length;
   const add = () => { const n = name.trim(); if (n) { ctx.addCategory(n); setName(""); } };
   return (
     <Sheet title="Categories" onClose={close}>
-      <div className="cd-sub" style={{ marginBottom: 6 }}>Deleting a category keeps its items. They just lose the label.</div>
+      <div className="cd-sub" style={{ marginBottom: 6 }}>Tap a color dot to change a category’s color. Deleting a category with items asks what to do with them.</div>
       <div className="cd-catlist">
         {ctx.categories.length === 0 && <div className="cd-sub" style={{ padding: "10px 0" }}>No categories yet.</div>}
         {ctx.categories.map((c) => {
           const n = count(c);
           return (
-            <div className="cd-catitem" key={c}>
-              <CatText name={c} catStyle={ctx.catStyle} />
-              <span className="n">{n} {n === 1 ? "item" : "items"}</span>
-              <button className="cd-x" onClick={() => ctx.removeCategory(c)} aria-label={`Delete ${c}`}><Trash2 size={16} /></button>
-            </div>
+            <React.Fragment key={c}>
+              <div className="cd-catitem">
+                <button className="cd-catdot" style={{ background: ctx.catStyle(c)[1] }} onClick={() => setPicking(picking === c ? null : c)} aria-label={`Change the color of ${c}`} />
+                <CatText name={c} catStyle={ctx.catStyle} />
+                <span className="n">{n} {n === 1 ? "item" : "items"}</span>
+                <button className="cd-x" onClick={() => (n === 0 ? ctx.removeCategory(c) : ctx.setSheet({ type: "delcat", name: c }))} aria-label={`Delete ${c}`}><Trash2 size={16} /></button>
+              </div>
+              {picking === c && (
+                <div className="cd-swatches">
+                  {CAT_COLORS.map((col, k) => (
+                    <button key={col.name} className={"cd-swatch" + ((ctx.catStyle(c)[1] === col.pair[1]) ? " on" : "")} style={{ background: col.pair[1] }}
+                      onClick={() => ctx.setCategoryColor(c, k)} aria-label={col.name} />
+                  ))}
+                  <button className="cd-swatch reset" onClick={() => ctx.setCategoryColor(c, null)}>Theme color</button>
+                </div>
+              )}
+            </React.Fragment>
           );
         })}
       </div>
@@ -2966,13 +3161,45 @@ function Settings({ ctx, themeId, close }) {
           );
         })}
       </div>
+      <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "icon" })}><span className="cd-icomini" dangerouslySetInnerHTML={{ __html: bootIconSvg(ctx.bootIcon, "mini") }} /> Loading icon</button>
       <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "cats" })}><FolderIcon size={18} /> Manage categories</button>
       <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "backup" })}><Download size={18} /> Back up &amp; restore</button>
       <div className="cd-setrow">
         <button className="cd-ghost" onClick={() => ctx.exportData()}><Download size={18} /> Export</button>
         <button className="cd-ghost" style={{ color: "var(--danger)" }} onClick={() => { ctx.resetData("empty"); close(); }}><Trash2 size={18} /> Clear all</button>
       </div>
-      <div className="cd-version">Clear the deck · Version {APP_VERSION}</div>
+      <div className="cd-version">Clear the Day · Version {APP_VERSION}</div>
+    </Sheet>
+  );
+}
+
+// Choose the icon shown while the app opens
+function IconPicker({ ctx }) {
+  const cur = ctx.bootIcon;
+  const back = () => ctx.setSheet({ type: "settings" });
+  const set = (patch) => ctx.setBootIcon({ ...cur, ...patch });
+  return (
+    <Sheet title="Loading icon" onClose={back}>
+      <div className="cd-icoprev">
+        <span className="cd-icobig" dangerouslySetInnerHTML={{ __html: bootIconSvg(cur, "big") }} />
+        <div className="cd-sub">Shown while the app opens. The icon on your Home Screen can’t be changed from inside the app.</div>
+      </div>
+      <div className="cd-fl">Icon</div>
+      <div className="cd-icogrid">
+        {Object.keys(BOOT_GLYPHS).map((g) => (
+          <button key={g} className={"cd-icotile" + (cur.g === g ? " on" : "")} onClick={() => set({ g })} aria-label={g} aria-pressed={cur.g === g}
+            dangerouslySetInnerHTML={{ __html: bootIconSvg({ g, c: cur.c }, "t" + g) }} />
+        ))}
+      </div>
+      {cur.g !== "art" && <>
+        <div className="cd-fl">Color</div>
+        <div className="cd-swatches" style={{ gap: 12 }}>
+          {Object.keys(BOOT_COLORS).map((c) => (
+            <button key={c} className={"cd-swatch" + (cur.c === c ? " on" : "")} style={{ background: BOOT_COLORS[c][1] }} onClick={() => set({ c })} aria-label={c} aria-pressed={cur.c === c} />
+          ))}
+        </div>
+      </>}
+      <button className="cd-ghost" onClick={back}>Done</button>
     </Sheet>
   );
 }
@@ -2995,6 +3222,8 @@ export default function App() {
   const toastTimer = useRef(null);
   const [vvh, setVvh] = useState(null);
   const stateRef = useRef(null); stateRef.current = state;
+  const [settled, setSettled] = useState(false);   // false for the first moments after launch: no fade-in animations
+  useEffect(() => { const t = setTimeout(() => setSettled(true), 800); return () => clearTimeout(t); }, []);
   const lockedRef = useRef(false);            // true when saved data exists but couldn't be read: never save over it
   const [burst, setBurst] = useState(0);        // confetti
   const [fontsReady, setFontsReady] = useState(false);   // the saved theme's fonts are loaded
@@ -3061,7 +3290,13 @@ export default function App() {
       // an old saved theme name (from before the five new themes) falls back to the default
       setState(s
         ? { ...s, themeId: THEMES[s.themeId] ? s.themeId : DEFAULT_THEME, items: s.items.map(normalizeItem) }
-        : { items: makeSeed(), categories: DEFAULT_CATS, themeId: DEFAULT_THEME });
+        : { items: makeSeed().map(normalizeItem), categories: DEFAULT_CATS, themeId: DEFAULT_THEME });
+      const moved = s ? s.items.filter((it, k) => (it.status === "today" || it.status === "future") && !it.someday && (!it.effort || !it.impact)).length : 0;
+      if (moved && !unreadable) {
+        setToastMsg({ m: `${moved} ${moved === 1 ? "task has" : "tasks have"} no effort or impact, so ${moved === 1 ? "it's" : "they're"} waiting in the Inbox` });
+        clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToastMsg(null), 9000);
+      }
     })();
     return () => { alive = false; };
   }, []);
@@ -3097,6 +3332,12 @@ export default function App() {
     document.body.style.backgroundColor = color;
   }, [state && state.themeId]);
 
+  // Remember the loading icon where the page can read it instantly next time (before the saved data has loaded)
+  useEffect(() => {
+    if (!state) return;
+    try { localStorage.setItem("ctd:icon", JSON.stringify(state.bootIcon || DEFAULT_BOOT_ICON)); } catch (e) { /* storage unavailable */ }
+  }, [state && state.bootIcon]);
+
   // A gentle nudge to back up: at most once a day, only with 10+ tasks and no backup for a week; stays on screen for 5 seconds
   useEffect(() => {
     if (!loaded || lockedRef.current) return;
@@ -3127,7 +3368,7 @@ export default function App() {
       <div className="cd-outer" style={{ background: CHROME_COLOR }}>
         <style>{CSS}</style>
         <div className="cd" style={{ background: CHROME_COLOR, display: "grid", placeItems: "center" }}>
-          <div className="cd-boot" role="status" aria-label="Loading" />
+          <BootMark />
         </div>
       </div>
     );
@@ -3156,6 +3397,8 @@ export default function App() {
     setSheet,
     themeIcon: theme.icon || Sun,
     lastBackupAt: state.lastBackupAt,
+    bootIcon: state.bootIcon || DEFAULT_BOOT_ICON,
+    setBootIcon: (pick) => update(() => ({ bootIcon: pick })),
     unsorted: items.filter(isUnlabeled).length,
     goTab: (k) => { setTab(k); setJustDone(new Set()); },
     radarMode, setRadarMode,
@@ -3164,9 +3407,12 @@ export default function App() {
     markCleaned: () => { celebrate(); update(() => ({ cleanedOn: iso() })); },
     openMenu: (id) => setSheet({ type: "menu", id }),
     catStyle: (name) => {
+      const own = (state.categoryColors || {})[name];
+      if (own != null && CAT_COLORS[own]) return CAT_COLORS[own].pair;
       const idx = Math.max(0, categories.indexOf(name));
       return theme.catPalette[idx % theme.catPalette.length];
     },
+    setCategoryColor: (name, idx) => update((s) => { const m = { ...(s.categoryColors || {}) }; if (idx == null) delete m[name]; else m[name] = idx; return { categoryColors: m }; }),
     addItem: (p) => update((s) => ({
       items: [...s.items, normalizeItem(clearParked({ id: uid(), title: "", category: null, effort: null, impact: null, status: "inbox", due: null,
         someday: false, createdAt: Date.now(), doneAt: null, doneFrom: null, ...p }))],
@@ -3204,27 +3450,48 @@ export default function App() {
       }));
     },
     removeCategory: (name) => {
-      const prev = { items, categories };
-      update((s) => ({ categories: s.categories.filter((c) => c !== name), items: s.items.map((i) => (i.category === name ? normalizeItem({ ...i, category: null }) : i)) }));
+      const prev = { items, categories, categoryColors: state.categoryColors || {} };
+      update((s) => { const m = { ...(s.categoryColors || {}) }; delete m[name]; return { categories: s.categories.filter((c) => c !== name), categoryColors: m }; });
       toast(`Deleted “${name}”`, { label: "Undo", run: () => update(() => prev) });
+    },
+    // Deleting a category that has items: either move them all to another category, or send them back to the Inbox to be sorted again
+    deleteCategory: (name, { moveTo = null } = {}) => {
+      const prev = { items, categories, categoryColors: state.categoryColors || {} };
+      const affected = items.filter((i) => i.category === name);
+      const canon = moveTo ? (categories.find((c) => c.toLowerCase() === moveTo.toLowerCase() && c !== name) || moveTo) : null;
+      update((s) => {
+        let cats = s.categories.filter((c) => c !== name);
+        if (canon && !cats.includes(canon)) cats = [...cats, canon];
+        const colors = { ...(s.categoryColors || {}) }; delete colors[name];
+        return { categories: cats, categoryColors: colors, items: s.items.map((i) => {
+          if (i.category !== name) return i;
+          if (canon) return normalizeItem({ ...i, category: canon });
+          if (i.status === "done") return { ...i, category: null };   // finished tasks just lose the label
+          return normalizeItem({ ...i, category: null, status: "inbox", someday: false, due: null });   // everything else goes back to be sorted
+        }) };
+      });
+      const open = affected.filter((i) => i.status !== "done").length;
+      toast(canon ? `Deleted “${name}”. ${affected.length} ${affected.length === 1 ? "item" : "items"} moved to ${canon}` : `Deleted “${name}”. ${open} ${open === 1 ? "item" : "items"} sent to the Inbox`,
+        { label: "Undo", run: () => update(() => prev) });
     },
     addCategory: (name) => update((s) => (s.categories.some((c) => c.toLowerCase() === name.toLowerCase()) ? {} : { categories: [...s.categories, name] })),
     setTheme: (id) => { loadThemeFonts(id).then(() => update(() => ({ themeId: id }))); },
     // A backup is the whole app state as a JSON file. It uses the same save/share path as the Excel export.
     backupData: async () => {
       const payload = { app: "clear-the-deck", version: APP_VERSION, savedAt: new Date().toISOString(),
-        state: { items, categories, themeId: state.themeId, cleanedOn: state.cleanedOn } };
+        state: { items, categories, categoryColors: state.categoryColors || {}, bootIcon: state.bootIcon || DEFAULT_BOOT_ICON, themeId: state.themeId, cleanedOn: state.cleanedOn } };
       try {
-        await saveFile(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), `clear-the-deck-backup-${new Date().toLocaleDateString("en-CA")}.json`);
+        await saveFile(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), "clear-the-day-backup.json"   /* always the same name, so a new backup replaces the old one */);
         update(() => ({ lastBackupAt: Date.now() }));
         toast("Backup saved");
       } catch (e) { if (!e || e.name !== "AbortError") toast("Couldn’t save the backup"); }
     },
     restoreState: (st) => {
-      if (!st || !Array.isArray(st.items) || !Array.isArray(st.categories)) { toast("That isn’t a Clear the Deck backup"); return false; }
-      const prev = { items, categories, themeId: state.themeId, cleanedOn: state.cleanedOn };
+      if (!st || !Array.isArray(st.items) || !Array.isArray(st.categories)) { toast("That isn’t a Clear the Day backup"); return false; }
+      const prev = { items, categories, categoryColors: state.categoryColors || {}, bootIcon: state.bootIcon || DEFAULT_BOOT_ICON, themeId: state.themeId, cleanedOn: state.cleanedOn };
       lockedRef.current = false;   // restoring is an explicit choice, so saving is safe again
-      update(() => ({ items: st.items.map(normalizeItem), categories: st.categories,
+      update(() => ({ items: st.items.map(normalizeItem), categories: st.categories, categoryColors: st.categoryColors || {},
+        ...(st.bootIcon && BOOT_GLYPHS[st.bootIcon.g] && BOOT_COLORS[st.bootIcon.c] ? { bootIcon: st.bootIcon } : {}),
         ...(st.themeId && THEMES[st.themeId] ? { themeId: st.themeId } : {}), ...(st.cleanedOn ? { cleanedOn: st.cleanedOn } : {}) }));
       toast("Backup restored", { label: "Undo", run: () => update(() => prev) });
       return true;
@@ -3254,7 +3521,7 @@ export default function App() {
   return (
     <div className="cd-outer" style={{ "--chrome-bg": theme.vars["--nav-bg"], "--outer-bg": theme.outer }}>
       <style>{CSS}</style>
-      <div className={"cd" + (vvh ? " kb" : "")} style={{ ...theme.vars, "--kb": (vvh || 0) + "px" }} data-theme={state.themeId}
+      <div className={"cd" + (vvh ? " kb" : "") + (settled ? "" : " booting")} style={{ ...theme.vars, "--kb": (vvh || 0) + "px" }} data-theme={state.themeId}
         onPointerDown={(e) => {
           // Tapping anywhere that isn't a text field closes the keyboard
           const a = document.activeElement;
@@ -3279,7 +3546,9 @@ export default function App() {
         {sheet?.type === "edit" && <Editor ctx={ctx} item={editItem} initialStatus={sheet.status} close={close} />}
         {sheet?.type === "evening" && <Evening ctx={ctx} items={items} close={close} />}
         {sheet?.type === "settings" && <Settings ctx={ctx} themeId={state.themeId} close={close} />}
+        {sheet?.type === "icon" && <IconPicker ctx={ctx} />}
         {sheet?.type === "cats" && <CatManager ctx={ctx} items={items} close={close} />}
+      {sheet?.type === "delcat" && <DeleteCategory ctx={ctx} items={items} name={sheet.name} close={close} />}
         {sheet?.type === "backup" && <BackupSheet ctx={ctx} close={close} />}
         {burst ? <Confetti key={burst} /> : null}
         {toastMsg && (
