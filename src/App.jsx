@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "3.5";
+const APP_VERSION = "3.6";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -591,7 +591,7 @@ const THEMES = {
       "--btn-ink": "#FFFFFF",
       "--eve-bg": "#FFFFFF",        // the top card and the Evening Clean Up card are white, like your screenshot
       "--eve-ink": "#12181B",
-      "--head-margin": "calc(env(safe-area-inset-top) + 10px) 14px 6px",
+      "--head-margin": "calc(env(safe-area-inset-top) + 2px) 14px 6px",
       "--head-radius": "22px",
       "--head-pad-top": "18px",
       "--head-pad-top-sm": "14px",
@@ -1252,6 +1252,9 @@ const CSS = FONT_IMPORT + `
 .cd-segbtn .cd-cnt{margin-left:2px;font-weight:700;opacity:.75}
 /* Clean has no bold anywhere: every weight is Regular (400), on every screen, sheet, tag and button */
 .cd[data-theme="clean"],.cd[data-theme="clean"] *{font-weight:400 !important}
+/* The top 8px of every screen is the soft white of the bottom bar. iOS tints the status bar from the top edge of the page,
+   so this keeps the bar soft white on every theme instead of picking up a coloured header. */
+.cd-topstrip{flex:none;height:8px;background:var(--nav-bg)}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
 .cd button,.cd select{touch-action:manipulation}
@@ -3092,9 +3095,9 @@ export default function App() {
   // While the saved data loads, show a plain neutral screen (not a theme), so no theme flashes before yours appears
   if (!state) {
     return (
-      <div className="cd-outer" style={{ background: "#ECEAE6" }}>
+      <div className="cd-outer" style={{ background: CHROME_COLOR }}>
         <style>{CSS}</style>
-        <div className="cd" style={{ background: "#F6F5F2", display: "grid", placeItems: "center" }}>
+        <div className="cd" style={{ background: CHROME_COLOR, display: "grid", placeItems: "center" }}>
           <div className="cd-boot" role="status" aria-label="Loading" />
         </div>
       </div>
@@ -3228,6 +3231,7 @@ export default function App() {
           const a = document.activeElement;
           if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA") && !e.target.closest("input,textarea,[data-keep-kb]")) a.blur();
         }}>
+        <div className="cd-topstrip" aria-hidden="true" />
         <View ctx={ctx} items={items} />
 
         <nav className="cd-nav" aria-label="Sections">
