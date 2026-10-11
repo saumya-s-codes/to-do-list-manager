@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "2.5.5";
+const APP_VERSION = "2.5.6";
 const CHROME_COLOR = "#F6F3EC";   // status-bar tint: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -1215,6 +1215,11 @@ const CSS = FONT_IMPORT + `
 .cd-input[type="date"]{display:block;width:100%;min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;text-align:left}
 .cd-input[type="date"]::-webkit-date-and-time-value{text-align:left;min-height:1.4em}
 .cd-input[type="date"]::-webkit-calendar-picker-indicator{margin:0}
+/* locked Inbox controls (no category yet) and keyboard-open layout */
+.cd-quad.locked>*{opacity:.42;filter:grayscale(1);cursor:not-allowed}
+.cd-quad.locked .cd-prio.ready{box-shadow:none}
+.cd-catrow.shake{animation:cd-shake .45s}
+.cd.kb .cd-nav,.cd.kb .cd-evebar{display:none}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 .cd button,.cd select{touch-action:manipulation}
 .cd-nav{-webkit-backdrop-filter:blur(10px)}
@@ -1675,6 +1680,7 @@ function InboxView({ ctx, items }) {
   const [phase, setPhase] = useState("idle"); // idle | drag | exit
   const [rise, setRise] = useState(false);     // the next card starts in the card-behind position, then rises to the top
   const [nudge, setNudge] = useState(false);     // shakes the Prioritize button when it is tapped too early
+  const [nudgeCat, setNudgeCat] = useState(false);  // shakes the category picker when something is tapped before a category is set
   const drag = useRef(null);
   const busy = useRef(false);
   const [history, setHistory] = useState([]);     // every sort, newest last, so each one can be undone
@@ -1726,6 +1732,7 @@ function InboxView({ ctx, items }) {
   const total = queue.length + handled;
   const behind = Math.min(2, queue.length - 1);
   const complete = draft.category && draft.effort && draft.impact;
+  const hasCat = !!draft.category;   // until a category is set, every control below the card is locked
 
   // Each label is written to the card the moment you tap it, so partial progress survives swipes, tab changes and reloads
   const setField = (k, v) => {
@@ -1802,6 +1809,7 @@ function InboxView({ ctx, items }) {
   // swipe either way (or arrow keys) → back of the deck, labels done → right, Someday → down, Watch → up
   const fling = (kind, dir = -1) => {
     if (busy.current || !cur) return;
+    if ((kind === "save" || kind === "park" || kind === "watch") && !draft.category) { ctx.toast("Pick a category first"); return; }
     if (kind === "save" && !complete) {
       ctx.toast("Pick a category, effort, and impact first");
       setPhase("idle"); setDx(0);
@@ -1939,12 +1947,18 @@ function InboxView({ ctx, items }) {
         </div>
       </div>
       <div className="cd-dock">
-        <div className="cd-catrow">
+        <div className={"cd-catrow" + (nudgeCat ? " shake" : "")}>
           <CategoryPicker pill label={<FolderIcon />} categories={ctx.categories} value={draft.category}
             dot={draft.category ? ctx.catStyle(draft.category)[1] : null}
             onChange={(c) => setField("category", c)} onAdd={ctx.addCategory} />
         </div>
-        <div className="cd-quad">
+        <div className={"cd-quad" + (hasCat ? "" : " locked")}
+          onClickCapture={(e) => {
+            if (hasCat) return;
+            e.preventDefault(); e.stopPropagation();   // locked: swallow the tap, point at the category picker instead
+            setNudgeCat(true); setTimeout(() => setNudgeCat(false), 450); buzz(24);
+            ctx.toast("Pick a category first");
+          }}>
           {/* top left: Prioritize. It only lights up once category, effort and impact are all set. */}
           <button className={"cd-prio" + (complete ? " ready" : "") + (nudge ? " shake" : "")} aria-disabled={!complete}
             onClick={() => { if (!complete) { setNudge(true); setTimeout(() => setNudge(false), 450); buzz(24); } fling("save"); }}>
@@ -2915,7 +2929,15 @@ export default function App() {
     f();
     vv.addEventListener("resize", f);
     vv.addEventListener("scroll", f);
-    return () => { vv.removeEventListener("resize", f); vv.removeEventListener("scroll", f); };
+    // when the keyboard opens, bring the field you're typing in into view
+    const reveal = () => {
+      setTimeout(() => {
+        const a = document.activeElement;
+        if (a && (a.tagName === "TEXTAREA" || a.tagName === "INPUT") && a.scrollIntoView) a.scrollIntoView({ block: "center", behavior: "smooth" });
+      }, 250);
+    };
+    vv.addEventListener("resize", reveal);
+    return () => { vv.removeEventListener("resize", f); vv.removeEventListener("scroll", f); vv.removeEventListener("resize", reveal); };
   }, []);
 
   useEffect(() => {
@@ -3114,7 +3136,7 @@ export default function App() {
   return (
     <div className="cd-outer" style={{ background: theme.outer, ...(vvh ? { bottom: "auto", top: vvh.top, height: vvh.h } : null) }}>
       <style>{CSS}</style>
-      <div className="cd" style={theme.vars} data-theme={state.themeId}
+      <div className={"cd" + (vvh ? " kb" : "")} style={theme.vars} data-theme={state.themeId}
         onPointerDown={(e) => {
           // Tapping anywhere that isn't a text field closes the keyboard
           const a = document.activeElement;
