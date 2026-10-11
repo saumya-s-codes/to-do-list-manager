@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "2.5.6";
+const APP_VERSION = "2.5.8";
 const CHROME_COLOR = "#F6F3EC";   // status-bar tint: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -1353,8 +1353,8 @@ function MiniToggle({ value, onChange, options, label, clearable = false, emptyL
 }
 
 const EFFORT_OPTS = [
-  { v: "quick", label: "Quick", hint: "<15 min", tone: "--q1", color: "var(--c-orange, #E07B24)" },
-  { v: "deep", label: "Deep", hint: ">15 min", tone: "--q4", color: "var(--c-green, #3E9B5F)" },
+  { v: "quick", label: "Quick", hint: "<20 min", tone: "--q1", color: "var(--c-orange, #E07B24)" },
+  { v: "deep", label: "Deep", hint: ">20 min", tone: "--q4", color: "var(--c-green, #3E9B5F)" },
 ];
 // Impact is colour-coded: high = green, low = red
 const IMPACT_OPTS = [
@@ -1731,7 +1731,7 @@ function InboxView({ ctx, items }) {
 
   const total = queue.length + handled;
   const behind = Math.min(2, queue.length - 1);
-  const complete = draft.category && draft.effort && draft.impact;
+  const complete = draft.category && draft.effort && draft.impact && draft.urgency;   // Prioritize needs all of it, urgency included
   const hasCat = !!draft.category;   // until a category is set, every control below the card is locked
 
   // Each label is written to the card the moment you tap it, so partial progress survives swipes, tab changes and reloads
@@ -1748,7 +1748,7 @@ function InboxView({ ctx, items }) {
   };
   const save = () => {
     if (!cur) return;
-    if (!complete) { ctx.toast("Pick a category, effort, and impact first"); return; }
+    if (!complete) { ctx.toast("Set effort, impact and urgency first"); return; }
     setHistory((h) => [...h.slice(-19), { kind: "save", id: cur.id, dir: 1, draft: { ...draft }, before: snap() }]);
     setFront(null);
     // Urgency sets the date: Now = today (straight to Today), Next = +3 days, Later = +7 days; no urgency = no date change
@@ -1811,7 +1811,7 @@ function InboxView({ ctx, items }) {
     if (busy.current || !cur) return;
     if ((kind === "save" || kind === "park" || kind === "watch") && !draft.category) { ctx.toast("Pick a category first"); return; }
     if (kind === "save" && !complete) {
-      ctx.toast("Pick a category, effort, and impact first");
+      ctx.toast("Set effort, impact and urgency first");
       setPhase("idle"); setDx(0);
       return;
     }
@@ -1969,12 +1969,12 @@ function InboxView({ ctx, items }) {
           </button>
           {/* bottom left: tap a pill to cycle through its options */}
           <div className="cd-toggles">
-            <div className="cd-trow"><span className="lbl">Effort<small>{(EFFORT_OPTS.find((o) => o.v === draft.effort) || {}).hint || "<15 or >15 min"}</small></span>
+            <div className="cd-trow"><span className="lbl">Effort<small>{(EFFORT_OPTS.find((o) => o.v === draft.effort) || {}).hint || "<20 or >20 min"}</small></span>
               <MiniToggle label="Effort" value={draft.effort} onChange={(v) => setField("effort", v)} options={EFFORT_OPTS} /></div>
             <div className="cd-trow"><span className="lbl">Impact<small>{(IMPACT_OPTS.find((o) => o.v === draft.impact) || {}).hint || "low or high"}</small></span>
               <MiniToggle label="Impact" value={draft.impact} onChange={(v) => setField("impact", v)} options={IMPACT_OPTS} /></div>
-            <div className="cd-trow"><span className="lbl">Urgency<small>{(URGENCY_OPTS.find((o) => o.v === draft.urgency) || {}).hint || "optional"}</small></span>
-              <MiniToggle label="Urgency" value={draft.urgency} onChange={(v) => setField("urgency", v)} options={URGENCY_OPTS} clearable emptyLabel="None" /></div>
+            <div className="cd-trow"><span className="lbl">Urgency<small>{(URGENCY_OPTS.find((o) => o.v === draft.urgency) || {}).hint || "when it's due"}</small></span>
+              <MiniToggle label="Urgency" value={draft.urgency} onChange={(v) => setField("urgency", v)} options={URGENCY_OPTS} /></div>
           </div>
           {/* right: Someday above, Watch below */}
           <button className="cd-tcard someday" onClick={() => fling("park")}>
