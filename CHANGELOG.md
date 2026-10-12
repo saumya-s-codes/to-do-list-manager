@@ -1,5 +1,18 @@
 # Changelog
 
+## 6.1
+- Button colors: **Watch** is now gold (#D4A84F) and **Someday** is the red. Same on every screen: the Inbox cards, Evening Clean Up, the Radar tabs and the menus.
+
+## 6.0
+- **One look: Café.** All the other themes (Papyrus, Vibrant, Botanical, Celestial, Sanctuary, Clean) and the theme setting are gone. Settings no longer has a theme section, and everyone gets Café, including anyone who had picked another theme.
+- Only the two fonts Café uses (Newsreader and Inter) are loaded now, so the app loads a little less. The Papyrus background picture is no longer used, so `src/assets/papyrus-bg.jpg` can be deleted.
+
+## 5.5
+- **Tomorrow takes a task off Today.** In Evening Clean Up (and "Move to tomorrow" in the menu), a task sent to Tomorrow gets tomorrow's date and leaves the Today list. It comes back on its day. "Everything to tomorrow" does the same for all that are left.
+- **Today is only for what is due today or overdue.** A task with a later date lives in Future until its day arrives, wherever the date came from (Edit date, Edit details, and so on). Overdue tasks in Future are moved to Today too.
+- **The day starts at 5 AM.** Between midnight and 5 AM it is still the day before: at 1 AM on Monday, "today" is still Sunday, so "tomorrow" is Monday. This applies everywhere the app asks what today is (due dates, finished today, the Today bar, and so on).
+- Evening Clean Up's recap lists everything that will be on tomorrow's Today.
+
 ## 5.4
 - **Fix: Evening Clean Up forgot your Tomorrow choices.** A task you sent to Tomorrow stays on Today, so when you closed Evening Clean Up early and came back, it asked about that task again. Tasks you've already handled tonight are now remembered, and the Today bar counts only what's still unsorted.
 - Evening Clean Up saves each choice the moment you tap it (before, it waited for the card to slide away).

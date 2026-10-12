@@ -4,16 +4,12 @@
  * Data is saved in the browser (see storage.js), and can be exported to Excel from Settings.
  */
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import papyrusBg from "./assets/papyrus-bg.jpg";
 import {
-  Download, Sun, Pencil, Plus, Moon, Check, X, Eye, LayoutGrid, CalendarDays, Timer,
-  BarChart3, CheckCircle2, MoreHorizontal, Zap, Target, ClipboardList, Hourglass,
-  Trash2, ArrowRight, Calendar, Inbox, RotateCcw, Sparkles, AlertCircle, ArrowUp,
-  Palette, Leaf, Star, Flower2, Flame, ArrowLeft, Radar, ChevronDown,
+  Download, Sun, Pencil, Plus, Moon, Check, X, Eye, LayoutGrid, CalendarDays, BarChart3, CheckCircle2, MoreHorizontal, Zap, Target, ClipboardList, Hourglass, Trash2, ArrowRight, Calendar, Inbox, RotateCcw, Sparkles, AlertCircle, ArrowUp, Leaf, ArrowLeft, Radar,
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "5.4";
+const APP_VERSION = "6.1";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -148,33 +144,15 @@ async function downloadExport(items) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   THEME SYSTEM
+   LOOK
    ────────────────────────────────────────────────────────────────────────────
-   Every colour, font, radius and shadow in the app comes from a CSS variable
-   set by the active theme. No component hard-codes a colour.
-
-   TO ADD A THEME: add one entry to THEMES below (copy any existing one).
-     • vars        → the CSS variables (full list is visible in the entries)
-     • catPalette  → [background, text] pairs; categories cycle through these
-                     (order: School, Personal, Work, Career, Health, Digital)
-     • swatches    → 4 colours shown in the theme picker
-     • outer       → backdrop colour behind the phone frame on desktop
-   Nothing else needs to change. The picker in Settings lists every entry.
-
-   Five themes, built from the mockups:
-     papyrus     Playful Modernism   paper, autumn red, denim · Fraunces + Inter
-     vibrant     Google × Meta       blue, coral, yellow · Poppins + Inter
-     botanical   Leaves × Barley     olive, sage, clay · Manrope + Lato
-     celestial   Blue Moon           twilight blue + gold · Nixie One + Comfortaa
-     sanctuary   Lavender × Sage     lavender, blush, sage · Rouge Script + Klee One
-
-   Illustrations are small inline SVGs in each theme's --deco var. Each theme has a HERO (top of every page) and a TILE (repeats down
-   long pages), both painted on the scrolling area with background-attachment:local.
+   The app has one look, Café: cream paper, black ink outlines, red and olive green, illustrated headers.
+   Every colour, font, radius and shadow comes from the CSS variables in THEMES.cafe below; no component hard-codes a colour.
    ════════════════════════════════════════════════════════════════════════════ */
 
 // Fonts load through ordinary <link> tags, NOT an @import inside the app's own CSS. An @import makes some browsers (Safari) hold back the
 // whole stylesheet until the font download finishes, which showed the app as raw unstyled text for a split second at start-up.
-const FONT_URL = "https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;500;600;700&family=Courier+Prime:wght@400&family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Klee+One:wght@400;600&family=Lato:wght@400;700&family=Manrope:wght@500;600;700;800&family=Newsreader:wght@500;600;700&family=Nixie+One&family=Plus+Jakarta+Sans:wght@400&family=Rouge+Script&family=Roboto:wght@400;500;700&family=Poppins:wght@600;700&display=swap";
+const FONT_URL = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:wght@500;600;700&display=swap";
 const fontsLoaded = typeof document === "undefined" ? Promise.resolve() : new Promise((resolve) => {
   const add = (rel, href, cross) => { const l = document.createElement("link"); l.rel = rel; l.href = href; if (cross) l.crossOrigin = ""; document.head.appendChild(l); return l; };
   add("preconnect", "https://fonts.googleapis.com");
@@ -195,484 +173,7 @@ function loadThemeFonts(themeId, maxWait = 1500) {
   return Promise.race([load, new Promise((r) => setTimeout(r, maxWait))]);
 }
 
-/* ───────── illustrations ─────────
-   Each theme has two layers, both painted on the scrolling area so they move with the page:
-     HERO  (430×240)  sits at the very top of every page, corner to corner
-     TILE  (430×700)  repeats down the page, so long pages keep getting decorated
-   Both scale to the screen width. Pieces hug the left and right edges so they peek out from behind the cards. */
-const svgUrl = (w, h, inner) =>
-  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">${inner}</svg>`)}")`;
-const G = (x, y, r, s, inner) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(${s})">${inner}</g>`;
-const LEAF = "M0 0C6 -11 22 -13 34 0C22 13 6 11 0 0Z";
-const STAR = "M0-11L2.6-2.6L11 0L2.6 2.6L0 11L-2.6 2.6L-11 0L-2.6-2.6Z";
-const sparkle = (x, y, s, c, op = 0.8) => `<path transform="translate(${x} ${y}) scale(${s})" d="${STAR}" fill="${c}" opacity="${op}"/>`;
-
-/* ── Botanical pieces ── */
-// leafy branch hanging from (0,0), about 150 tall
-const branch = (a, b, stem, op = 0.45) =>
-  `<g opacity="${op}"><path d="M0 0C-6 40 -4 90 8 150" fill="none" stroke="${stem}" stroke-width="1.6" stroke-linecap="round"/>` +
-  [[-3, 22], [-5, 50], [-3, 80], [2, 110], [8, 140]]
-    .map(([x, y], i) => `<path transform="translate(${x} ${y}) rotate(${i % 2 ? 28 : 152}) scale(${1 - i * 0.08})" d="${LEAF}" fill="${i % 2 ? b : a}"/>`).join("") +
-  `<path transform="translate(8 150) rotate(95)" d="${LEAF}" fill="${a}"/></g>`;
-// barley stalk, about 130 tall
-const barley = (c, stem, op = 0.6) =>
-  `<g opacity="${op}"><path d="M0 0L0 130" stroke="${stem}" stroke-width="1.5" stroke-linecap="round"/>` +
-  Array.from({ length: 7 }, (_, i) => { const y = 6 + i * 12; return `<ellipse cx="-5" cy="${y}" rx="3.4" ry="8" transform="rotate(-24 -5 ${y})" fill="${c}"/><ellipse cx="5" cy="${y + 4}" rx="3.4" ry="8" transform="rotate(24 5 ${y + 4})" fill="${c}"/>`; }).join("") +
-  `<path d="M0 0L0 -16M-4 4L-12 -12M4 4L12 -12" stroke="${c}" stroke-width="1" stroke-linecap="round"/></g>`;
-const daisy = (p, c, op = 0.75) =>
-  `<g opacity="${op}">${Array.from({ length: 8 }, (_, i) => `<ellipse cx="0" cy="-9" rx="3.6" ry="8" transform="rotate(${i * 45})" fill="${p}"/>`).join("")}<circle r="4.4" fill="${c}"/></g>`;
-const looseLeaf = (x, y, r, s, c, op = 0.4) => `<path transform="translate(${x} ${y}) rotate(${r}) scale(${s})" d="${LEAF}" fill="${c}" opacity="${op}"/>`;
-
-const BOT_A = "#8CA37A", BOT_B = "#7C7A5A", BOT_STEM = "#6F7A4E", BOT_BARLEY = "#C9AE72";
-const ART_BOTANICAL = svgUrl(430, 240,
-  G(372, -8, 8, 1.3, branch(BOT_A, BOT_B, BOT_STEM, 0.45)));
-const TILE_BOTANICAL = svgUrl(430, 700,
-  G(6, 80, -8, 1.1, branch(BOT_A, BOT_B, BOT_STEM, 0.4)) +
-  G(424, 340, 10, 1.1, branch(BOT_B, BOT_A, BOT_STEM, 0.4)) +
-  G(12, 540, -6, 1.05, barley(BOT_BARLEY, BOT_STEM, 0.5)));
-
-/* ── Celestial pieces ── */
-const cloud = (x, y, s, op = 0.75) =>
-  `<g transform="translate(${x} ${y}) scale(${s})" fill="#FFFFFF" opacity="${op}"><ellipse cx="0" cy="0" rx="34" ry="11"/><ellipse cx="-18" cy="-7" rx="18" ry="11"/><ellipse cx="12" cy="-10" rx="20" ry="13"/></g>`;
-const planet = (x, y, s) =>
-  `<g transform="translate(${x} ${y}) scale(${s})"><circle r="15" fill="#D8BD88" opacity=".8"/><ellipse rx="27" ry="6.5" transform="rotate(-18)" fill="none" stroke="#9AA6E0" stroke-width="2" opacity=".75"/><path d="M-13 -4A15 15 0 0 1 12 -9" fill="none" stroke="#fff" stroke-width="2" opacity=".5" stroke-linecap="round"/></g>`;
-const constel = (pts, c = "#9AA6E0") =>
-  `<polyline points="${pts.map((p) => p.join(",")).join(" ")}" fill="none" stroke="${c}" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>` +
-  pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.4" fill="${c}" opacity=".7"/>`).join("");
-const crescent = (x, y, s, op = 0.85) => `<path transform="translate(${x} ${y}) scale(${s})" d="M0 0A46 46 0 1 0 0 92A35 35 0 1 1 0 0Z" fill="#D8BD88" opacity="${op}"/>`;
-
-const ART_CELESTIAL = svgUrl(430, 240,
-  cloud(70, 190, 1.3, 0.8) + cloud(350, 218, 1.1, 0.7) +
-  crescent(386, 20, 1.0) +
-  sparkle(318, 40, 1.15, "#D8BD88", 0.9) + sparkle(266, 104, 0.6, "#D8BD88", 0.7) + sparkle(420, 150, 0.8, "#D8BD88", 0.8) +
-  sparkle(24, 46, 0.9, "#D8BD88", 0.85) + sparkle(96, 92, 0.5, "#9AA6E0", 0.7) +
-  constel([[150, 30], [196, 58], [236, 34], [280, 66]]) + constel([[20, 130], [52, 108], [82, 140]], "#C9BFEF"));
-const TILE_CELESTIAL = svgUrl(430, 700,
-  cloud(30, 120, 1.2, 0.8) + cloud(410, 330, 1.3, 0.8) + cloud(20, 560, 1.1, 0.75) + cloud(420, 650, 0.9, 0.7) +
-  sparkle(24, 190, 1.0, "#D8BD88") + sparkle(410, 280, 0.9, "#D8BD88") + sparkle(40, 330, 0.55, "#9AA6E0") +
-  sparkle(402, 420, 0.6, "#9AA6E0") + sparkle(22, 470, 1.1, "#D8BD88") + sparkle(414, 580, 0.8, "#D8BD88") + sparkle(40, 640, 0.5, "#9AA6E0") +
-  crescent(396, 40 + 440, 0.5, 0.8) + planet(26, 268, 1.1) + planet(412, 372, 0.7) +
-  constel([[396, 480], [418, 506], [400, 540]]) + constel([[14, 380], [38, 404], [20, 436]], "#C9BFEF"));
-
-/* ── Sanctuary pieces ── */
-const lavender = (stem = "#9DB89E", op = 0.6) =>
-  `<g opacity="${op}"><path d="M0 0C-4 76 -20 146 -44 220" fill="none" stroke="${stem}" stroke-width="1.6" stroke-linecap="round"/>` +
-  Array.from({ length: 10 }, (_, i) => {
-    const y = 20 + i * 18, x = -(y / 220) * 44, s = 1 - i * 0.04, c = i % 2 ? "#B58FD0" : "#C9A7E0";
-    return `<ellipse cx="${x - 6}" cy="${y}" rx="${4.8 * s}" ry="${9 * s}" transform="rotate(-28 ${x - 6} ${y})" fill="${c}"/>` +
-           `<ellipse cx="${x + 6}" cy="${y + 6}" rx="${4.8 * s}" ry="${9 * s}" transform="rotate(28 ${x + 6} ${y + 6})" fill="${c}"/>`;
-  }).join("") +
-  `<ellipse cx="-30" cy="196" rx="5" ry="16" transform="rotate(48 -30 196)" fill="${stem}"/><ellipse cx="-10" cy="204" rx="5" ry="15" transform="rotate(-40 -10 204)" fill="${stem}"/></g>`;
-const butterfly = (c1, c2, op = 0.7) =>
-  `<g opacity="${op}"><path d="M0 0C-8 -22 -30 -26 -30 -10C-30 2 -14 8 0 2Z" fill="${c1}"/><path d="M0 2C-6 14 -20 24 -22 12C-22 4 -10 0 0 2Z" fill="${c2}"/>` +
-  `<path d="M0 0C8 -22 30 -26 30 -10C30 2 14 8 0 2Z" fill="${c1}"/><path d="M0 2C6 14 20 24 22 12C22 4 10 0 0 2Z" fill="${c2}"/><path d="M0 -8L0 12M0 -8L-6 -16M0 -8L6 -16" stroke="#7A4FA3" stroke-width="1.2" stroke-linecap="round" fill="none"/></g>`;
-const petal = (x, y, r, c, op = 0.6) => `<ellipse cx="${x}" cy="${y}" rx="5" ry="9" transform="rotate(${r} ${x} ${y})" fill="${c}" opacity="${op}"/>`;
-
-const ART_SANCTUARY = svgUrl(430, 240,
-  G(396, -6, 4, 1.05, lavender()) + G(344, -10, -6, 0.85, lavender("#9DB89E", 0.45)) +
-  G(24, -8, -8, 0.7, lavender("#9DB89E", 0.4)) +
-  G(58, 70, -14, 1.0, butterfly("#E4CDF2", "#F7D7E8", 0.85)) +
-  sparkle(118, 40, 0.8, "#C9A7E0", 0.8) + sparkle(250, 168, 0.55, "#C9A7E0", 0.7) + sparkle(300, 214, 0.8, "#F7D7E8", 0.9) +
-  petal(160, 120, 30, "#F7D7E8") + petal(200, 200, -20, "#E4CDF2"));
-const TILE_SANCTUARY = svgUrl(430, 700,
-  G(10, 60, 0, 0.95, lavender("#9DB89E", 0.5)) + G(424, 300, 4, 1.0, lavender("#9DB89E", 0.5)) +
-  G(16, 420, -4, 0.85, lavender("#9DB89E", 0.45)) + G(420, 520, 6, 0.8, lavender("#9DB89E", 0.45)) +
-  G(402, 410, -10, 0.85, butterfly("#E4CDF2", "#F7D7E8")) + G(36, 340, 12, 0.7, butterfly("#F7D7E8", "#E4CDF2", 0.65)) +
-  sparkle(26, 280, 0.8, "#C9A7E0") + sparkle(408, 220, 0.6, "#C9A7E0") + sparkle(34, 560, 0.7, "#F7D7E8", 0.95) + sparkle(404, 640, 0.9, "#C9A7E0") +
-  petal(46, 200, 30, "#F7D7E8") + petal(386, 360, -25, "#E4CDF2") + petal(30, 640, 40, "#E4CDF2") + petal(408, 560, 20, "#F7D7E8") + petal(52, 500, -30, "#F7D7E8", 0.5));
-
-/* ── Papyrus (Playful Modernism): the painted paper background is a normal image file (src/assets/papyrus-bg.jpg) ── */
-const PAPYRUS_PAGE = `url("${papyrusBg}")`;
-
-/* ── Thought-dump box: a small corner motif from each theme's own set of design elements (Vibrant stays plain) ── */
-const PANEL_PAPYRUS = svgUrl(160, 48,
-  Array.from({ length: 12 }, (_, i) => `<circle cx="${60 + (i % 4) * 9}" cy="${10 + Math.floor(i / 4) * 9}" r="1.9" fill="#FFF8F0" opacity=".7"/>`).join("") +
-  `<path d="M96 42C106 12 126 8 130 24C134 40 112 38 116 22C120 8 146 12 154 6" fill="none" stroke="#FFF8F0" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>`);
-const PANEL_BOTANICAL = svgUrl(160, 48,
-  G(140, 0, 16, 0.3, branch("#F2F5E6", "#E3EACB", "#FBF8EE", 0.85)));
-const PANEL_CELESTIAL = svgUrl(160, 48,
-  crescent(130, 3, 0.32, 0.95) + sparkle(92, 14, 0.7, "#FFE6B0", 0.95) + sparkle(62, 36, 0.45, "#FFFFFF", 0.85) + sparkle(150, 40, 0.5, "#FFFFFF", 0.85) +
-  constel([[8, 38], [28, 22], [48, 36]], "#FFFFFF"));
-const PANEL_SANCTUARY = svgUrl(160, 48,
-  G(122, 26, 10, 0.8, butterfly("#FFFFFF", "#F7D7E8", 0.8)) + sparkle(72, 14, 0.6, "#FFFFFF", 0.85) + sparkle(152, 8, 0.45, "#F7D7E8", 0.95) +
-  petal(38, 32, 30, "#F7D7E8", 0.7));
-
-/* ── Vibrant: flat, Google-style shapes in the four primary colours. Few of them, kept to the edges. ── */
-const V_B = "#4285F4", V_R = "#EA4335", V_Y = "#FBBC05", V_G = "#34A853";
-const vDisc = (x, y, r, c) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`;
-const vRing = (x, y, r, c, w = 7) => `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${c}" stroke-width="${w}"/>`;
-const vPlus = (x, y, sc, c, r = 0) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(${sc})" fill="${c}"><rect x="-4" y="-14" width="8" height="28" rx="4"/><rect x="-14" y="-4" width="28" height="8" rx="4"/></g>`;
-const vTri = (x, y, sc, r, c) => `<path transform="translate(${x} ${y}) rotate(${r}) scale(${sc})" d="M0 -18L16 12L-16 12Z" fill="${c}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/>`;
-const vSq = (x, y, sc, r, c) => `<rect transform="translate(${x} ${y}) rotate(${r}) scale(${sc})" x="-18" y="-18" width="36" height="36" rx="9" fill="${c}"/>`;
-const vHalf = (x, y, r, rot, c) => `<path transform="translate(${x} ${y}) rotate(${rot})" d="M${-r} 0A${r} ${r} 0 0 1 ${r} 0Z" fill="${c}"/>`;
-const vQuarter = (x, y, r, rot, c) => `<path transform="translate(${x} ${y}) rotate(${rot})" d="M0 0L${r} 0A${r} ${r} 0 0 1 0 ${r}Z" fill="${c}"/>`;
-const vSquig = (x, y, sc, c, w = 5) => `<path transform="translate(${x} ${y}) scale(${sc})" d="M0 0q9 -12 18 0t18 0t18 0" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
-const vDots = (x, y, c, n = 3, gap = 12) => Array.from({ length: n }, (_, i) => `<circle cx="${x}" cy="${y + i * gap}" r="3.2" fill="${c}"/>`).join("");
-
-const ART_VIBRANT = svgUrl(430, 240,
-  vQuarter(430, 0, 58, 90, V_Y) + vRing(346, 26, 12, V_B, 6) +
-  vTri(420, 132, 0.8, -90, V_R) + vHalf(0, 96, 24, 90, V_G) + vDisc(10, 176, 8, V_R));
-const TILE_VIBRANT = svgUrl(430, 700,
-  vHalf(0, 70, 32, 90, V_B) + vQuarter(430, 170, 44, 90, V_R) + vSq(6, 270, 0.9, -14, V_Y) +
-  vRing(430, 372, 26, V_G, 8) + vPlus(12, 452, 0.9, V_R, 15) + vTri(422, 532, 0.9, 90, V_B) +
-  vDots(10, 596, V_G) + vHalf(430, 664, 30, -90, V_Y));
-const PANEL_VIBRANT = svgUrl(160, 48,
-  vDisc(142, 14, 7, V_Y) + vPlus(114, 15, 0.55, V_R) + vRing(88, 15, 6, V_B, 3.5) + vSquig(26, 24, 0.8, V_G, 3.5));
-
 const THEMES = {
-  /* ───────── 01. PAPYRUS — playful modernism: paper, ink and paint ───────── */
-  papyrus: {
-    name: "Papyrus",
-    blurb: "Warm paper, painted shapes",
-    icon: Palette,   // the settings button
-    dark: false,
-    outer: "#D9CDB8",
-    swatches: ["#BB464B", "#789BB8", "#788F5B", "#DBB247"],
-    catPalette: [   // School, Personal, Work, Career, Health, Digital
-      ["#DCE6EF", "#4F7394"], ["#F3D9D4", "#A33A3F"], ["#E1E6D3", "#5C7044"],
-      ["#F0DAD2", "#A86A5A"], ["#F5E6BE", "#8F6E12"], ["#E6DCCB", "#7A6A52"],
-    ],
-    vars: {
-      "--bg": `${PAPYRUS_PAGE} center top / cover no-repeat, #EDE4D6`,   // one painting behind everything, so the top, the bottom bars and the buttons all match
-      "--panel": "#F3EADB",
-      "--card": "#FBF7EF",
-      "--text": "#3B2A1B",
-      "--muted": "#5E4C38",
-      "--line": "rgba(107,93,69,.16)",
-      "--accent": "#A93C41",
-      "--accent-ink": "#FFF8F0",
-      "--accent-soft": "#F3D9D4",
-      "--someday-bg": "#3E7F86",
-      "--someday-ink": "#FFF8F0",
-      "--watch-bg": "#946A1B",
-      "--watch-ink": "#FFF8F0",
-      "--btn-bg": "#A93C41",
-      "--btn-ink": "#FFF8F0",
-      "--danger": "#A8322F",
-      "--hero-bg": "linear-gradient(120deg,#A93C41 0%,#B5503F 50%,#C98A3A 105%)",
-      "--panel-deco": PANEL_PAPYRUS,
-      "--hero-ink": "#FFF8F0",
-      "--c-green": "#788F5B", "--c-yellow": "#DBB247", "--c-blue": "#789BB8", "--c-orange": "#D0793F",   // colour-coding for the Inbox toggles
-      "--bar-bg": "#EDE4D6",   // solid paper colour behind the Evening Clean Up button, instead of the painting
-      "--font-display": "Fraunces,'Iowan Old Style','Palatino Linotype',Georgia,serif",
-      "--font-body": "Inter,-apple-system,'Segoe UI',system-ui,sans-serif",
-      "--display-weight": "600",
-      "--display-transform": "none",
-      "--display-spacing": "-0.02em",
-      "--radius-lg": "22px",
-      "--radius-md": "14px",
-      "--radius-pill": "999px",
-      "--shadow": "0 4px 14px rgba(107,93,69,.12)",
-      "--nav-bg": "#FBF7EF",
-      "--nav-active": "#A93C41",
-      "--scrim": "rgba(60,45,30,.4)",
-      "--q1": "#788F5B", "--q1-bg": "#E1E6D3",
-      "--q2": "#BB464B", "--q2-bg": "#F3D9D4",
-      "--q3": "#C99A2A", "--q3-bg": "#F5E6BE",
-      "--q4": "#789BB8", "--q4-bg": "#DCE6EF",
-    },
-  },
-
-  /* ───────── 02. VIBRANT — bright base, confident pops ───────── */
-  vibrant: {
-    name: "Vibrant",
-    blurb: "Primary colors, clean and playful",
-    icon: Sparkles,   // the settings button
-    dark: false,
-    outer: "#E8EAED",
-    swatches: ["#4285F4", "#EA4335", "#FBBC05", "#34A853"],
-    catPalette: [   // School, Personal, Work, Career, Health, Digital
-      ["#E8F0FE", "#1967D2"], ["#FCE8E6", "#C5221F"], ["#FEF7E0", "#B06000"],
-      ["#E6F4EA", "#137333"], ["#F3E8FD", "#8430CE"], ["#E4F7FB", "#007B83"],
-    ],
-    vars: {
-      "--bg": "linear-gradient(180deg,#FFFFFF 0%,#F8F9FA 100%)",
-      "--deco": ART_VIBRANT,
-      "--deco-size": "100% auto",
-      "--deco2": TILE_VIBRANT,
-      "--deco2-size": "100% auto",
-      "--panel-deco": PANEL_VIBRANT,
-      "--panel": "#F1F3F4",
-      "--card": "#FFFFFF",
-      "--text": "#202124",
-      "--muted": "#5F6368",
-      "--line": "rgba(60,64,67,.14)",
-      "--accent": "#1A73E8",
-      "--accent-ink": "#FFFFFF",
-      "--accent-soft": "#E8F0FE",
-      "--someday-bg": "#188038",
-      "--someday-ink": "#FFFFFF",
-      "--watch-bg": "#B45F06",
-      "--watch-ink": "#FFFFFF",
-      "--btn-bg": "#4285F4",
-      "--btn-ink": "#FFFFFF",
-      "--danger": "#D93025",
-      "--hero-bg": "#E8F0FE",
-      "--hero-ink": "#202124",
-      "--dump-btn": "#4285F4",
-      "--dump-ink": "#FFFFFF",
-      "--c-green": "#34A853", "--c-yellow": "#FBBC05", "--c-blue": "#4285F4", "--c-orange": "#FA7B17",   // colour-coding for the Inbox toggles
-      "--font-display": "Poppins,'Google Sans','Avenir Next','Segoe UI',system-ui,sans-serif",
-      "--font-body": "Roboto,Inter,-apple-system,'Segoe UI',system-ui,sans-serif",
-      "--display-weight": "600",
-      "--display-transform": "none",
-      "--display-spacing": "-0.015em",
-      "--radius-lg": "20px",
-      "--radius-md": "14px",
-      "--radius-pill": "999px",
-      "--shadow": "0 1px 2px rgba(60,64,67,.28), 0 1px 4px 1px rgba(60,64,67,.12)",
-      "--nav-bg": "#FFFFFF",
-      "--nav-active": "#1A73E8",
-      "--scrim": "rgba(32,33,36,.42)",
-      "--q1": "#34A853", "--q1-bg": "#E6F4EA",
-      "--q2": "#4285F4", "--q2-bg": "#E8F0FE",
-      "--q3": "#F9AB00", "--q3-bg": "#FEF7E0",
-      "--q4": "#EA4335", "--q4-bg": "#FCE8E6",
-    },
-  },
-
-  /* ───────── 03. BOTANICAL — earthy, olive, paper ───────── */
-  botanical: {
-    name: "Botanical",
-    blurb: "Earthy, organic, grounded",
-    icon: Leaf,   // the settings button
-    dark: false,
-    outer: "#D9D1BE",
-    swatches: ["#6B7B47", "#8CA37A", "#D6C295", "#A67C52"],
-    catPalette: [
-      ["#E2EAD3", "#55703F"], ["#E8E6D2", "#6B6A45"], ["#F0E0CC", "#8A5E35"],
-      ["#F3E7C8", "#8A6D1F"], ["#DDE8D8", "#3F6B4A"], ["#E9E2D6", "#6B5E48"],
-    ],
-    vars: {
-      "--bg": "linear-gradient(180deg,#FCF9F3 0%,#F4ECDC 100%)",
-      "--deco": ART_BOTANICAL,
-      "--deco-size": "100% auto",
-      "--deco2": TILE_BOTANICAL,
-      "--deco2-size": "100% auto",
-      "--panel": "#F2EADB",
-      "--card": "#FFFBF2",
-      "--text": "#2E2E28",
-      "--muted": "#6A6550",
-      "--line": "rgba(120,100,60,.18)",
-      "--accent": "#5A6A3A",
-      "--accent-ink": "#FBF8EE",
-      "--accent-soft": "#E2E7D0",
-      "--someday-bg": "#A4573B",
-      "--someday-ink": "#FBF8EE",
-      "--watch-bg": "#4B6C7A",
-      "--watch-ink": "#FBF8EE",
-      "--btn-bg": "#5A6A3A",
-      "--btn-ink": "#FBF8EE",
-      "--danger": "#B5483A",
-      "--hero-bg": "linear-gradient(120deg,#56663A 0%,#6F8450 55%,#B79A55 118%)",
-      "--panel-deco": PANEL_BOTANICAL,
-      "--hero-ink": "#FBF8EE",
-      "--c-green": "#6F8A5C", "--c-yellow": "#C2A25E", "--c-blue": "#7C9AAE", "--c-orange": "#C47A3F",   // colour-coding for the Inbox toggles
-      "--font-display": "Manrope,'Avenir Next','Segoe UI',system-ui,sans-serif",
-      "--font-body": "Lato,-apple-system,'Segoe UI',system-ui,sans-serif",
-      "--display-weight": "700",
-      "--display-transform": "none",
-      "--display-spacing": "-0.01em",
-      "--radius-lg": "20px",
-      "--radius-md": "14px",
-      "--radius-pill": "999px",
-      "--shadow": "0 4px 14px rgba(90,80,40,.10)",
-      "--nav-bg": "#FCF9F3",
-      "--nav-active": "#5A6A3A",
-      "--scrim": "rgba(46,46,40,.4)",
-      "--q1": "#6F8A5C", "--q1-bg": "#E2EAD3",
-      "--q2": "#7C7A5A", "--q2-bg": "#E8E6D2",
-      "--q3": "#C2A25E", "--q3-bg": "#F3E7C8",
-      "--q4": "#A67C52", "--q4-bg": "#EEDFCF",
-    },
-  },
-
-  /* ───────── 04. CELESTIAL — twilight blue, gold ───────── */
-  celestial: {
-    name: "Celestial",
-    blurb: "Airy, starlit, mystical",
-    icon: Star,   // the settings button
-    dark: false,
-    outer: "#CDD3EC",
-    swatches: ["#5F72BE", "#C9BFEF", "#D8BD88", "#E9B8C9"],
-    catPalette: [
-      ["#E2E7F8", "#4F5FA8"], ["#EADFF5", "#7550A6"], ["#F6E9CF", "#8C6F2E"],
-      ["#DDEFF0", "#2F7C86"], ["#F5DDE6", "#A24A6E"], ["#E6E9F4", "#55608A"],
-    ],
-    vars: {
-      "--bg": "linear-gradient(180deg,#EAEEFB 0%,#FAF9FE 45%,#EFEFFB 100%)",
-      "--deco": ART_CELESTIAL,
-      "--deco-size": "100% auto",
-      "--deco2": TILE_CELESTIAL,
-      "--deco2-size": "100% auto",
-      "--panel": "#E4E8F7",
-      "--card": "#FCFCFF",
-      "--text": "#2B3158",
-      "--muted": "#5A6296",
-      "--line": "rgba(95,114,190,.15)",
-      "--accent": "#5F72BE",
-      "--accent-ink": "#FFFFFF",
-      "--accent-soft": "#E2E7F8",
-      "--someday-bg": "#34816C",
-      "--someday-ink": "#FFFFFF",
-      "--watch-bg": "#966F1E",
-      "--watch-ink": "#FFFFFF",
-      "--btn-bg": "#5F72BE",
-      "--btn-ink": "#FFFFFF",
-      "--danger": "#C4455A",
-      "--good": "#4E9A7A",   // a calm green for "high impact" (this theme's own blues aren't green)
-      "--hero-bg": "linear-gradient(120deg,#4F5FA8 0%,#7B88D4 55%,#E9B8C9 118%)",
-      "--panel-deco": PANEL_CELESTIAL,
-      "--hero-ink": "#FFFFFF",
-      "--c-green": "#4E9A7A", "--c-yellow": "#D8BD88", "--c-blue": "#5F72BE", "--c-orange": "#E0A070",   // colour-coding for the Inbox toggles
-      "--font-display": "'Nixie One','Iowan Old Style',Georgia,serif",   // page title and big card titles
-      "--font-display-sm": "Comfortaa,'Avenir Next','Segoe UI',system-ui,sans-serif",   // smaller headings
-      "--display-weight-sm": "700",
-      "--display-scale": "1.1",   // Nixie One runs small,
-      "--font-body": "Comfortaa,-apple-system,'Segoe UI',system-ui,sans-serif",
-      "--display-weight": "400",
-      "--card-title-weight": "700",   // the text on the big cards is bold (Nixie One has one weight, so the phone makes it bold)
-      "--display-transform": "none",
-      "--display-spacing": "0.01em",
-      "--radius-lg": "22px",
-      "--radius-md": "15px",
-      "--radius-pill": "999px",
-      "--shadow": "0 4px 18px rgba(95,114,190,.15)",
-      "--nav-bg": "#FAF9FE",
-      "--nav-active": "#5F72BE",
-      "--scrim": "rgba(43,49,88,.4)",
-      "--q1": "#7F8FD4", "--q1-bg": "#E3E7F9",
-      "--q2": "#5F72BE", "--q2-bg": "#DADFF4",
-      "--q3": "#C4A15A", "--q3-bg": "#F4EAD2",
-      "--q4": "#A99BD8", "--q4-bg": "#EAE5F7",
-    },
-  },
-
-  /* ───────── 05. SOFT SANCTUARY — lavender, blush, sage ───────── */
-  sanctuary: {
-    name: "Sanctuary",
-    blurb: "Gentle, dreamy, peaceful",
-    icon: Flower2,   // the settings button
-    dark: false,
-    outer: "#DACDE6",
-    swatches: ["#9A6FBE", "#C9A7E0", "#9DB89E", "#F7D7E8"],
-    catPalette: [
-      ["#E1EDE2", "#4F7A55"], ["#EADCF4", "#7A4FA3"], ["#FBE3EE", "#B8467A"],
-      ["#E8E6F6", "#5E5C9E"], ["#DDEFEA", "#2F7A6B"], ["#EFE6F4", "#7C6C8F"],
-    ],
-    vars: {
-      "--bg": "linear-gradient(180deg,#FCF8FD 0%,#F4ECF8 100%)",
-      "--deco": ART_SANCTUARY,
-      "--deco-size": "100% auto",
-      "--deco2": TILE_SANCTUARY,
-      "--deco2-size": "100% auto",
-      "--panel": "#F2EAF7",
-      "--card": "#FEFBFF",
-      "--text": "#3A2E46",
-      "--muted": "#6F6185",
-      "--line": "rgba(110,70,150,.13)",
-      "--accent": "#835AA6",
-      "--accent-ink": "#FFFFFF",
-      "--accent-soft": "#EADCF4",
-      "--someday-bg": "#B24F78",
-      "--someday-ink": "#FFFFFF",
-      "--watch-bg": "#4F8260",
-      "--watch-ink": "#FFFFFF",
-      "--btn-bg": "#835AA6",
-      "--btn-ink": "#FFFFFF",
-      "--danger": "#C2455F",
-      "--hero-bg": "linear-gradient(120deg,#6F4A93 0%,#8E64B0 55%,#D68FB5 115%)",
-      "--panel-deco": PANEL_SANCTUARY,
-      "--hero-ink": "#FFFFFF",
-      "--c-green": "#7FA283", "--c-yellow": "#E0B867", "--c-blue": "#8BA6D6", "--c-orange": "#E39A6B",   // colour-coding for the Inbox toggles
-      "--font-display": "'Rouge Script',cursive,Georgia,serif",   // page title and big card titles
-      "--font-display-sm": "'Klee One','Avenir Next','Segoe UI',system-ui,sans-serif",   // smaller headings
-      "--display-weight-sm": "600",
-      "--display-scale": "1.35",   // Rouge Script runs very small,
-      "--font-body": "'Klee One',-apple-system,'Segoe UI',system-ui,sans-serif",
-      "--display-weight": "400",
-      "--display-transform": "none",
-      "--display-spacing": "0",
-      "--radius-lg": "26px",
-      "--radius-md": "18px",
-      "--radius-pill": "999px",
-      "--shadow": "0 6px 20px rgba(140,100,180,.13)",
-      "--nav-bg": "#FCF8FD",
-      "--nav-active": "#835AA6",
-      "--scrim": "rgba(58,46,70,.4)",
-      "--q1": "#7FA283", "--q1-bg": "#E1EDE2",
-      "--q2": "#9A6FBE", "--q2-bg": "#EADCF4",
-      "--q3": "#D9779E", "--q3-bg": "#FBE3EE",
-      "--q4": "#A895B8", "--q4-bg": "#EFE6F4",
-    },
-  },
-  /* ───────── 06. CLEAN — white and grey surfaces, one calm green accent, bold geometric type (from your screenshot) ───────── */
-  clean: {
-    name: "Clean",
-    blurb: "Fresh whites and greys",
-    icon: Zap,   // the settings button
-    dark: false,
-    outer: "#E7E7E4",
-    swatches: ["#FFFFFF", "#ECECE9", "#B4B8B6", "#5B615F"],
-    catPalette: [   // School, Personal, Work, Career, Health, Digital
-      ["#E6F2E8", "#2F7A45"], ["#FFF0E0", "#B85F12"], ["#E6F0FF", "#1F5FD0"],
-      ["#EFE8FB", "#6B46C1"], ["#FDE8E8", "#C53030"], ["#EBEDF0", "#4B5563"],
-    ],
-    vars: {
-      "--bg": "linear-gradient(180deg,#FFFFFF 0%,#F6F6F4 100%)",
-      "--panel": "#F1F1EE",
-      "--card": "#FFFFFF",
-      "--text": "#12181B",
-      "--muted": "#667069",
-      "--line": "rgba(20,30,25,.09)",
-      "--accent": "#3F6B52",
-      "--accent-ink": "#FFFFFF",
-      "--accent-soft": "#E4EEE8",
-      "--someday-bg": "#4458A8",
-      "--someday-ink": "#FFFFFF",
-      "--watch-bg": "#B0661A",
-      "--watch-ink": "#FFFFFF",
-      "--btn-bg": "#3F6B52",
-      "--btn-ink": "#FFFFFF",
-      "--eve-bg": "#FFFFFF",        // the top card and the Evening Clean Up card are white, like your screenshot
-      "--eve-ink": "#12181B",
-      "--head-margin": "calc(env(safe-area-inset-top) + 2px) 14px 6px",
-      "--head-radius": "22px",
-      "--head-pad-top": "18px",
-      "--head-pad-top-sm": "14px",
-      "--head-act-top": "18px",
-      "--safe-bg": "#3F6B52",   // status-bar strip: dark, because the top card itself is white
-      "--headbtn-bg": "#E4EEE8",
-      "--headbtn-ink": "#3F6B52",
-      "--hero-bg": "#FFFFFF",
-      "--hero-ink": "#12181B",
-      "--dump-bg": "#F2F2EF",
-      "--dump-btn": "#3F6B52",
-      "--dump-ink": "#FFFFFF",
-      "--danger": "#D13B3B",
-      "--c-green": "#4C9A6A", "--c-yellow": "#D9A21B", "--c-blue": "#3F73C8", "--c-orange": "#D98A2B",   // colour-coding for the Inbox toggles
-      "--font-display": "'Courier Prime','Courier New',Courier,monospace",   // page title and big card titles
-      "--font-display-sm": "'Plus Jakarta Sans','Avenir Next','Segoe UI',system-ui,sans-serif",   // smaller headings
-      "--display-weight-sm": "400",
-      "--display-scale": "0.88",   // Courier is wide, so the title is a little smaller,
-      "--font-body": "'Plus Jakarta Sans',Inter,-apple-system,'Segoe UI',system-ui,sans-serif",
-      "--display-weight": "400",
-      "--display-transform": "none",
-      "--display-spacing": "-0.02em",
-      "--radius-lg": "22px",
-      "--radius-md": "14px",
-      "--radius-pill": "999px",
-      "--shadow": "0 1px 2px rgba(20,30,25,.05), 0 6px 18px rgba(20,30,25,.06)",
-      "--nav-bg": "#FFFFFF",
-      "--nav-active": "#3F6B52",
-      "--scrim": "rgba(18,24,27,.38)",
-      "--q1": "#4C9A6A", "--q1-bg": "#E6F2EA",
-      "--q2": "#3F73C8", "--q2-bg": "#E6EFFC",
-      "--q3": "#D98A2B", "--q3-bg": "#FDF0DD",
-      "--q4": "#7A8280", "--q4-bg": "#EDEFEE",
-    },
-  },
-
   // Ink-and-paper café: cream paper, black ink outlines drawn a little wobbly, red and olive green, illustrated headers (public/art)
   cafe: {
     name: "Café",
@@ -680,7 +181,6 @@ const THEMES = {
     icon: Leaf,   // the settings button
     dark: false,
     outer: "#D8CFBC",
-    swatches: ["#A3241C", "#3F4A2F", "#E6D9C2", "#FBF3E3"],
     catPalette: [
       ["#E3E6D0", "#49512E"], ["#E9E4D6", "#7B766B"], ["#F2D9D2", "#A3241C"],
       ["#F1E3BC", "#9A7420"], ["#DDE5E6", "#4B6670"], ["#EBDCE2", "#7A4A5C"],
@@ -696,11 +196,11 @@ const THEMES = {
       "--accent": "#3F4A2F",
       "--accent-ink": "#FBF3E3",
       "--accent-soft": "#E3E6D0",
-      "--someday-bg": "#E6D9C2",
-      "--someday-ink": "#1F1B17",
-      "--someday-icon": "#8F7B4E",
-      "--watch-bg": "#A3241C",
-      "--watch-ink": "#FBF3E3",
+      "--someday-bg": "#A3241C",
+      "--someday-ink": "#FBF3E3",
+      "--watch-bg": "#D4A84F",
+      "--watch-ink": "#1F1B17",
+      "--watch-icon": "#A9812C",
       "--btn-bg": "#3F4A2F",
       "--btn-ink": "#FBF3E3",
       "--danger": "#A3241C",
@@ -733,14 +233,20 @@ const THEMES = {
       "--q4": "#1F1B17", "--q4-bg": "#E9DEC8",
     },
   },
+
 };
-const DEFAULT_THEME = "papyrus";
+const DEFAULT_THEME = "cafe";
 
 /* ═══════════════════════════ helpers & data ═══════════════════════════════ */
 
 const pad = (n) => String(n).padStart(2, "0");
-const iso = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const offsetDay = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); };
+// The day starts at 5 AM. Between midnight and 5 AM it is still "the day before": at 1 AM on Monday, today is still Sunday,
+// and "tomorrow" is Monday. Everything that asks "what is today?" goes through these.
+const DAY_START_HOUR = 5;
+const dayNow = () => new Date(Date.now() - DAY_START_HOUR * 36e5);
+const iso = (d = dayNow()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const offsetDay = (n) => { const d = dayNow(); d.setDate(d.getDate() + n); return iso(d); };
+const dayOf = (ms) => iso(new Date(ms - DAY_START_HOUR * 36e5));   // which day a moment belongs to
 const parseDay = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
 const fmtShort = (s) => parseDay(s).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 // "3 days overdue" / "Due today" / "Fri, Oct 16"
@@ -780,6 +286,8 @@ const enforceComplete = (o) => {
   if (due && !urgency) urgency = urgencyForDate(due);
   else if (urgency && !due) due = urgency === "now" ? iso() : offsetDay(urgency === "next" ? 3 : 7);
   else if (!due && !urgency) { if (o.status === "today") { urgency = "now"; due = iso(); } else { urgency = "later"; due = offsetDay(7); } }
+  // Today is only for things due today or overdue: a task with a later date lives in Future until its day comes
+  if (o.status === "today" && due > iso()) return { ...o, status: "future", due, urgency, pos: null };
   return due === o.due && urgency === o.urgency ? o : { ...o, due, urgency };
 };
 // ── How dates and urgency fit together (used everywhere) ──────────────────────────────────────────────────────
@@ -806,7 +314,7 @@ const todaySort = (list) => {
     return Number(b.due === t) - Number(a.due === t);
   });
 };
-const isToday = (ms) => !!ms && new Date(ms).toDateString() === new Date().toDateString();
+const isToday = (ms) => !!ms && dayOf(ms) === iso();
 const uid = () => Math.random().toString(36).slice(2, 10);
 // a small buzz on phones that support it, so taps feel physical
 const buzz = (p = 10) => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (_) { /* ignore */ } };
@@ -923,7 +431,7 @@ async function saveState(s) {
 // Today's copy is written first and only then are older ones removed, so there is never a moment with no backup.
 async function snapshotOncePerDay(s) {
   try {
-    const key = SNAP_PREFIX + new Date().toLocaleDateString("en-CA");
+    const key = SNAP_PREFIX + iso();
     let have = true;
     try { await window.storage.get(key); } catch { have = false; }
     if (!have) await window.storage.set(key, JSON.stringify(s));
@@ -1123,14 +631,6 @@ const CSS = `
 .cd-primary{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border-radius:var(--radius-lg);background:var(--btn-bg);color:var(--btn-ink);font-weight:700;margin-top:18px}
 .cd-primary:disabled{opacity:.45;cursor:default}
 .cd-ghost{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border-radius:var(--radius-lg);background:var(--panel);font-weight:600;margin-top:10px}
-.cd-themes{display:grid;gap:10px}
-.cd-theme{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--radius-md);background:var(--panel);text-align:left;border:2px solid transparent;width:100%}
-.cd-theme.on{border-color:var(--accent)}
-.cd-theme b{display:block;font-weight:600}
-.cd-theme small{color:var(--muted);font-size:12.5px}
-.cd-sw{display:flex;flex:none}
-.cd-sw i{width:18px;height:34px;display:block}
-.cd-sw i:first-child{border-radius:9px 0 0 9px}.cd-sw i:last-child{border-radius:0 9px 9px 0}
 .cd-toast{position:absolute;left:50%;width:max-content;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);background:var(--text);color:var(--card);padding:10px 18px;border-radius:var(--radius-pill);font-size:13.5px;font-weight:500;z-index:40;box-shadow:var(--shadow);max-width:88%;text-align:center;pointer-events:none;animation:cd-drop .22s ease-out}
 .cd-toast.act{pointer-events:auto;display:flex;align-items:center;gap:14px;padding:7px 7px 7px 18px}
 .cd-toast.act button{padding:7px 15px;border-radius:var(--radius-pill);background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13.5px;flex:none}
@@ -1283,14 +783,6 @@ const CSS = `
 .cd-selwrap.pill .cd-select{background:var(--card);box-shadow:var(--shadow);border:1px solid var(--line)}
 .cd-mini{background:var(--panel);border-color:var(--line)}
 /* Settings: all five themes in a compact grid, so nothing needs to scroll */
-.cd-themegrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-.cd-tile{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:10px 12px;border-radius:var(--radius-md);background:var(--panel);border:2px solid transparent;text-align:left;min-width:0}
-.cd-tile.on{border-color:var(--accent)}
-.cd-tile b{font-size:12.5px;font-weight:600;line-height:1.2}
-.cd-tile .cd-sw{border-radius:11px;box-shadow:0 0 0 1px var(--line)}
-.cd-tile .cd-sw i{width:16px;height:22px}
-.cd-tile .cd-sw i:first-child{border-radius:11px 0 0 11px}
-.cd-tile .cd-sw i:last-child{border-radius:0 11px 11px 0}
 .cd-setrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .cd-setrow .cd-ghost{margin-top:0}
 .cd-version{text-align:center;color:var(--muted);font-size:12px;margin-top:14px}
@@ -1391,7 +883,6 @@ const CSS = `
 .cd-parkbar .cd-segbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .cd-segbtn .cd-cnt{margin-left:2px;font-weight:700;opacity:.75}
 /* Clean has no bold anywhere: every weight is Regular (400), on every screen, sheet, tag and button */
-.cd[data-theme="clean"],.cd[data-theme="clean"] *{font-weight:400 !important}
 /* The top 8px of every screen is the soft white of the bottom bar. iOS tints the status bar from the top edge of the page,
    so this keeps the bar soft white on every theme instead of picking up a coloured header. */
 .cd-topstrip{flex:none;height:8px;background:var(--nav-bg)}
@@ -1449,19 +940,6 @@ const CSS = `
 /* the little illustrations on empty screens */
 .cd[data-theme="cafe"] .cd-empty::before{content:"";display:block;height:130px;margin:0 auto 6px;background:var(--empty-art,none) center / contain no-repeat;mix-blend-mode:multiply}
 .cd[data-theme="cafe"] .cd-empty>svg{display:none}
-.cd-dd{position:relative}
-.cd-ddbtn,.cd-ddrow{display:flex;align-items:center;gap:12px;width:100%;padding:8px 14px;text-align:left}
-.cd-ddbtn{border-radius:var(--radius-md);background:var(--panel);border:1.5px solid var(--line)}
-.cd-ddname{flex:1;min-width:0}
-.cd-ddname b{display:block;font-size:14.5px;font-weight:600;line-height:1.25}
-.cd-ddname small{display:block;font-size:12px;color:var(--muted);line-height:1.25;margin-top:1px}
-.cd-ddsw{display:flex;flex:none;border-radius:11px;overflow:hidden;box-shadow:0 0 0 1px var(--line)}
-.cd-ddsw i{display:block;width:14px;height:24px}
-.cd-ddlist{margin-top:6px;border-radius:var(--radius-md);border:1.5px solid var(--line);background:var(--card);overflow:hidden}
-.cd-ddrow{background:transparent;border-bottom:1px solid var(--line)}
-.cd-ddrow:last-child{border-bottom:0}
-.cd-ddrow.on{background:var(--accent-soft)}
-.cd-ddrow svg{color:var(--accent);flex:none}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
 .cd button,.cd select{touch-action:manipulation}
@@ -1847,10 +1325,10 @@ function TodayView({ ctx, items }) {
   const dumpRef = useRef(null);
   // Tasks you finish during this visit stay where they were (crossed out and faded) until you leave the tab
   const shown = todaySort(items.filter((i) => i.status === "today" || (i.status === "done" && i.doneFrom === "today" && ctx.justDone.has(i.id))));
-  const openCount = shown.filter((i) => i.status === "today" && i.eveDone !== iso()).length;   // tasks already sent to Tomorrow tonight are done
+  const openCount = shown.filter((i) => i.status === "today").length;
   const scrollRef = useRef(null);
   const reorder = useReorder(shown.map((i) => i.id), ctx.reorderToday, scrollRef);
-  const dateStr = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  const dateStr = dayNow().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 
   const dump = () => {
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -2674,7 +2152,7 @@ function DashboardView({ ctx, items }) {
   const segs = QUADS.map((q) => ({ key: q.key, title: q.title, color: `var(--q${q.n})`, count: matrix.filter((i) => quadOf(i) === q.key).length }));
   const quadLabel = { "quick-high": "Quick + High", "deep-high": "Deep + High", "quick-low": "Quick + Low", "deep-low": "Deep + Low" };
 
-  const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const dateStr = dayNow().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const Stat = ({ n, l, cls }) => <div className={"cd-stat " + (cls || "")}><b>{n}</b><span>{l}</span></div>;
   const doneAll = items.filter((i) => i.status === "done").length;
   const doneWeek = items.filter((i) => i.status === "done" && i.doneAt && i.doneAt >= Date.now() - 7 * 864e5).length;
@@ -2760,16 +2238,16 @@ function DashboardView({ ctx, items }) {
 function CompletedView({ ctx, items }) {
   const [leaving, setLeaving] = useState(() => new Set());   // rows that are sliding out after being unchecked
   const done = items.filter((i) => i.status === "done").sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
-  const todayKey = new Date().toDateString();
-  const yesterdayKey = new Date(Date.now() - 864e5).toDateString();
+  const todayKey = iso();
+  const yesterdayKey = offsetDay(-1);
   const groups = [];
   done.forEach((i) => {
-    const key = i.doneAt ? new Date(i.doneAt).toDateString() : "earlier";
+    const key = i.doneAt ? dayOf(i.doneAt) : "earlier";
     const last = groups[groups.length - 1];
     if (last && last.key === key) last.list.push(i); else groups.push({ key, at: i.doneAt, list: [i] });
   });
   const label = (g) => g.key === "earlier" ? "Earlier" : g.key === todayKey ? "Today" : g.key === yesterdayKey ? "Yesterday"
-    : new Date(g.at).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+    : parseDay(g.key).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
   // Unchecking: the circle empties, the row slides out, then the task goes back to the list it came from (with an Undo)
   const uncheck = (id) => {
     const it = items.find((x) => x.id === id);
@@ -2820,7 +2298,7 @@ function CompletedView({ ctx, items }) {
 
 // the same three colours as the buttons: scheduling = accent, Someday, Watch
 const MENU_TINT = { "Move to tomorrow": "var(--accent)", "Move to this week": "var(--accent)", "Move to future": "var(--accent)", "Move to Future": "var(--accent)", "Move to Today": "var(--accent)",
-  "Move to someday": "var(--someday-icon, var(--someday-bg))", "Move to Someday": "var(--someday-icon, var(--someday-bg))", "Move out of Someday": "var(--someday-icon, var(--someday-bg))", "Move to watch": "var(--watch-bg)", "Mark as Watching": "var(--watch-bg)" };
+  "Move to someday": "var(--someday-icon, var(--someday-bg))", "Move to Someday": "var(--someday-icon, var(--someday-bg))", "Move out of Someday": "var(--someday-icon, var(--someday-bg))", "Move to watch": "var(--watch-icon, var(--watch-bg))", "Mark as Watching": "var(--watch-icon, var(--watch-bg))" };
 function ItemMenu({ ctx, item, close }) {
   const act = (fn, msg, view) => () => { fn(); close(); if (msg) ctx.toast(msg, view ? { label: "View", run: () => ctx.goRadar(view) } : undefined); };
   const p = (patch, msg, view) => act(() => ctx.patchItem(item.id, patch), msg, view);
@@ -2959,7 +2437,7 @@ function Editor({ ctx, item, initialStatus, close }) {
 }
 
 function Evening({ ctx, items, close }) {
-  const [queue] = useState(() => todaySort(items.filter((i) => i.status === "today" && i.eveDone !== iso())).map((i) => i.id));   // tasks already sent to Tomorrow tonight are not asked about again
+  const [queue] = useState(() => todaySort(items.filter((i) => i.status === "today")).map((i) => i.id));
   const [idx, setIdx] = useState(0);
   const [log, setLog] = useState({ tomorrow: 0, week: 0, future: 0, someday: 0, watching: 0 });
   const [history, setHistory] = useState([]);   // every choice, so each can be undone
@@ -2975,9 +2453,9 @@ function Evening({ ctx, items, close }) {
 
   // the same dates the Inbox urgency toggle uses: Next = +3 days, Later = +7 days
   const dueFor = (v) => offsetDay(URGENCY_OPTS.find((o) => o.v === v).days);
-  const snapOf = (c) => ({ status: c.status, due: c.due, someday: c.someday, doneAt: c.doneAt, doneFrom: c.doneFrom, urgency: c.urgency || null, effort: c.effort || null, impact: c.impact || null, eveDone: c.eveDone || null });
-  // Tomorrow = Now: the task stays on the deck and its date becomes tomorrow, so it reads "due today" when tomorrow comes
-  const rollToTomorrow = () => ({ urgency: "now", due: offsetDay(1), eveDone: iso() });   // eveDone remembers it was handled tonight
+  const snapOf = (c) => ({ status: c.status, due: c.due, someday: c.someday, doneAt: c.doneAt, doneFrom: c.doneFrom, urgency: c.urgency || null, effort: c.effort || null, impact: c.impact || null });
+  // Tomorrow = Now, due tomorrow: the task leaves Today now and comes back on its day. (Between midnight and 5 AM, "tomorrow" is the next calendar day, i.e. today's date.)
+  const rollToTomorrow = () => ({ status: "future", someday: false, urgency: "now", due: offsetDay(1) });
   const choose = (kind) => {
     if (!cur || leaving) return;
     const before = snapOf(cur);
@@ -3035,7 +2513,7 @@ function Evening({ ctx, items, close }) {
           <Chip name={cur.category} catStyle={ctx.catStyle} />
         </div>
         <div className="cd-evegrid">
-          <button className="cd-evego" onClick={() => choose("tomorrow")}><Sun size={18} />Tomorrow<small>Now</small></button>
+          <button className="cd-evego" onClick={() => choose("tomorrow")}><Sun size={18} />Tomorrow<small>Now · {shortDay(offsetDay(1))}</small></button>
           <button className="cd-evego" onClick={() => choose("week")}><Calendar size={18} />This week<small>Next · {shortDay(dueFor("next"))}</small></button>
           <button className="cd-evego" onClick={() => choose("future")}><CalendarDays size={18} />Future<small>Later · {shortDay(dueFor("later"))}</small></button>
           <button className="cd-evego someday" onClick={() => choose("someday")}><Sparkles size={18} />Someday<small>No date</small></button>
@@ -3049,12 +2527,12 @@ function Evening({ ctx, items, close }) {
   if (inFlow) return null;
 
   /* Step: summary of the day */
-  const tomorrow = items.filter((i) => i.status === "today");
+  const tomorrow = items.filter((i) => !i.someday && (i.status === "today" || (i.status === "future" && i.due && i.due <= offsetDay(1))));   // everything that will be on Today tomorrow
   const heavy = tomorrow.filter((i) => i.effort === "deep" && i.impact === "high").length;
   const maxShow = typeof window !== "undefined" && window.innerHeight < 720 ? 3 : 5;   // keep the summary on screen on small phones
   const rows = [
     ["Finished today", finished],
-    ["Kept for tomorrow", log.tomorrow],
+    ["Moved to tomorrow", log.tomorrow],
     ["Moved to this week", log.week],
     ["Moved to Future", log.future],
     ["Moved to Someday", log.someday],
@@ -3225,36 +2703,9 @@ function Confetti() {
   );
 }
 
-function Settings({ ctx, themeId, close }) {
-  const ids = Object.keys(THEMES);
-  const [open, setOpen] = useState(false);   // is the theme list showing
-  const cur = THEMES[themeId] || THEMES[DEFAULT_THEME];
-  const swatches = (t) => <span className="cd-ddsw">{t.swatches.map((c) => <i key={c} style={{ background: c }} />)}</span>;
+function Settings({ ctx, close }) {
   return (
     <Sheet title="Settings" onClose={close}>
-      <div className="cd-fl" style={{ marginTop: 0 }}>Theme</div>
-      <div className="cd-dd">
-        <button className="cd-ddbtn" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)}>
-          {swatches(cur)}
-          <span className="cd-ddname"><b>{cur.name}</b><small>{cur.blurb}</small></span>
-          <ChevronDown size={18} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
-        </button>
-        {open && (
-          <div className="cd-ddlist" role="listbox" aria-label="Themes">
-            {ids.map((id) => {
-              const t = THEMES[id];
-              return (
-                <button key={id} role="option" aria-selected={id === themeId} className={"cd-ddrow" + (id === themeId ? " on" : "")}
-                  onClick={() => { ctx.setTheme(id); setOpen(false); }}>
-                  {swatches(t)}
-                  <span className="cd-ddname"><b>{t.name}</b><small>{t.blurb}</small></span>
-                  {id === themeId && <Check size={17} />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
       <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "cats" })}><FolderIcon size={18} /> Manage categories</button>
       <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "backup" })}><Download size={18} /> Back up &amp; restore</button>
       <div className="cd-setrow">
@@ -3298,9 +2749,10 @@ export default function App() {
   // New day, or coming back to the app: re-check what's due today
   useEffect(() => {
     const check = () => setDayKey(iso());
+    const timer = setInterval(check, 60000);   // also notice the new day (5 AM) if the app was simply left open
     document.addEventListener("visibilitychange", check);
     window.addEventListener("focus", check);
-    return () => { document.removeEventListener("visibilitychange", check); window.removeEventListener("focus", check); };
+    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", check); window.removeEventListener("focus", check); };
   }, []);
 
   // Anything in Future that is due today belongs on the Today page.
@@ -3310,11 +2762,11 @@ export default function App() {
   useEffect(() => {
     if (!loaded) return;
     const t = iso();
-    const due = stateRef.current.items.filter((i) => i.status === "future" && !i.someday && i.due === t && i.promotedOn !== t);
+    const due = stateRef.current.items.filter((i) => i.status === "future" && !i.someday && i.due && i.due <= t && i.promotedOn !== t);
     if (!due.length) return;
     const ids = new Set(due.map((i) => i.id));
     setState((s) => ({ ...s, items: s.items.map((i) => (ids.has(i.id) ? { ...i, status: "today", promotedOn: t } : i)) }));
-    setToastMsg({ m: `${due.length} due today moved to Today` });
+    setToastMsg({ m: `${due.length} due ${due.length === 1 ? "task" : "tasks"} moved to Today` });
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastMsg(null), 2600);
   }, [loaded, dayKey]);
@@ -3535,7 +2987,6 @@ export default function App() {
         { label: "Undo", run: () => update(() => prev) });
     },
     addCategory: (name) => update((s) => (s.categories.some((c) => c.toLowerCase() === name.toLowerCase()) ? {} : { categories: [...s.categories, name] })),
-    setTheme: (id) => { loadThemeFonts(id).then(() => update(() => ({ themeId: id }))); },
     // A backup is the whole app state as a JSON file. It uses the same save/share path as the Excel export.
     backupData: async () => {
       const payload = { app: "clear-the-deck", version: APP_VERSION, savedAt: new Date().toISOString(),
@@ -3580,7 +3031,7 @@ export default function App() {
   return (
     <div className="cd-outer" style={{ "--chrome-bg": theme.vars["--nav-bg"], "--outer-bg": theme.outer }}>
       <style>{CSS}</style>
-      <div className={"cd" + (vvh ? " kb" : "") + (settled ? "" : " booting")} style={{ ...theme.vars, "--kb": (vvh || 0) + "px" }} data-theme={state.themeId}
+      <div className={"cd" + (vvh ? " kb" : "") + (settled ? "" : " booting")} style={{ ...theme.vars, "--kb": (vvh || 0) + "px" }} data-theme="cafe"
         onPointerDown={(e) => {
           // Tapping anywhere that isn't a text field closes the keyboard
           const a = document.activeElement;
@@ -3610,7 +3061,7 @@ export default function App() {
         {sheet?.type === "date" && dateItem && <DateEditor ctx={ctx} item={dateItem} close={close} />}
         {sheet?.type === "edit" && <Editor ctx={ctx} item={editItem} initialStatus={sheet.status} close={close} />}
         {sheet?.type === "evening" && <Evening ctx={ctx} items={items} close={close} />}
-        {sheet?.type === "settings" && <Settings ctx={ctx} themeId={state.themeId} close={close} />}
+        {sheet?.type === "settings" && <Settings ctx={ctx} close={close} />}
         {sheet?.type === "cats" && <CatManager ctx={ctx} items={items} close={close} />}
       {sheet?.type === "delcat" && <DeleteCategory ctx={ctx} items={items} name={sheet.name} close={close} />}
         {sheet?.type === "backup" && <BackupSheet ctx={ctx} close={close} />}
