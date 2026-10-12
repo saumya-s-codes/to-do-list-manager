@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.4
+- **Fix: Evening Clean Up forgot your Tomorrow choices.** A task you sent to Tomorrow stays on Today, so when you closed Evening Clean Up early and came back, it asked about that task again. Tasks you've already handled tonight are now remembered, and the Today bar counts only what's still unsorted.
+- Evening Clean Up saves each choice the moment you tap it (before, it waited for the card to slide away).
+- New **Complete** button under the six buttons, three buttons wide: it closes out the day right away and leaves whatever is left as it is.
+- The Inbox remembers which cards you sent to the back, so switching tabs and coming back doesn't reshuffle the deck.
+
+## 5.3
+- Removed the **Loading icon** setting. The loading screen always shows the ink illustration (the app's icon), and there is nothing to change in Settings. Any choice an older version remembered is cleared.
+
 ## 5.2
 - Café: a hand-drawn ink line under the header on every screen, matching the card outlines.
 
