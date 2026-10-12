@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "6.1";
+const APP_VERSION = "6.2";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -940,6 +940,14 @@ const CSS = `
 /* the little illustrations on empty screens */
 .cd[data-theme="cafe"] .cd-empty::before{content:"";display:block;height:130px;margin:0 auto 6px;background:var(--empty-art,none) center / contain no-repeat;mix-blend-mode:multiply}
 .cd[data-theme="cafe"] .cd-empty>svg{display:none}
+/* Inbox card: more room, and it never collapses when the keyboard opens */
+.cd[data-theme="cafe"] .cd-headcard.compact{min-height:136px;padding-top:calc(24px + env(safe-area-inset-top));padding-bottom:16px}
+.cd[data-theme="cafe"] .cd-headcard.compact::before{background-size:auto 100%}
+.cd-scroll.lock .cd-stack2{min-height:150px;flex-shrink:0}
+.cd-dock.away{display:none}   /* editing the card text: the category and sorting controls step aside */
+.cd.kb[data-theme="cafe"] .cd-headcard{min-height:84px;padding-top:calc(14px + env(safe-area-inset-top));padding-bottom:12px}   /* with the keyboard up, the illustration gives way */
+.cd.kb[data-theme="cafe"] .cd-headcard::before,.cd.kb[data-theme="cafe"] .cd-headcard .cd-sub{display:none}
+@media(max-height:720px){.cd[data-theme="cafe"] .cd-headcard.compact{min-height:104px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:12px}.cd-quad .cd-prio{min-height:84px}}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
 .cd button,.cd select{touch-action:manipulation}
@@ -1263,10 +1271,10 @@ function useReorder(ids, onCommit, scrollRef) {
 
 // One colourful header card, identical in size on every page: date, title, subtitle, and an optional button top-right
 const emptyArt = (ctx, k) => (ctx.themeId === "cafe" ? { "--empty-art": `url("${CAFE_ART.empty[k]}")` } : undefined);   // a little ink drawing on empty screens (Café theme)
-function PageHead({ ctx, title, sub, action, art }) {
+function PageHead({ ctx, title, sub, action, art, compact }) {
   const SettingsIcon = ctx.themeIcon;
   return (
-    <header className="cd-headcard" style={art && ctx.themeId === "cafe" ? { "--hdr-art": `url("${CAFE_ART.hdr[art]}")` } : undefined}>
+    <header className={"cd-headcard" + (compact ? " compact" : "")} style={art && ctx.themeId === "cafe" ? { "--hdr-art": `url("${CAFE_ART.hdr[art]}")` } : undefined}>
       <h1 className="cd-h1">{title}</h1>
       <p className="cd-sub">{sub}</p>
       <div className="cd-headact">
@@ -1628,7 +1636,7 @@ function InboxView({ ctx, items }) {
   if (!cur) {
     return (
       <>
-        <PageHead ctx={ctx} art="inbox" title="Inbox" sub="All caught up."
+        <PageHead ctx={ctx} art="inbox" compact title="Inbox" sub="All caught up."
           action={<button className="cd-undo" onClick={undo} disabled={!history.length} aria-label="Undo last sort"><RotateCcw size={15} /> Undo</button>} />
       <div className="cd-scroll">
         <div className="cd-empty" data-art="flowers" style={{ marginTop: 56, ...emptyArt(ctx, "flowers") }}>
@@ -1642,7 +1650,7 @@ function InboxView({ ctx, items }) {
 
   return (
     <>
-      <PageHead ctx={ctx} art="inbox" title="Inbox" sub={`${queue.length} ${queue.length === 1 ? "card" : "cards"} left · swipe to send to the back`}
+      <PageHead ctx={ctx} art="inbox" compact title="Inbox" sub={`${queue.length} ${queue.length === 1 ? "card" : "cards"} left · swipe to send to the back`}
           action={<button className="cd-undo" onClick={undo} disabled={!history.length} aria-label="Undo last sort"><RotateCcw size={15} /> Undo</button>} />
       <div className="cd-scroll lock">
         <div className="cd-progress"><i style={{ width: `${(handled / total) * 100}%` }} /></div>
@@ -1683,7 +1691,7 @@ function InboxView({ ctx, items }) {
           </div>
         </div>
       </div>
-      <div className="cd-dock">
+      <div className={"cd-dock" + (editing ? " away" : "")}>   {/* while you edit the card text, the controls step aside */}
         <div className={"cd-catrow" + (nudgeCat ? " shake" : "")}>
           <CategoryPicker pill label={<FolderIcon />} categories={ctx.categories} value={draft.category}
             dot={draft.category ? ctx.catStyle(draft.category)[1] : null}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 6.2
+- **Fix: the Inbox card disappeared when you edited its text.** The keyboard used up the screen and squeezed the card to nothing. Now the controls below the card step aside while you edit, and the illustration in the header shrinks while the keyboard is open.
+- The Inbox card is bigger: the Inbox header is shorter, and the card has a minimum height.
+
 ## 6.1
 - Button colors: **Watch** is now gold (#D4A84F) and **Someday** is the red. Same on every screen: the Inbox cards, Evening Clean Up, the Radar tabs and the menus.
 
