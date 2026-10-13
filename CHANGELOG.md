@@ -1,5 +1,20 @@
 # Changelog
 
+## 6.6
+- **Inbox swipes match Evening Clean Up:** swipe a card left to skip it (it goes to the back of the deck), or right to go back to the previous card (the same as Undo). The left and right arrow keys do the same. The card shows a small hint.
+- **An empty Inbox keeps all its controls** (the category picker, Prioritize, Someday, Watch and the Effort, Impact and Urgency buttons), switched off and greyed out, instead of hiding them.
+
+## 6.5
+- **Swipe through the cards in Evening Clean Up.** Swipe a card left to skip it (the task stays as it is), or right to go back to the previous card (the same as Undo). The recap lists how many you skipped. The buttons work as before.
+
+## 6.4
+- A task you send to tomorrow (Evening Clean Up, Everything to tomorrow, or Move to tomorrow in the menu) now remembers the day it was sent from. When it comes back on Today it carries a **Migrated from yesterday** tag (or "Migrated from Oct 11" if it comes back later). Changing the task's date, or sending it somewhere else, clears the tag.
+
+## 6.3
+- **Sort Today by the matrix.** A new sort button next to the plus on "Today's To Do" lets you choose My order (drag to reorder) or By the matrix (Quick Wins, Major Focus, Admin / Fillers, Deferral, with a small heading for each group). Your choice is remembered and included in backups.
+- The outline around "Today's To Do" is gone.
+- When the phone lets the app draw behind the status bar (see `index.html`), that strip is the app's cream color.
+
 ## 6.2
 - **Fix: the Inbox card disappeared when you edited its text.** The keyboard used up the screen and squeezed the card to nothing. Now the controls below the card step aside while you edit, and the illustration in the header shrinks while the keyboard is open.
 - The Inbox card is bigger: the Inbox header is shorter, and the card has a minimum height.

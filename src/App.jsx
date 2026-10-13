@@ -6,10 +6,11 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
   Download, Sun, Pencil, Plus, Moon, Check, X, Eye, LayoutGrid, CalendarDays, BarChart3, CheckCircle2, MoreHorizontal, Zap, Target, ClipboardList, Hourglass, Trash2, ArrowRight, Calendar, Inbox, RotateCcw, Sparkles, AlertCircle, ArrowUp, Leaf, ArrowLeft, Radar,
+  ArrowUpDown,
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "6.2";
+const APP_VERSION = "6.6";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -224,6 +225,7 @@ const THEMES = {
       "--radius-md": "12px",
       "--radius-pill": "999px",
       "--shadow": "none",
+      "--safe-bg": "#FBF3E3",
       "--nav-bg": "#FBF3E3",
       "--nav-active": "#A3241C",
       "--scrim": "rgba(31,27,23,.42)",
@@ -314,6 +316,9 @@ const todaySort = (list) => {
     return Number(b.due === t) - Number(a.due === t);
   });
 };
+// Sort Today by the matrix: Quick Wins, then Major Focus, then Admin / Fillers, then Deferral (each keeps its own order inside)
+const matrixRank = (i) => { const k = QUADS.findIndex((q) => q.key === quadOf(i)); return k < 0 ? 99 : k; };
+const matrixSort = (list) => list.map((i, n) => [i, n]).sort((a, b) => matrixRank(a[0]) - matrixRank(b[0]) || a[1] - b[1]).map((x) => x[0]);
 const isToday = (ms) => !!ms && dayOf(ms) === iso();
 const uid = () => Math.random().toString(36).slice(2, 10);
 // a small buzz on phones that support it, so taps feel physical
@@ -925,11 +930,11 @@ const CSS = `
   background:linear-gradient(var(--text),var(--text)) 0 2px / 100% 1.8px no-repeat,linear-gradient(rgba(31,27,23,.16),rgba(31,27,23,.16)) 8% 7px / 62% 2.4px no-repeat;
   -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%)}
 .cd[data-theme="cafe"] .cd-headact>button:not(.cd-undo){border:1.6px solid var(--text)}
-.cd[data-theme="cafe"] .cd-headcard .cd-undo{border:1.6px solid var(--text)}
+.cd[data-theme="cafe"] .cd-headcard .cd-undo{border:1.6px solid var(--text);background:var(--bg)}   /* solid, so the illustration behind it never shows through the word */
 @media(max-height:720px){.cd[data-theme="cafe"] .cd-headcard{min-height:150px;padding-top:calc(22px + env(safe-area-inset-top))}}
 /* cards, panels and buttons get a black ink outline drawn a little wobbly, plus a flat paper shadow */
-.cd[data-theme="cafe"] :is(.cd-cardlist,.cd-panel,.cd-sec,.cd-gh,.cd-datehead,.cd-group,.cd-card,.cd-card-d,.cd-tcard,.cd-toggles,.cd-evecard,.cd-empty,.cd-wrow,.cd-evebtn){position:relative;box-shadow:3px 3px 0 rgba(31,27,23,.10)}
-.cd[data-theme="cafe"] :is(.cd-cardlist,.cd-panel,.cd-sec,.cd-gh,.cd-datehead,.cd-group,.cd-card,.cd-card-d,.cd-tcard,.cd-toggles,.cd-evecard,.cd-empty,.cd-wrow,.cd-evebtn)::after{content:"";position:absolute;inset:0;border:1.8px solid var(--text);border-radius:inherit;filter:url(#cd-rough);pointer-events:none;z-index:2}
+.cd[data-theme="cafe"] :is(.cd-cardlist,.cd-panel,.cd-gh,.cd-datehead,.cd-group,.cd-card,.cd-card-d,.cd-tcard,.cd-toggles,.cd-evecard,.cd-empty,.cd-wrow,.cd-evebtn){position:relative;box-shadow:3px 3px 0 rgba(31,27,23,.10)}
+.cd[data-theme="cafe"] :is(.cd-cardlist,.cd-panel,.cd-gh,.cd-datehead,.cd-group,.cd-card,.cd-card-d,.cd-tcard,.cd-toggles,.cd-evecard,.cd-empty,.cd-wrow,.cd-evebtn)::after{content:"";position:absolute;inset:0;border:1.8px solid var(--text);border-radius:inherit;filter:url(#cd-rough);pointer-events:none;z-index:2}
 .cd[data-theme="cafe"] .cd-quad .cd-tcard.someday,.cd[data-theme="cafe"] .cd-quad .cd-tcard.watch,.cd[data-theme="cafe"] .cd-quad .cd-prio{box-shadow:3px 3px 0 rgba(31,27,23,.10)}
 .cd[data-theme="cafe"] .cd-group{overflow:hidden}
 .cd[data-theme="cafe"] .cd-plus{background:var(--danger);color:var(--accent-ink);box-shadow:none}
@@ -948,6 +953,23 @@ const CSS = `
 .cd.kb[data-theme="cafe"] .cd-headcard{min-height:84px;padding-top:calc(14px + env(safe-area-inset-top));padding-bottom:12px}   /* with the keyboard up, the illustration gives way */
 .cd.kb[data-theme="cafe"] .cd-headcard::before,.cd.kb[data-theme="cafe"] .cd-headcard .cd-sub{display:none}
 @media(max-height:720px){.cd[data-theme="cafe"] .cd-headcard.compact{min-height:104px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:12px}.cd-quad .cd-prio{min-height:84px}}
+.cd[data-theme="cafe"] .cd-sec{box-shadow:none}   /* "Today's To Do" has no outline */
+.cd-secact{display:flex;align-items:center;gap:8px}
+.cd-sortbtn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--text);background:transparent;flex:none}
+.cd-sortbtn.on{background:var(--accent-soft);color:var(--accent)}
+.cd-mxlabel{display:flex;align-items:center;gap:7px;padding:12px 2px 4px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.cd-mxlabel span{margin-left:auto;font-weight:500;letter-spacing:.02em;text-transform:none}
+.cd-mxlabel svg{color:var(--accent)}
+.cd-tag.mig{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.cd-evecard{touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+.cd-evecard.dragging{cursor:grabbing}
+.cd-swipehint{position:absolute;left:0;right:0;bottom:9px;text-align:center;font-size:11.5px;color:var(--muted);opacity:.85;pointer-events:none}
+.cd-dock.off{opacity:.42;filter:grayscale(1);pointer-events:none;user-select:none;-webkit-user-select:none}   /* empty Inbox: every control still there, none usable */
+.cd-card-empty{display:grid;place-items:center;text-align:center;touch-action:auto;will-change:auto;padding:0 16px}
+.cd-emptybody{display:flex;flex-direction:column;align-items:center;gap:6px;max-width:280px}
+.cd-emptybody::before{content:"";display:block;width:150px;height:96px;background:var(--empty-art,none) center / contain no-repeat;mix-blend-mode:multiply}
+.cd-emptybody b{font-family:var(--font-display);font-weight:var(--display-weight);font-size:22px;letter-spacing:var(--display-spacing)}
+.cd-emptybody span{font-size:13.5px;color:var(--muted);line-height:1.4}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
 .cd button,.cd select{touch-action:manipulation}
@@ -1299,7 +1321,9 @@ function ItemRow({ item, ctx, trailing, hideDue = false, focusLabel = false, tod
   const isFocus = focusLabel && item.effort === "deep" && item.impact === "high";
   const showImpact = !!item.impact && !focusLabel && !done && item.status !== "watching";
   const urgent = (item.urgency === "now" || !!item.urgent) && !done && !parked && !todayView && (!item.due || item.due <= iso());
-  const hasMeta = item.category || showDue || isFocus || showImpact || urgent;
+  // a task you sent to tomorrow carries a tag when it comes back
+  const migrated = todayView && item.status === "today" && item.migratedOn ? (item.migratedOn === offsetDay(-1) ? "Migrated from yesterday" : `Migrated from ${shortDay(item.migratedOn)}`) : null;
+  const hasMeta = item.category || showDue || isFocus || showImpact || urgent || migrated;
   const { className: extraCls = "", ...rp } = rowProps || {};
   return (
     <div className={"cd-row" + (done ? " done" : "") + extraCls} {...rp}>
@@ -1312,6 +1336,7 @@ function ItemRow({ item, ctx, trailing, hideDue = false, focusLabel = false, tod
           <span className="cd-meta">
             <CatText name={item.category} catStyle={ctx.catStyle} />
             {showDue && <span className={di.cls}>{di.text}</span>}
+            {migrated && <span className="cd-tag mig"><ArrowRight size={11} /> {migrated}</span>}
             {isFocus && <span className="cd-focuspill">Major focus</span>}
             {urgent && <span className="cd-tag bad">Urgent</span>}
             {showImpact && <span className={"cd-tag " + (item.impact === "high" ? "good" : "bad")}>{item.impact === "high" ? "High" : "Low"} impact</span>}
@@ -1332,7 +1357,9 @@ function TodayView({ ctx, items }) {
   const [sendState, setSendState] = useState(null);   // null | "out" (the thought drops toward the Inbox) | "in" (the box comes back empty)
   const dumpRef = useRef(null);
   // Tasks you finish during this visit stay where they were (crossed out and faded) until you leave the tab
-  const shown = todaySort(items.filter((i) => i.status === "today" || (i.status === "done" && i.doneFrom === "today" && ctx.justDone.has(i.id))));
+  const byMatrix = ctx.todaySortMode === "matrix";
+  const mine = todaySort(items.filter((i) => i.status === "today" || (i.status === "done" && i.doneFrom === "today" && ctx.justDone.has(i.id))));
+  const shown = byMatrix ? matrixSort(mine) : mine;
   const openCount = shown.filter((i) => i.status === "today").length;
   const scrollRef = useRef(null);
   const reorder = useReorder(shown.map((i) => i.id), ctx.reorderToday, scrollRef);
@@ -1387,15 +1414,27 @@ function TodayView({ ctx, items }) {
       </div>
 
       <div className="cd-sec">
-        <div className="cd-sechead"><h2 className="cd-h2">Today’s To Do</h2>{shown.length > 1 && <div className="cd-cap">Hold and drag to reorder</div>}</div>
-        <button className="cd-plus" onClick={() => ctx.setSheet({ type: "edit", id: null, status: "today" })} aria-label="Add task"><Plus size={22} /></button>
+        <div className="cd-sechead"><h2 className="cd-h2">Today’s To Do</h2>{shown.length > 1 && <div className="cd-cap">{byMatrix ? "Sorted by the matrix" : "Hold and drag to reorder"}</div>}</div>
+        <div className="cd-secact">
+          <button className={"cd-sortbtn" + (byMatrix ? " on" : "")} onClick={() => ctx.setSheet({ type: "sort" })} aria-label="Sort the list"><ArrowUpDown size={20} /></button>
+          <button className="cd-plus" onClick={() => ctx.setSheet({ type: "edit", id: null, status: "today" })} aria-label="Add task"><Plus size={22} /></button>
+        </div>
       </div>
 
       {shown.length === 0 && (
         <div className="cd-empty" data-art="cat" style={emptyArt(ctx, "cat")}><b>The deck is clear.</b>Add a task, or pull one in from Future.</div>
       )}
       <div className={"cd-list" + (shown.length ? " cd-cardlist" : "")} ref={reorder.contRef}>
-        {shown.map((i) => <ItemRow key={i.id} item={i} ctx={ctx} focusLabel todayView rowProps={reorder.rowProps(i.id)} />)}
+        {shown.map((i, n) => {
+          const q = byMatrix ? QUADS[matrixRank(i)] : null;
+          const first = q && (n === 0 || matrixRank(shown[n - 1]) !== matrixRank(i));
+          return (
+            <React.Fragment key={i.id}>
+              {first && <div className="cd-mxlabel"><q.Icon size={14} /> {q.title}<span>{q.key === "quick-high" ? "Quick · High" : q.key === "deep-high" ? "Deep · High" : q.key === "quick-low" ? "Quick · Low" : "Deep · Low"}</span></div>}
+              <ItemRow item={i} ctx={ctx} focusLabel todayView rowProps={byMatrix ? undefined : reorder.rowProps(i.id)} />
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
     <div className="cd-evebar">
@@ -1433,6 +1472,7 @@ function InboxView({ ctx, items }) {
   const pendingDraft = useRef(null);
   const noAuto = useRef(null);                    // card brought back by Undo must not auto-save straight away
   const flingRef = useRef(null);                  // always points at the latest fling (used by the keyboard handler)
+  const backRef = useRef(null);                   // ...and at the latest goBack
   const [editing, setEditing] = useState(false);  // tapping the card text edits it in place
   const [editText, setEditText] = useState("");
   const editRef = useRef(null);
@@ -1546,12 +1586,12 @@ function InboxView({ ctx, items }) {
     requestAnimationFrame(() => requestAnimationFrame(() => { setPhase("idle"); setDx(0); setDy(0); }));
   };
 
-  // Tinder-style: a short drag OR a quick flick, in either direction, sends the card to the back of the deck.
+  // Swipe LEFT (a short drag or a quick flick) to skip: the card goes to the back of the deck. Swipe RIGHT to go back one card (the same as Undo).
   const DIST = 44;      // px of drag that commits on its own
   const FLICK = 0.25;   // px/ms velocity that commits a flick
   const FLICK_MIN = 12; // ...as long as the card has moved at least this far
   // Every way of finishing a card uses the same fly-away motion:
-  // swipe either way (or arrow keys) → back of the deck, labels done → right, Someday → down, Watch → up
+  // swipe left → back of the deck, swipe right → previous card, labels done → right, Someday → down, Watch → up
   const fling = (kind, dir = -1) => {
     if (busy.current || !cur) return;
     if ((kind === "save" || kind === "park" || kind === "watch") && !draft.category) { ctx.toast("Pick a category first"); return; }
@@ -1574,15 +1614,25 @@ function InboxView({ ctx, items }) {
       requestAnimationFrame(() => requestAnimationFrame(() => { setPhase("idle"); setRise(false); }));
     }, 190);
   };
+  // swipe right: the card leaves to the right, then the previous card (and its choice) comes back, exactly like Undo
+  const goBack = () => {
+    if (busy.current || !cur) return;
+    if (!history.length) { setPhase("idle"); setDx(0); return; }   // nothing before this card: it springs back
+    busy.current = true;
+    buzz(10);
+    setPhase("exit"); setDx(480);
+    setTimeout(() => { setPhase("drag"); setDx(0); setDy(0); busy.current = false; undo(); }, 190);
+  };
   flingRef.current = fling;
+  backRef.current = goBack;
 
   // Keyboard: ← or → sends the card to the back (when you're not typing in a field).
   // Subscribed once; it always calls the latest fling through the ref.
   useEffect(() => {
     const onKey = (e) => {
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === "ArrowLeft") flingRef.current("skip", -1);
-      if (e.key === "ArrowRight") flingRef.current("skip", 1);
+      if (e.key === "ArrowLeft") flingRef.current("skip", -1);   // skip
+      if (e.key === "ArrowRight") backRef.current();              // go back
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1629,34 +1679,32 @@ function InboxView({ ctx, items }) {
     const v = !stale && s1.t > s0.t ? (s1.x - s0.x) / (s1.t - s0.t) : 0;   // px/ms, signed
     const dir = dx > 0 ? 1 : -1;
     const flicked = Math.abs(v) > FLICK && Math.sign(v) === dir && Math.abs(dx) > FLICK_MIN;
-    if (Math.abs(dx) > DIST || flicked) fling("skip", dir);
+    if (Math.abs(dx) > DIST || flicked) { if (dir < 0) fling("skip", -1); else goBack(); }
     else { setPhase("idle"); setDx(0); }
   };
 
-  if (!cur) {
-    return (
-      <>
-        <PageHead ctx={ctx} art="inbox" compact title="Inbox" sub="All caught up."
-          action={<button className="cd-undo" onClick={undo} disabled={!history.length} aria-label="Undo last sort"><RotateCcw size={15} /> Undo</button>} />
-      <div className="cd-scroll">
-        <div className="cd-empty" data-art="flowers" style={{ marginTop: 56, ...emptyArt(ctx, "flowers") }}>
-          <Inbox size={34} strokeWidth={1.5} style={{ color: "var(--accent)", marginBottom: 10 }} />
-          <b>All sorted.</b>Nothing is waiting for a label. Use the thought dump on Today to capture more.
-        </div>
-      </div>
-      </>
-    );
-  }
+  const empty = !cur;   // nothing in the Inbox: the same screen, with every control still there but switched off
+  const dockRef = useRef(null);
+  // "inert" also keeps the switched-off controls out of reach of the keyboard and screen readers
+  useEffect(() => { const d = dockRef.current; if (d) { if (empty) d.setAttribute("inert", ""); else d.removeAttribute("inert"); } }, [empty]);
 
   return (
     <>
-      <PageHead ctx={ctx} art="inbox" compact title="Inbox" sub={`${queue.length} ${queue.length === 1 ? "card" : "cards"} left · swipe to send to the back`}
+      <PageHead ctx={ctx} art="inbox" compact title="Inbox" sub={empty ? "All caught up." : `${queue.length} ${queue.length === 1 ? "card" : "cards"} left · swipe left to skip`}
           action={<button className="cd-undo" onClick={undo} disabled={!history.length} aria-label="Undo last sort"><RotateCcw size={15} /> Undo</button>} />
       <div className="cd-scroll lock">
-        <div className="cd-progress"><i style={{ width: `${(handled / total) * 100}%` }} /></div>
+        <div className="cd-progress"><i style={{ width: `${empty ? 100 : (handled / total) * 100}%` }} /></div>
 
-        <div className="cd-stack2" style={{ marginBottom: behind * 10 }}>
-          {[2, 1].filter((n) => n <= behind).map((n) => {
+        <div className="cd-stack2" style={{ marginBottom: empty ? 0 : behind * 10 }}>
+          {empty && (
+            <div className="cd-card cd-card-empty">
+              <div className="cd-emptybody" data-art="flowers" style={emptyArt(ctx, "flowers")}>
+                <b>All sorted.</b>
+                <span>Nothing is waiting for a label. Use the thought dump on Today to capture more.</span>
+              </div>
+            </div>
+          )}
+          {!empty && [2, 1].filter((n) => n <= behind).map((n) => {
             const k = n;   // the cards behind stay put while the top card leaves
             return (
               <div key={n} className="cd-under" aria-hidden="true" style={{
@@ -1669,7 +1717,7 @@ function InboxView({ ctx, items }) {
               </div>
             );
           })}
-          <div className="cd-card"
+          {!empty && <div className="cd-card"
             style={{
               transform: rise ? "translateY(10px) scale(.955)" : `translate(${dx}px, ${dy}px) rotate(${dx / 22}deg)`,
               transformOrigin: "50% 100%",   // same pivot as the cards behind it, so the hand-off lines up exactly
@@ -1687,17 +1735,18 @@ function InboxView({ ctx, items }) {
             ) : (
               <div className="cd-card-title" style={{ fontSize: inboxTitleSize(cur.title), cursor: "text" }} onClick={startEdit}>{cur.title}</div>
             )}
+            <div className="cd-swipehint">{history.length ? "← swipe to skip · swipe back →" : "← swipe to skip"}</div>
             <button className="cd-cardact" onPointerDown={(e) => e.stopPropagation()} onClick={() => fling("del")} aria-label="Delete card"><Trash2 size={18} /></button>
-          </div>
+          </div>}
         </div>
       </div>
-      <div className={"cd-dock" + (editing ? " away" : "")}>   {/* while you edit the card text, the controls step aside */}
+      <div ref={dockRef} className={"cd-dock" + (editing ? " away" : "") + (empty ? " off" : "")} aria-disabled={empty ? "true" : undefined}>   {/* editing the card text: the controls step aside. Nothing to sort: they stay, switched off */}
         <div className={"cd-catrow" + (nudgeCat ? " shake" : "")}>
           <CategoryPicker pill label={<FolderIcon />} categories={ctx.categories} value={draft.category}
             dot={draft.category ? ctx.catStyle(draft.category)[1] : null}
             onChange={(c) => setField("category", c)} onAdd={ctx.addCategory} />
         </div>
-        <div className={"cd-quad" + (hasCat ? "" : " locked")}
+        <div className={"cd-quad" + (hasCat && !empty ? "" : " locked")}
           onClickCapture={(e) => {
             if (hasCat) return;
             e.preventDefault(); e.stopPropagation();   // locked: swallow the tap, point at the category picker instead
@@ -2316,7 +2365,7 @@ function ItemMenu({ ctx, item, close }) {
   const waits = !item.effort || !item.impact ? " (it needs effort and impact, so it's waiting in the Inbox)" : "";
   if (item.status === "today") {
     rows.push(
-      { Icon: Sun, label: "Move to tomorrow", run: p({ status: "future", someday: false, urgency: "now", due: offsetDay(1) }, "Moved to tomorrow" + waits) },
+      { Icon: Sun, label: "Move to tomorrow", run: p({ status: "future", someday: false, urgency: "now", due: offsetDay(1), migratedOn: iso() }, "Moved to tomorrow" + waits) },
       { Icon: Calendar, label: "Move to this week", run: p({ status: "future", someday: false, urgency: "next", due: offsetDay(3) }, `Moved to this week · due ${fmtShort(offsetDay(3))}` + waits) },
       { Icon: CalendarDays, label: "Move to future", run: p({ status: "future", someday: false, urgency: "later", due: offsetDay(7) }, `Moved to Future · due ${fmtShort(offsetDay(7))}` + waits) },
       { Icon: Sparkles, label: "Move to someday", run: p({ status: "future", someday: true }, "Moved to Someday", "someday") },
@@ -2447,10 +2496,14 @@ function Editor({ ctx, item, initialStatus, close }) {
 function Evening({ ctx, items, close }) {
   const [queue] = useState(() => todaySort(items.filter((i) => i.status === "today")).map((i) => i.id));
   const [idx, setIdx] = useState(0);
-  const [log, setLog] = useState({ tomorrow: 0, week: 0, future: 0, someday: 0, watching: 0 });
+  const [log, setLog] = useState({ tomorrow: 0, week: 0, future: 0, someday: 0, watching: 0, skipped: 0 });
   const [history, setHistory] = useState([]);   // every choice, so each can be undone
   const [leaving, setLeaving] = useState(false);
   const [enterFrom, setEnterFrom] = useState(1); // 1 = new card slides in from the right, -1 = undo brings it back from the left
+  const [dx, setDx] = useState(0);        // how far the card is being dragged sideways
+  const [dragging, setDragging] = useState(false);
+  const [exitX, setExitX] = useState(null); // set while the card is flung off the side by a swipe
+  const swipeRef = useRef(null);
 
   const finished = items.filter((i) => i.status === "done" && isToday(i.doneAt)).length;
   const inFlow = idx < queue.length;
@@ -2463,9 +2516,10 @@ function Evening({ ctx, items, close }) {
   const dueFor = (v) => offsetDay(URGENCY_OPTS.find((o) => o.v === v).days);
   const snapOf = (c) => ({ status: c.status, due: c.due, someday: c.someday, doneAt: c.doneAt, doneFrom: c.doneFrom, urgency: c.urgency || null, effort: c.effort || null, impact: c.impact || null });
   // Tomorrow = Now, due tomorrow: the task leaves Today now and comes back on its day. (Between midnight and 5 AM, "tomorrow" is the next calendar day, i.e. today's date.)
-  const rollToTomorrow = () => ({ status: "future", someday: false, urgency: "now", due: offsetDay(1) });
+  const rollToTomorrow = () => ({ status: "future", someday: false, urgency: "now", due: offsetDay(1), migratedOn: iso() });   // migratedOn: the day it was sent from
   const choose = (kind) => {
     if (!cur || leaving) return;
+    setExitX(null);
     const before = snapOf(cur);
     const id = cur.id, at = idx;
     // save the choice at once, so closing or leaving right away can never lose it...
@@ -2494,17 +2548,56 @@ function Evening({ ctx, items, close }) {
     setIdx(queue.length);
   };
   const complete = () => { ctx.markCleaned(); close(); ctx.toast("Day closed. Rest up."); };
-  const undo = () => {
-    if (leaving || !history.length) return;
+  const undoNow = (silent) => {
     const e = history[history.length - 1];
+    if (!e) return;
     setHistory((h) => h.slice(0, -1));
-    if (e.id) ctx.patchItem(e.id, e.before);                                    // put the task back as it was
-    if (e.befores) e.befores.forEach((b) => ctx.patchItem(b.id, b.before));       // ...or all of them, for "keep the rest"
+    if (e.kind !== "skip") {
+      if (e.id) ctx.patchItem(e.id, e.before);                                    // put the task back as it was
+      if (e.befores) e.befores.forEach((b) => ctx.patchItem(b.id, b.before));       // ...or all of them, for "keep the rest"
+    }
     if (e.kind === "rest") setLog((l) => ({ ...l, tomorrow: l.tomorrow - e.n }));
+    else if (e.kind === "skip") setLog((l) => ({ ...l, skipped: l.skipped - 1 }));
     else if (e.kind !== "done") setLog((l) => ({ ...l, [e.kind]: l[e.kind] - 1 }));
     setEnterFrom(-1);
     setIdx(e.idxBefore);
-    ctx.toast("Undone");
+    if (!silent) ctx.toast("Undone");
+  };
+  const undo = () => { if (leaving || !history.length) return; setExitX(null); undoNow(false); };
+
+  // Swipe the card: left = skip it (the task stays as it is), right = go back one card (the same as Undo)
+  const skipCard = () => {
+    if (!cur || leaving) return;
+    const at = idx, id = cur.id, before = snapOf(cur);
+    setExitX(-460); setLeaving(true);
+    setTimeout(() => {
+      setLog((l) => ({ ...l, skipped: l.skipped + 1 }));
+      setHistory((h) => [...h, { kind: "skip", id, before, idxBefore: at }]);
+      setEnterFrom(1); setIdx(at + 1); setDx(0); setExitX(null); setLeaving(false);
+    }, 190);
+  };
+  const goBack = () => {
+    if (!history.length || leaving) { setDx(0); return; }   // nothing before this card: it springs back
+    setExitX(460); setLeaving(true);
+    setTimeout(() => { undoNow(true); setDx(0); setExitX(null); setLeaving(false); }, 190);
+  };
+  const onDown = (e) => {
+    if (leaving || !cur) return;
+    swipeRef.current = { x: e.clientX, y: e.clientY, moved: false };
+    setDragging(true);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) { /* not supported */ }
+  };
+  const onMove = (e) => {
+    const d = swipeRef.current;
+    if (!d) return;
+    const mx = e.clientX - d.x, my = e.clientY - d.y;
+    if (!d.moved && Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) d.moved = true;
+    if (d.moved) setDx(mx);
+  };
+  const onUp = () => {
+    const d = swipeRef.current; swipeRef.current = null; setDragging(false);
+    if (!d || !d.moved) { setDx(0); return; }
+    if (dx < -70) skipCard(); else if (dx > 70) goBack(); else setDx(0);
   };
 
   /* Step: decide on one item at a time */
@@ -2516,9 +2609,16 @@ function Evening({ ctx, items, close }) {
           <button className="cd-undo" onClick={undo} disabled={!history.length || leaving} aria-label="Undo last choice"><RotateCcw size={15} /> Undo</button>
         </div>
         <div className="cd-progress"><i style={{ width: `${(idx / queue.length) * 100}%` }} /></div>
-        <div key={cur.id} className={"cd-evecard" + (leaving ? " out" : "")} style={{ "--from": `${enterFrom * 44}px` }}>
+        <div key={cur.id} className={"cd-evecard" + (leaving && exitX == null ? " out" : "") + (dragging && dx ? " dragging" : "")}
+          style={{
+            "--from": `${enterFrom * 44}px`,
+            ...(exitX != null ? { animation: "none", transform: `translateX(${exitX}px) rotate(${exitX / 30}deg)`, opacity: 0, transition: "transform .19s ease-in, opacity .19s ease-in" }
+              : dx ? { animation: "none", transform: `translateX(${dx}px) rotate(${dx / 24}deg)`, transition: dragging ? "none" : "transform .22s cubic-bezier(.2,.8,.2,1)" } : null),
+          }}
+          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
           <div className="cd-evetitle">{cur.title}</div>
           <Chip name={cur.category} catStyle={ctx.catStyle} />
+          <div className="cd-swipehint">{history.length ? "← swipe to skip · swipe back →" : "← swipe to skip"}</div>
         </div>
         <div className="cd-evegrid">
           <button className="cd-evego" onClick={() => choose("tomorrow")}><Sun size={18} />Tomorrow<small>Now · {shortDay(offsetDay(1))}</small></button>
@@ -2545,6 +2645,7 @@ function Evening({ ctx, items, close }) {
     ["Moved to Future", log.future],
     ["Moved to Someday", log.someday],
     ["Moved to Watching", log.watching],
+    ["Skipped (still open)", log.skipped],
   ].filter(([, n]) => n > 0);
 
   return (
@@ -2721,6 +2822,23 @@ function Settings({ ctx, close }) {
         <button className="cd-ghost" style={{ color: "var(--danger)" }} onClick={() => { ctx.resetData("empty"); close(); }}><Trash2 size={18} /> Clear all</button>
       </div>
       <div className="cd-version">Clear the Day · Version {APP_VERSION}</div>
+    </Sheet>
+  );
+}
+
+// Choose how Today's list is sorted
+function SortSheet({ ctx, close }) {
+  const mode = ctx.todaySortMode;
+  const pick = (m) => { ctx.setTodaySortMode(m); close(); };
+  return (
+    <Sheet title="Sort Today’s list" onClose={close}>
+      <button className={"cd-delopt" + (mode === "mine" ? " on" : "")} onClick={() => pick("mine")}>
+        <b>My order</b><span>Hold and drag tasks to put them where you want.</span>
+      </button>
+      <button className={"cd-delopt" + (mode === "matrix" ? " on" : "")} onClick={() => pick("matrix")}>
+        <b>By the matrix</b><span>Quick Wins first, then Major Focus, Admin / Fillers and Deferral.</span>
+      </button>
+      <button className="cd-ghost" onClick={close}>Close</button>
     </Sheet>
   );
 }
@@ -2922,6 +3040,8 @@ export default function App() {
     goTab: (k) => { setTab(k); setJustDone(new Set()); },
     radarMode, setRadarMode,
     inboxSkipped, setInboxSkipped,
+    todaySortMode: state.todaySort || "mine",
+    setTodaySortMode: (mode) => update(() => ({ todaySort: mode })),
     goRadar: (mode) => { setRadarMode(mode); setTab("radar"); setJustDone(new Set()); },
     cleaned: state.cleanedOn === iso(),
     markCleaned: () => { celebrate(); update(() => ({ cleanedOn: iso() })); },
@@ -2937,7 +3057,15 @@ export default function App() {
       items: [...s.items, normalizeItem(clearParked({ id: uid(), title: "", category: null, effort: null, impact: null, status: "inbox", due: null,
         someday: false, createdAt: Date.now(), doneAt: null, doneFrom: null, ...p }))],
     })),
-    patchItem: (id, patch) => update((s) => ({ items: s.items.map((i) => (i.id === id ? normalizeItem(clearParked({ ...i, ...patch })) : i)) })),
+    patchItem: (id, patch) => update((s) => ({ items: s.items.map((i) => {
+      if (i.id !== id) return i;
+      const next = { ...i, ...patch };
+      // the "migrated" mark only lasts while the task is still the one you sent to tomorrow: a new date, or a move elsewhere, clears it
+      // (unless this very change is the one marking it)
+      const marking = patch.migratedOn !== undefined && patch.migratedOn !== i.migratedOn;
+      if (!marking && i.migratedOn && (next.due !== i.due || next.someday || (next.status !== i.status && next.status !== "today"))) next.migratedOn = null;
+      return normalizeItem(clearParked(next));
+    }) })),
     reorderToday: (ids) => update((s) => ({ items: s.items.map((i) => { const k = ids.indexOf(i.id); return k >= 0 ? { ...i, pos: k } : i; }) })),
     reorderWatching: (ids) => update((s) => ({ items: s.items.map((i) => { const k = ids.indexOf(i.id); return k >= 0 ? { ...i, wpos: k } : i; }) })),
     moveToTop: (id) => update((s) => {
@@ -2947,7 +3075,7 @@ export default function App() {
     // Moving something to Today reschedules it: a past due date becomes today, so it no longer reads as overdue
     moveToToday: (id) => update((s) => ({
       items: s.items.map((i) => (i.id === id
-        ? normalizeItem({ ...i, status: "today", someday: false, urgency: "now", due: iso() })
+        ? normalizeItem({ ...i, status: "today", someday: false, urgency: "now", due: iso(), migratedOn: null })
         : i)),
     })),
     removeItem: (id) => update((s) => ({ items: s.items.filter((i) => i.id !== id) })),
@@ -2998,7 +3126,7 @@ export default function App() {
     // A backup is the whole app state as a JSON file. It uses the same save/share path as the Excel export.
     backupData: async () => {
       const payload = { app: "clear-the-deck", version: APP_VERSION, savedAt: new Date().toISOString(),
-        state: { items, categories, categoryColors: state.categoryColors || {}, themeId: state.themeId, cleanedOn: state.cleanedOn } };
+        state: { items, categories, categoryColors: state.categoryColors || {}, todaySort: state.todaySort || "mine", themeId: state.themeId, cleanedOn: state.cleanedOn } };
       try {
         await saveFile(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), "clear-the-day-backup.json"   /* always the same name, so a new backup replaces the old one */);
         update(() => ({ lastBackupAt: Date.now() }));
@@ -3007,9 +3135,10 @@ export default function App() {
     },
     restoreState: (st) => {
       if (!st || !Array.isArray(st.items) || !Array.isArray(st.categories)) { toast("That isn’t a Clear the Day backup"); return false; }
-      const prev = { items, categories, categoryColors: state.categoryColors || {}, themeId: state.themeId, cleanedOn: state.cleanedOn };
+      const prev = { items, categories, categoryColors: state.categoryColors || {}, todaySort: state.todaySort || "mine", themeId: state.themeId, cleanedOn: state.cleanedOn };
       lockedRef.current = false;   // restoring is an explicit choice, so saving is safe again
       update(() => ({ items: st.items.map(normalizeItem), categories: st.categories, categoryColors: st.categoryColors || {},
+        ...(st.todaySort === "matrix" || st.todaySort === "mine" ? { todaySort: st.todaySort } : {}),
         ...(st.themeId && THEMES[st.themeId] ? { themeId: st.themeId } : {}), ...(st.cleanedOn ? { cleanedOn: st.cleanedOn } : {}) }));
       toast("Backup restored", { label: "Undo", run: () => update(() => prev) });
       return true;
@@ -3070,6 +3199,7 @@ export default function App() {
         {sheet?.type === "edit" && <Editor ctx={ctx} item={editItem} initialStatus={sheet.status} close={close} />}
         {sheet?.type === "evening" && <Evening ctx={ctx} items={items} close={close} />}
         {sheet?.type === "settings" && <Settings ctx={ctx} close={close} />}
+        {sheet?.type === "sort" && <SortSheet ctx={ctx} close={close} />}
         {sheet?.type === "cats" && <CatManager ctx={ctx} items={items} close={close} />}
       {sheet?.type === "delcat" && <DeleteCategory ctx={ctx} items={items} name={sheet.name} close={close} />}
         {sheet?.type === "backup" && <BackupSheet ctx={ctx} close={close} />}
