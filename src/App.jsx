@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "6.6";
+const APP_VERSION = "6.8";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -316,9 +316,6 @@ const todaySort = (list) => {
     return Number(b.due === t) - Number(a.due === t);
   });
 };
-// Sort Today by the matrix: Quick Wins, then Major Focus, then Admin / Fillers, then Deferral (each keeps its own order inside)
-const matrixRank = (i) => { const k = QUADS.findIndex((q) => q.key === quadOf(i)); return k < 0 ? 99 : k; };
-const matrixSort = (list) => list.map((i, n) => [i, n]).sort((a, b) => matrixRank(a[0]) - matrixRank(b[0]) || a[1] - b[1]).map((x) => x[0]);
 const isToday = (ms) => !!ms && dayOf(ms) === iso();
 const uid = () => Math.random().toString(36).slice(2, 10);
 // a small buzz on phones that support it, so taps feel physical
@@ -825,8 +822,8 @@ const CSS = `
 .cd-alt{display:flex;align-items:center;justify-content:center;gap:8px;height:42px;border-radius:var(--radius-md);background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);font-weight:600;font-size:14px;transition:transform .1s}
 .cd-alt:active{transform:scale(.97)}
 .cd-tag{display:inline-block;padding:2px 9px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:600;white-space:nowrap}
-.cd-tag.good{background:color-mix(in srgb,var(--c-green,#3E9B5F) 16%,var(--card));color:var(--c-green,#3E9B5F)}
-.cd-tag.bad{background:color-mix(in srgb,var(--danger) 14%,var(--card));color:var(--danger)}
+.cd-tag.good{background:color-mix(in srgb,var(--c-green,#3E9B5F) 18%,var(--card));color:color-mix(in srgb,var(--c-green,#3E9B5F) 72%,var(--text));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c-green,#3E9B5F) 45%,transparent)}   /* High: the same green as the Inbox */
+.cd-tag.bad{background:color-mix(in srgb,var(--danger) 18%,var(--card));color:color-mix(in srgb,var(--danger) 72%,var(--text));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 45%,transparent)}   /* Low: the same red as the Inbox */
 .cd-opthint{display:block;font-size:10.5px;font-weight:400;opacity:.8;margin-top:1px}
 .cd-segbtn.sm{line-height:1.15}
 .cd-sortpill{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:7px 13px;border-radius:var(--radius-pill);background:color-mix(in srgb,var(--hero-ink,var(--accent-ink)) 14%,transparent);color:var(--hero-ink,var(--accent-ink));font-weight:600;font-size:13px}
@@ -939,8 +936,6 @@ const CSS = `
 .cd[data-theme="cafe"] .cd-group{overflow:hidden}
 .cd[data-theme="cafe"] .cd-plus{background:var(--danger);color:var(--accent-ink);box-shadow:none}
 .cd[data-theme="cafe"] .cd-cattext{color:var(--text) !important}
-.cd[data-theme="cafe"] .cd-tag.good{background:#F0CFC6;color:#8E1F18}
-.cd[data-theme="cafe"] .cd-tag.bad{background:#DDE2CB;color:#3F4A2F}
 .cd[data-theme="cafe"] .cd-nav{border-top:1.5px solid var(--text);backdrop-filter:none;-webkit-backdrop-filter:none}
 /* the little illustrations on empty screens */
 .cd[data-theme="cafe"] .cd-empty::before{content:"";display:block;height:130px;margin:0 auto 6px;background:var(--empty-art,none) center / contain no-repeat;mix-blend-mode:multiply}
@@ -957,19 +952,18 @@ const CSS = `
 .cd-secact{display:flex;align-items:center;gap:8px}
 .cd-sortbtn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--text);background:transparent;flex:none}
 .cd-sortbtn.on{background:var(--accent-soft);color:var(--accent)}
-.cd-mxlabel{display:flex;align-items:center;gap:7px;padding:12px 2px 4px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.cd-mxlabel span{margin-left:auto;font-weight:500;letter-spacing:.02em;text-transform:none}
-.cd-mxlabel svg{color:var(--accent)}
 .cd-tag.mig{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);color:var(--accent);font-weight:600}
 .cd-evecard{touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
 .cd-evecard.dragging{cursor:grabbing}
 .cd-swipehint{position:absolute;left:0;right:0;bottom:9px;text-align:center;font-size:11.5px;color:var(--muted);opacity:.85;pointer-events:none}
 .cd-dock.off{opacity:.42;filter:grayscale(1);pointer-events:none;user-select:none;-webkit-user-select:none}   /* empty Inbox: every control still there, none usable */
-.cd-card-empty{display:grid;place-items:center;text-align:center;touch-action:auto;will-change:auto;padding:0 16px}
-.cd-emptybody{display:flex;flex-direction:column;align-items:center;gap:6px;max-width:280px}
-.cd-emptybody::before{content:"";display:block;width:150px;height:96px;background:var(--empty-art,none) center / contain no-repeat;mix-blend-mode:multiply}
+.cd-scroll.lock .cd-card.cd-card-empty{display:flex;align-items:center;justify-content:center;text-align:center;touch-action:auto;will-change:auto;padding:12px 16px;overflow:hidden}
+.cd-emptybody{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;max-width:330px;width:100%;max-height:100%;min-height:0}   /* never taller than the card */
+.cd-emptybody::before{content:"";display:block;flex:0 1 96px;width:150px;min-height:28px;background:var(--empty-art,none) center / contain no-repeat;mix-blend-mode:multiply}   /* the picture shrinks first when the card is short */
+.cd-emptybody b,.cd-emptybody span{flex:none}
 .cd-emptybody b{font-family:var(--font-display);font-weight:var(--display-weight);font-size:22px;letter-spacing:var(--display-spacing)}
 .cd-emptybody span{font-size:13.5px;color:var(--muted);line-height:1.4}
+.cd-gdot{width:16px;height:16px;border-radius:50%;flex:none}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
 .cd button,.cd select{touch-action:manipulation}
@@ -1357,9 +1351,14 @@ function TodayView({ ctx, items }) {
   const [sendState, setSendState] = useState(null);   // null | "out" (the thought drops toward the Inbox) | "in" (the box comes back empty)
   const dumpRef = useRef(null);
   // Tasks you finish during this visit stay where they were (crossed out and faded) until you leave the tab
-  const byMatrix = ctx.todaySortMode === "matrix";
+  const mode = ctx.todaySortMode || "mine";   // mine | matrix | category
   const mine = todaySort(items.filter((i) => i.status === "today" || (i.status === "done" && i.doneFrom === "today" && ctx.justDone.has(i.id))));
-  const shown = byMatrix ? matrixSort(mine) : mine;
+  // matrix and category views show one card per group, like the Future page
+  let groups = null;
+  if (mode === "matrix") groups = QUADS.map((q) => ({ key: q.key, q, list: mine.filter((i) => quadOf(i) === q.key) })).filter((g) => g.list.length);
+  else if (mode === "category") groups = [...ctx.categories, null].map((c) => ({ key: c || "none", cat: c, list: mine.filter((i) => (i.category || null) === c) })).filter((g) => g.list.length);
+  const grouped = !!groups;
+  const shown = grouped ? groups.flatMap((g) => g.list) : mine;
   const openCount = shown.filter((i) => i.status === "today").length;
   const scrollRef = useRef(null);
   const reorder = useReorder(shown.map((i) => i.id), ctx.reorderToday, scrollRef);
@@ -1414,9 +1413,9 @@ function TodayView({ ctx, items }) {
       </div>
 
       <div className="cd-sec">
-        <div className="cd-sechead"><h2 className="cd-h2">Today’s To Do</h2>{shown.length > 1 && <div className="cd-cap">{byMatrix ? "Sorted by the matrix" : "Hold and drag to reorder"}</div>}</div>
+        <div className="cd-sechead"><h2 className="cd-h2">Today’s To Do</h2>{shown.length > 1 && <div className="cd-cap">{mode === "matrix" ? "Sorted by the matrix" : mode === "category" ? "Grouped by category" : "Hold and drag to reorder"}</div>}</div>
         <div className="cd-secact">
-          <button className={"cd-sortbtn" + (byMatrix ? " on" : "")} onClick={() => ctx.setSheet({ type: "sort" })} aria-label="Sort the list"><ArrowUpDown size={20} /></button>
+          <button className={"cd-sortbtn" + (grouped ? " on" : "")} onClick={() => ctx.setSheet({ type: "sort" })} aria-label="Sort the list"><ArrowUpDown size={20} /></button>
           <button className="cd-plus" onClick={() => ctx.setSheet({ type: "edit", id: null, status: "today" })} aria-label="Add task"><Plus size={22} /></button>
         </div>
       </div>
@@ -1424,18 +1423,22 @@ function TodayView({ ctx, items }) {
       {shown.length === 0 && (
         <div className="cd-empty" data-art="cat" style={emptyArt(ctx, "cat")}><b>The deck is clear.</b>Add a task, or pull one in from Future.</div>
       )}
-      <div className={"cd-list" + (shown.length ? " cd-cardlist" : "")} ref={reorder.contRef}>
-        {shown.map((i, n) => {
-          const q = byMatrix ? QUADS[matrixRank(i)] : null;
-          const first = q && (n === 0 || matrixRank(shown[n - 1]) !== matrixRank(i));
-          return (
-            <React.Fragment key={i.id}>
-              {first && <div className="cd-mxlabel"><q.Icon size={14} /> {q.title}<span>{q.key === "quick-high" ? "Quick · High" : q.key === "deep-high" ? "Deep · High" : q.key === "quick-low" ? "Quick · Low" : "Deep · Low"}</span></div>}
-              <ItemRow item={i} ctx={ctx} focusLabel todayView rowProps={byMatrix ? undefined : reorder.rowProps(i.id)} />
-            </React.Fragment>
-          );
-        })}
-      </div>
+      {grouped ? groups.map((g) => (
+        <div className="cd-group" key={g.key}>
+          <div className="cd-ghead" style={{ background: g.q ? `var(--q${g.q.n}-bg)` : g.cat ? ctx.catStyle(g.cat)[0] : "var(--panel)" }}>
+            {g.q ? <g.q.Icon size={22} style={{ color: `var(--q${g.q.n})`, flex: "none" }} /> : <span className="cd-gdot" style={{ background: g.cat ? ctx.catStyle(g.cat)[1] : "var(--muted)" }} />}
+            <div><div className="t">{g.q ? g.q.title : g.cat || "No category"}</div><div className="s">{g.q ? g.q.sub : `${g.list.length} ${g.list.length === 1 ? "task" : "tasks"}`}</div></div>
+            <span className="cd-gcount">{g.list.length}</span>
+          </div>
+          <div className="cd-gbody">
+            {g.list.map((i) => <ItemRow key={i.id} item={i} ctx={ctx} focusLabel todayView />)}
+          </div>
+        </div>
+      )) : (
+        <div className={"cd-list" + (shown.length ? " cd-cardlist" : "")} ref={reorder.contRef}>
+          {shown.map((i) => <ItemRow key={i.id} item={i} ctx={ctx} focusLabel todayView rowProps={reorder.rowProps(i.id)} />)}
+        </div>
+      )}
     </div>
     <div className="cd-evebar">
       <button className={"cd-evebtn" + (ctx.cleaned ? " closed" : "")} onClick={() => ctx.setSheet({ type: "evening" })}>
@@ -1456,7 +1459,7 @@ const AUTO_SAVE = false;   // true = a card saves itself once category, effort a
 const inboxTitleSize = (t) => { const n = (t || "").length; const px = n <= 16 ? 42 : n <= 30 ? 36 : n <= 50 ? 30 : n <= 80 ? 25 : 21; return `calc(${px}px * min(var(--display-scale, 1), 1.2))`; };
 
 function InboxView({ ctx, items }) {
-  const skipped = ctx.inboxSkipped, setSkipped = ctx.setInboxSkipped;   // kept by the app, so switching tabs doesn't reshuffle the deck
+  const order = ctx.inboxOrder, setOrder = ctx.setInboxOrder;   // the order of the deck, kept by the app so switching tabs doesn't reshuffle it
   const [handled, setHandled] = useState(0);
   const [draft, setDraft] = useState({ category: null, effort: null, impact: null, urgency: null });
   const [dx, setDx] = useState(0);
@@ -1468,7 +1471,6 @@ function InboxView({ ctx, items }) {
   const drag = useRef(null);
   const busy = useRef(false);
   const [history, setHistory] = useState([]);     // every sort, newest last, so each one can be undone
-  const [front, setFront] = useState(null);       // item brought back to the top by Undo
   const pendingDraft = useRef(null);
   const noAuto = useRef(null);                    // card brought back by Undo must not auto-save straight away
   const flingRef = useRef(null);                  // always points at the latest fling (used by the keyboard handler)
@@ -1480,14 +1482,15 @@ function InboxView({ ctx, items }) {
 
   const queue = useMemo(() => {
     const un = items.filter(isUnlabeled);
-    const fresh = un.filter((i) => !skipped.includes(i.id));
-    const sk = skipped.map((id) => un.find((i) => i.id === id)).filter(Boolean);
-    const list = [...fresh, ...sk];
-    const k = front ? list.findIndex((i) => i.id === front) : -1;
-    if (k > 0) list.unshift(list.splice(k, 1)[0]);
-    return list;
-  }, [items, skipped, front]);
+    const byId = new Map(un.map((i) => [i.id, i]));
+    const kept = order.filter((id) => byId.has(id));                      // cards that are still waiting, in deck order
+    const seen = new Set(kept);
+    const added = un.filter((i) => !seen.has(i.id)).map((i) => i.id);     // new cards join the back of the deck
+    return [...kept, ...added].map((id) => byId.get(id));
+  }, [items, order]);
   const cur = queue[0];
+  // keep the app's copy of the deck order in step with the cards that are really waiting
+  useEffect(() => { const ids = queue.map((i) => i.id); if (ids.length !== order.length || ids.some((x, k) => x !== order[k])) setOrder(ids); }, [queue]);
 
   useLayoutEffect(() => {
     const pd = pendingDraft.current;
@@ -1527,15 +1530,14 @@ function InboxView({ ctx, items }) {
   const snap = () => ({ category: cur.category, effort: cur.effort, impact: cur.impact, status: cur.status, someday: !!cur.someday, due: cur.due, urgency: cur.urgency || null });
   const skip = (dir = -1) => {
     if (!cur) return;
-    setHistory((h) => [...h.slice(-19), { kind: "skip", id: cur.id, dir, draft: { ...draft }, skipped }]);
-    setFront(null);
-    setSkipped((s) => [...s.filter((x) => x !== cur.id), cur.id]);
+    const ids = queue.map((i) => i.id);
+    setHistory((h) => [...h.slice(-19), { kind: "skip", id: cur.id, dir, draft: { ...draft }, order: ids }]);
+    setOrder([...ids.slice(1), ids[0]]);   // the card goes to the back of the deck
   };
   const save = () => {
     if (!cur) return;
     if (!complete) { ctx.toast("Set effort, impact and urgency first"); return; }
     setHistory((h) => [...h.slice(-19), { kind: "save", id: cur.id, dir: 1, draft: { ...draft }, before: snap() }]);
-    setFront(null);
     // Urgency sets the date: Now = today (straight to Today), Next = +3 days, Later = +7 days; no urgency = no date change
     const U = URGENCY_OPTS.find((o) => o.v === draft.urgency);
     const due = U ? offsetDay(U.days) : cur.due;
@@ -1547,7 +1549,6 @@ function InboxView({ ctx, items }) {
   const watch = () => {
     if (!cur) return;
     setHistory((h) => [...h.slice(-19), { kind: "watch", id: cur.id, dir: 0, dirY: -1, draft: { ...draft }, before: snap() }]);
-    setFront(null);
     ctx.patchItem(cur.id, { status: "watching", category: draft.category || cur.category });
     setHandled((h) => h + 1);
     ctx.toast("Moved to Watching", { label: "View", run: () => ctx.goRadar("watching") });
@@ -1555,7 +1556,6 @@ function InboxView({ ctx, items }) {
   const park = () => {
     if (!cur) return;
     setHistory((h) => [...h.slice(-19), { kind: "someday", id: cur.id, dir: 0, dirY: 1, draft: { ...draft }, before: snap() }]);
-    setFront(null);
     ctx.patchItem(cur.id, {
       status: "future", someday: true,
       category: draft.category || cur.category, effort: draft.effort || cur.effort, impact: draft.impact || cur.impact,
@@ -1566,7 +1566,6 @@ function InboxView({ ctx, items }) {
   const del = () => {
     if (!cur) return;
     setHistory((h) => [...h.slice(-19), { kind: "delete", id: cur.id, dir: -1, draft: { ...draft }, item: cur }]);
-    setFront(null);
     ctx.removeItem(cur.id);
     ctx.toast("Deleted. Tap Undo to bring it back");
   };
@@ -1574,11 +1573,11 @@ function InboxView({ ctx, items }) {
     if (busy.current || !history.length) return;
     const e = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
-    if (e.kind === "skip") setSkipped(e.skipped);
+    if (e.kind === "skip") setOrder(e.order);
     else if (e.kind === "delete") ctx.restoreItem(e.item);
     else { ctx.patchItem(e.id, e.before); setHandled((h) => Math.max(0, h - 1)); }
     pendingDraft.current = { id: e.id, draft: e.draft };
-    setFront(e.id);
+    if (e.kind !== "skip") setOrder((o) => [e.id, ...o.filter((x) => x !== e.id)]);   // the card you undo comes back to the top of the deck
     ctx.toast("Undone");
     // card flies back in from the side it left
     noAuto.current = { id: e.id, sig: JSON.stringify(e.draft) };   // don't auto-save the card we just brought back
@@ -1586,12 +1585,12 @@ function InboxView({ ctx, items }) {
     requestAnimationFrame(() => requestAnimationFrame(() => { setPhase("idle"); setDx(0); setDy(0); }));
   };
 
-  // Swipe LEFT (a short drag or a quick flick) to skip: the card goes to the back of the deck. Swipe RIGHT to go back one card (the same as Undo).
+  // Swipe LEFT (a short drag or a quick flick) to skip: the card goes to the back of the deck. Swipe RIGHT to go back to the previous card.
   const DIST = 44;      // px of drag that commits on its own
   const FLICK = 0.25;   // px/ms velocity that commits a flick
   const FLICK_MIN = 12; // ...as long as the card has moved at least this far
   // Every way of finishing a card uses the same fly-away motion:
-  // swipe left → back of the deck, swipe right → previous card, labels done → right, Someday → down, Watch → up
+  // swipe left → back of the deck, swipe right → previous card (round to the last), labels done → right, Someday → down, Watch → up
   const fling = (kind, dir = -1) => {
     if (busy.current || !cur) return;
     if ((kind === "save" || kind === "park" || kind === "watch") && !draft.category) { ctx.toast("Pick a category first"); return; }
@@ -1614,14 +1613,20 @@ function InboxView({ ctx, items }) {
       requestAnimationFrame(() => requestAnimationFrame(() => { setPhase("idle"); setRise(false); }));
     }, 190);
   };
-  // swipe right: the card leaves to the right, then the previous card (and its choice) comes back, exactly like Undo
+  // Swipe right: back to the previous card in the deck. From the first card it goes round to the LAST card.
+  // This only moves through the cards still waiting (a card you have sorted has left the deck); the Undo button is for undoing a sort.
   const goBack = () => {
     if (busy.current || !cur) return;
-    if (!history.length) { setPhase("idle"); setDx(0); return; }   // nothing before this card: it springs back
+    if (queue.length < 2) { setPhase("idle"); setDx(0); return; }   // only one card: nothing to move to
     busy.current = true;
     buzz(10);
     setPhase("exit"); setDx(480);
-    setTimeout(() => { setPhase("drag"); setDx(0); setDy(0); busy.current = false; undo(); }, 190);
+    setTimeout(() => {
+      const ids = queue.map((i) => i.id);
+      setOrder([ids[ids.length - 1], ...ids.slice(0, -1)]);          // the card at the back comes to the front
+      setPhase("drag"); setDx(-420); setDy(0); busy.current = false;  // ...sliding in from the left
+      requestAnimationFrame(() => requestAnimationFrame(() => { setPhase("idle"); setDx(0); }));
+    }, 190);
   };
   flingRef.current = fling;
   backRef.current = goBack;
@@ -1690,7 +1695,7 @@ function InboxView({ ctx, items }) {
 
   return (
     <>
-      <PageHead ctx={ctx} art="inbox" compact title="Inbox" sub={empty ? "All caught up." : `${queue.length} ${queue.length === 1 ? "card" : "cards"} left · swipe left to skip`}
+      <PageHead ctx={ctx} art="inbox" compact title="Inbox" sub={empty ? "All caught up." : `${queue.length} ${queue.length === 1 ? "card" : "cards"} left${queue.length > 1 ? " · swipe to browse" : ""}`}
           action={<button className="cd-undo" onClick={undo} disabled={!history.length} aria-label="Undo last sort"><RotateCcw size={15} /> Undo</button>} />
       <div className="cd-scroll lock">
         <div className="cd-progress"><i style={{ width: `${empty ? 100 : (handled / total) * 100}%` }} /></div>
@@ -1700,7 +1705,7 @@ function InboxView({ ctx, items }) {
             <div className="cd-card cd-card-empty">
               <div className="cd-emptybody" data-art="flowers" style={emptyArt(ctx, "flowers")}>
                 <b>All sorted.</b>
-                <span>Nothing is waiting for a label. Use the thought dump on Today to capture more.</span>
+                <span>Nothing is waiting. Capture more on Today.</span>
               </div>
             </div>
           )}
@@ -1735,7 +1740,7 @@ function InboxView({ ctx, items }) {
             ) : (
               <div className="cd-card-title" style={{ fontSize: inboxTitleSize(cur.title), cursor: "text" }} onClick={startEdit}>{cur.title}</div>
             )}
-            <div className="cd-swipehint">{history.length ? "← swipe to skip · swipe back →" : "← swipe to skip"}</div>
+            {queue.length > 1 && <div className="cd-swipehint">← swipe to skip · swipe back →</div>}
             <button className="cd-cardact" onPointerDown={(e) => e.stopPropagation()} onClick={() => fling("del")} aria-label="Delete card"><Trash2 size={18} /></button>
           </div>}
         </div>
@@ -2420,27 +2425,47 @@ function DateEditor({ ctx, item, close }) {
   );
 }
 
+// Where a task goes, and the date that goes with it: Today = today, This week = in 3 days, Future = in 7 days
+const destDue = (dest) => (dest === "today" ? iso() : dest === "week" ? offsetDay(3) : dest === "future" ? offsetDay(7) : "");
+const destStatus = (dest) => (dest === "today" ? "today" : dest === "watching" ? "watching" : "future");
+const destOf = (it, initial) => {
+  if (it) {
+    if (it.status === "watching") return "watching";
+    if (it.status === "today") return "today";
+    if (it.status === "future" && !it.someday && it.due) return it.due <= iso() ? "today" : it.due <= offsetDay(3) ? "week" : "future";
+    return "future";
+  }
+  return initial === "watching" ? "watching" : initial === "future" ? "future" : "today";
+};
 function Editor({ ctx, item, initialStatus, close }) {
-  const [d, setD] = useState(() => ({
-    title: item?.title || "", category: item?.category || null, effort: item?.effort || null,
-    impact: item?.impact || null, due: item?.due || "", status: item?.status || initialStatus || "today",
-    doneOn: item?.status === "done" && item?.doneAt ? iso(new Date(item.doneAt)) : "",   // date completed (finished tasks only)
-  }));
+  const [d, setD] = useState(() => {
+    const dest = destOf(item, initialStatus);
+    return {
+      title: item?.title || "", category: item?.category || null, effort: item?.effort || null,
+      impact: item?.impact || null, due: item ? (item.due || "") : destDue(dest), status: item?.status || destStatus(dest), dest, someday: !!item?.someday,
+      doneOn: item?.status === "done" && item?.doneAt ? iso(new Date(item.doneAt)) : "",   // date completed (finished tasks only)
+    };
+  });
   const set = (k, v) => setD((x) => ({ ...x, [k]: v }));
-  const active = d.status === "today" || (d.status === "future" && !item?.someday);   // Today and Future tasks need effort and impact
+  // choosing where it goes fills in the date (you can still change the date afterwards)
+  const pick = (dest) => setD((x) => ({ ...x, dest, status: destStatus(dest), someday: dest === "watching" ? false : false, due: dest === "watching" ? x.due : destDue(dest) }));
+  // changing the date by hand moves the task to the matching place
+  const setDue = (v) => setD((x) => {
+    if (!v || x.dest === "watching" || x.someday) return { ...x, due: v };
+    const dest = v <= iso() ? "today" : v <= offsetDay(3) ? "week" : "future";
+    return { ...x, due: v, dest, status: destStatus(dest) };
+  });
+  const active = d.status === "today" || (d.status === "future" && !d.someday);   // Today and Future tasks need effort and impact
   const missing = active && (!d.effort || !d.impact);
   const save = () => {
     const title = d.title.trim();
     if (!title || missing) return;
-    const parked = d.status === "watching" || (d.status === "future" && !!item?.someday);
-    const noDate = d.status === "future" && !!item?.someday;   // Someday has no date; Watching may have one
+    const parked = d.status === "watching" || (d.status === "future" && d.someday);
+    const noDate = d.status === "future" && d.someday;   // Someday has no date; Watching may have one
     const payload = { ...d, title, due: noDate ? null : (d.due || null),
-      someday: d.status === "future" || d.status === "done" ? !!item?.someday : false };
-    if (!parked && d.due !== (item?.due || "")) payload.urgency = d.due ? urgencyForDate(d.due) : null;   // the date changed, so urgency follows it
-    else if (!parked && item && d.status !== item.status) {                                              // moved between Today and Future: the date follows
-      if (d.status === "today") { payload.urgency = "now"; payload.due = iso(); }
-      else if (d.status === "future") { payload.urgency = "later"; payload.due = offsetDay(7); }
-    } else if (!parked && !item && d.status === "today" && !d.due) { payload.urgency = "now"; payload.due = iso(); }   // new task added straight to Today
+      someday: d.status === "future" || d.status === "done" ? d.someday : false };
+    if (!parked) { payload.due = payload.due || destDue(d.dest) || iso(); payload.urgency = urgencyForDate(payload.due); }   // urgency always follows the date
+    delete payload.dest;
     delete payload.doneOn;
     if (item?.status === "done" && d.doneOn) {   // a new completion date keeps the original time of day
       const [y, m, dd] = d.doneOn.split("-").map(Number);
@@ -2451,7 +2476,7 @@ function Editor({ ctx, item, initialStatus, close }) {
     close();
     ctx.toast(item ? "Saved" : "Added");
   };
-  const needsInbox = d.status === "future" && !item?.someday && !d.category;
+  const needsInbox = d.status === "future" && !d.someday && !d.category;
   return (
     <Sheet title={item ? "Edit item" : "New item"} onClose={close}>
       <input className="cd-input" placeholder="What needs doing?" value={d.title}
@@ -2467,8 +2492,8 @@ function Editor({ ctx, item, initialStatus, close }) {
         <>
           <div className="cd-fl">Goes to</div>
           <div className="cd-pills">
-            {[["today", "Today"], ["future", "Future"], ["watching", "Watching"]].map(([v, l]) => (
-              <button key={v} className={"cd-segbtn sm" + (d.status === v ? " on" : "")} onClick={() => set("status", v)}>{l}</button>
+            {[["today", "Today"], ["week", "This week"], ["future", "Future"], ["watching", "Watching"]].map(([v, l]) => (
+              <button key={v} className={"cd-segbtn sm" + (d.dest === v ? " on" : "")} onClick={() => pick(v)}>{l}</button>
             ))}
           </div>
         </>
@@ -2479,15 +2504,15 @@ function Editor({ ctx, item, initialStatus, close }) {
         {d.status !== "watching" && <div><div className="cd-fl">Effort</div><Pills options={EFFORT_OPTS} value={d.effort} onChange={(v) => set("effort", v)} /></div>}
         <div><div className="cd-fl">Impact</div><Pills options={IMPACT_OPTS} value={d.impact} onChange={(v) => set("impact", v)} /></div>
       </div>
-      {item?.someday && d.status === "future" && <div className="cd-hint" style={{ textAlign: "left" }}>Someday items have no date. Move it to Today, or out of Someday, to date it.</div>}
-      {!(d.status === "future" && item?.someday) && (
+      {d.someday && d.status === "future" && <div className="cd-hint" style={{ textAlign: "left" }}>Someday items have no date. Choose Today, This week or Future above to give it one.</div>}
+      {!(d.status === "future" && d.someday) && (
         <>
           <div className="cd-fl">Due date</div>
-          <input className="cd-input" type="date" value={d.due} onChange={(e) => set("due", e.target.value)} aria-label="Due date" />
+          <input className="cd-input" type="date" value={d.due} onChange={(e) => setDue(e.target.value)} aria-label="Due date" />
         </>
       )}
       <button className="cd-primary" disabled={!d.title.trim() || missing} onClick={save}>{item ? "Save changes" : "Add item"}</button>
-      {missing && <div className="cd-hint" style={{ marginTop: 10 }}>Choose effort and impact to put this on {d.status === "today" ? "Today" : "Future"}. Every task there needs a date, urgency, effort and impact.</div>}
+      {missing && <div className="cd-hint" style={{ marginTop: 10 }}>Choose effort and impact to put this on {d.dest === "today" ? "Today" : d.dest === "week" ? "This week" : "Future"}. Every task there needs a date, urgency, effort and impact.</div>}
       {!missing && needsInbox && <div className="cd-hint" style={{ marginTop: 10 }}>Items without a category wait in the Inbox.</div>}
     </Sheet>
   );
@@ -2836,7 +2861,10 @@ function SortSheet({ ctx, close }) {
         <b>My order</b><span>Hold and drag tasks to put them where you want.</span>
       </button>
       <button className={"cd-delopt" + (mode === "matrix" ? " on" : "")} onClick={() => pick("matrix")}>
-        <b>By the matrix</b><span>Quick Wins first, then Major Focus, Admin / Fillers and Deferral.</span>
+        <b>By the matrix</b><span>Quick Wins, Major Focus, Admin / Fillers and Deferral, each in its own card.</span>
+      </button>
+      <button className={"cd-delopt" + (mode === "category" ? " on" : "")} onClick={() => pick("category")}>
+        <b>By category</b><span>One card for each category.</span>
       </button>
       <button className="cd-ghost" onClick={close}>Close</button>
     </Sheet>
@@ -2865,7 +2893,7 @@ export default function App() {
   useEffect(() => { const t = setTimeout(() => setSettled(true), 800); return () => clearTimeout(t); }, []);
   const lockedRef = useRef(false);            // true when saved data exists but couldn't be read: never save over it
   const [burst, setBurst] = useState(0);        // confetti
-  const [inboxSkipped, setInboxSkipped] = useState([]);   // Inbox cards sent to the back of the deck
+  const [inboxOrder, setInboxOrder] = useState([]);   // the order of the Inbox deck
   const [fontsReady, setFontsReady] = useState(false);   // the saved theme's fonts are loaded
   const [radarMode, setRadarMode] = useState("watching");   // which Radar list is showing
   const burstTimer = useRef(null);
@@ -3039,7 +3067,7 @@ export default function App() {
     unsorted: items.filter(isUnlabeled).length,
     goTab: (k) => { setTab(k); setJustDone(new Set()); },
     radarMode, setRadarMode,
-    inboxSkipped, setInboxSkipped,
+    inboxOrder, setInboxOrder,
     todaySortMode: state.todaySort || "mine",
     setTodaySortMode: (mode) => update(() => ({ todaySort: mode })),
     goRadar: (mode) => { setRadarMode(mode); setTab("radar"); setJustDone(new Set()); },
@@ -3138,7 +3166,7 @@ export default function App() {
       const prev = { items, categories, categoryColors: state.categoryColors || {}, todaySort: state.todaySort || "mine", themeId: state.themeId, cleanedOn: state.cleanedOn };
       lockedRef.current = false;   // restoring is an explicit choice, so saving is safe again
       update(() => ({ items: st.items.map(normalizeItem), categories: st.categories, categoryColors: st.categoryColors || {},
-        ...(st.todaySort === "matrix" || st.todaySort === "mine" ? { todaySort: st.todaySort } : {}),
+        ...(["mine", "matrix", "category"].includes(st.todaySort) ? { todaySort: st.todaySort } : {}),
         ...(st.themeId && THEMES[st.themeId] ? { themeId: st.themeId } : {}), ...(st.cleanedOn ? { cleanedOn: st.cleanedOn } : {}) }));
       toast("Backup restored", { label: "Undo", run: () => update(() => prev) });
       return true;

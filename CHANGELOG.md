@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.8
+- **Adding a task:** the sheet now offers Today, This week, Future and Watching, and the date fills itself in: today, in 3 days, in 7 days. Change the date by hand and the choice follows it.
+- **Today, by the matrix:** each group (Quick Wins, Major Focus, Admin / Fillers, Deferral) is its own card, like the Future page.
+- **Today, by category:** a new sort option, with one card per category.
+- **Inbox deck:** swipe right goes back to the previous card, and from the first card it goes round to the last one. It only moves through cards still waiting, so a card you have already sorted never comes back (the Undo button is for that).
+- **Future tags** (High impact, Low impact) use the same green and red as the Inbox.
+
+## 6.7
+- **Fix: text spilled out of the empty Inbox card** on shorter screens. The message is now one short line, and the picture shrinks first when the card is short, so everything stays inside it with room to spare.
+
 ## 6.6
 - **Inbox swipes match Evening Clean Up:** swipe a card left to skip it (it goes to the back of the deck), or right to go back to the previous card (the same as Undo). The left and right arrow keys do the same. The card shows a small hint.
 - **An empty Inbox keeps all its controls** (the category picker, Prioritize, Someday, Watch and the Effort, Impact and Urgency buttons), switched off and greyed out, instead of hiding them.
