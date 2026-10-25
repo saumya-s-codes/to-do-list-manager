@@ -1,5 +1,75 @@
 # Changelog
 
+## 9.1
+- **Fairway Inbox header uses the rule of thirds.** The left third is kept clear for the title, the picture fills the right two thirds, and the dog's face sits on the right-hand third line. (It was a little too wide in 9.0.)
+
+## 9.0
+- **Fairway Inbox picture fills the header.** It now starts much further left (it filled two thirds of the width before, and on a short screen only about a third), so the header is no longer mostly blank. On a short header the picture is cropped instead of shrunk, so it stays big.
+
+## 8.9
+- **Sharper Fairway headers.** All five header illustrations (Today, Inbox, Future, Radar, Dashboard) are replaced with your higher-quality versions, cut to fit the headers and placed so the title always sits on plain paper.
+
+## 8.8
+- **No more loading screen.** The picture shown while the app opens is gone, and so is the wait for fonts (up to a second and a half). The app appears as soon as your saved data is read, and its fonts swap in when they arrive. `index.html` now starts the font download at the very beginning, before the app's code, so that swap is quick.
+
+## 8.7
+- **Fix: the whole screen could be pulled around, with the header scrolling away.** A swipe that landed on the header, the tab bar or the end of a list could drag the entire window up and let it bounce. Swipes now only move something that can really scroll, in the direction it can still scroll; everywhere else they're ignored, so the header and bars stay put. Normal scrolling of the lists, sheets and text boxes is unchanged.
+
+## 8.6
+- **A count on "Today's To Do":** a small badge next to the heading shows how many tasks are open today. It goes down as you finish tasks or move them to another day.
+
+## 8.5
+- **Fix: the screen could get stuck as if the keyboard were open.** After typing, the tab bar, the Evening Clean Up bar and the header picture could disappear, leaving a keyboard-sized gap at the bottom. The app now only treats the keyboard as open while you are really typing in a text box, re-checks whenever focus moves or you come back to the app, and re-checks every half second while it thinks the keyboard is up, so it can't stay stuck.
+
+## 8.4
+- **Fix: dragging a task to reorder Today.** The list used to scroll by itself too eagerly, so a task you lifted could shoot past where you wanted it, especially when the list area is short. The automatic scrolling now has a small zone at the very top and bottom of what you can see, moves slowly, and only starts once you've actually moved the task.
+
+## 8.3
+- **Prioritize is always its true green.** It used to fade to about half strength until Effort, Impact and Urgency were all set, which made the green look pale. It now keeps its full color, and "not ready yet" is shown by the faint arrow and the "Set all three first" caption. (With no category chosen, the three tiles still fade on purpose.)
+
+## 8.2
+- **Fairway green is now #387F23** (taken from the picture you sent), for Prioritize, Tomorrow, This week, Future and the Today tag. Small green text uses a slightly deeper shade (#2D6A1D).
+
+## 8.1
+- **Fairway green is now #009B16** (Prioritize, Tomorrow, This week, Future, the Today tag). Small green text, such as the "Major focus" and "Migrated" tags, uses a deeper shade (#00700F) so it stays easy to read, and text on the green buttons is white.
+
+## 8.0
+- **Fairway button colors:** the scheduling buttons (Prioritize, Tomorrow, This week, Future and the Today tag) are golf green #4F743F, Someday is red #C9472C, and Watch is yellow #E5B83F. The red is also used for the plus button and Delete. Café is unchanged.
+
+## 7.9
+- **One app icon.** The checklist, pen and golf ball is now the icon for both themes, shown while the app opens and used for the Home Screen. The App icon setting is gone.
+
+## 7.8
+- Removed the "Save this picture" button from the App icon screen. Nothing needs to be downloaded: the choice is made right there and remembered.
+
+## 7.7
+- **New Fairway app icon:** a checklist with a pencil and a golf ball in the grass. It's used on the App icon screen and for the opening picture, and it's in `golf-icon-files.zip` for the Home Screen.
+
+## 7.6
+- **Fairway: the line under each title is readable.** It used to run over the picture (on Radar, "hold to" disappeared into the binoculars). It now stays in the clear part of the header, wrapping to a second line if needed, with a soft paper glow behind it.
+
+## 7.5
+- **Fairway Inbox picture is bigger.** It's now the same size as the pictures on the other screens and runs to the right edge, instead of sitting small in the middle of the header. (On a short screen it still fits the smaller header.)
+
+## 7.4
+- **New Fairway graphics** from the updated sheet: new header illustrations on every screen (the Yorkie now looks out over the course on Future), redrawn tab-bar pictures, new empty-screen drawings, and the new app icon (the flag between two bunkers).
+
+## 7.4
+- **New Fairway graphics** from the updated sheet: a new header illustration on every screen (the pond view with the planner, the Yorkie in the golf bag, the Yorkie looking out over the course, the binoculars and ball basket, the clubhouse board), new tab-bar pictures, new empty-screen drawings, and a new Fairway app icon (the flag between the bunkers).
+
+## 7.3
+- Corrected the note on the App icon sheet. It used to suggest using the saved picture for a Home Screen shortcut, but a shortcut opens the website in Safari with its own empty copy of your data, so that was misleading.
+
+## 7.2
+- **Fairway Inbox:** the Undo button moved under the settings button, so it no longer covers the dog's face.
+
+## 7.1
+- **Fix: the theme showed up twice in the Settings dropdown.** The list now offers only the other theme, since the one you're using is already shown above it.
+
+## 7.0
+- **A second theme: Fairway.** The same sketchbook look in clubhouse greens with a red flag and gold. Its own header illustration on every screen, its own tab-bar pictures (clubhouse, basket of balls, calendar with a flag, binoculars, scoreboard), its own empty-screen drawings, and Playfair Display for titles. Café is still the default. Choose between them in Settings (Theme).
+- **App icon setting.** Settings, App icon: choose Café or Fairway. It changes the picture shown while the app opens, and you can save the picture. iPhone doesn't let an app change its own Home Screen icon.
+
 ## 6.8
 - **Adding a task:** the sheet now offers Today, This week, Future and Watching, and the date fills itself in: today, in 3 days, in 7 days. Change the date by hand and the choice follows it.
 - **Today, by the matrix:** each group (Quick Wins, Major Focus, Admin / Fillers, Deferral) is its own card, like the Future page.

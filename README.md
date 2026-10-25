@@ -36,21 +36,15 @@ A mobile-first task app built around one idea: get everything out of your head, 
 - Moving an item to Today makes it Now. Moving it out of Someday or Watching sends it to the Inbox with its labels pre-filled, so it only needs an urgency.
 - Changing a date by hand updates the urgency to match.
 
-## Themes
+## The look
 
-Switch themes in Settings (the round button at the top right of every screen; its icon changes with the theme).
+Two themes share one sketchbook look: cream paper, black ink outlines drawn a little wobbly, and an illustration at the top of each screen. Choose between them in Settings, under Theme.
 
-| Theme | Feel | Headings | Body |
-| --- | --- | --- | --- |
-| Papyrus | Warm paper, painted shapes | Fraunces | Inter |
-| Vibrant | Primary colors, clean and playful | Poppins | Roboto |
-| Botanical | Earthy, organic, grounded | Manrope | Lato |
-| Celestial | Airy, starlit, dreamy | Nixie One (titles), Comfortaa Bold (smaller headings) | Comfortaa |
-| Sanctuary | Gentle, dreamy, peaceful | Rouge Script (titles), Klee One SemiBold (smaller headings) | Klee One |
-| Clean | Fresh whites and greys | Courier Prime (titles), Plus Jakarta Sans (smaller headings), nothing bold | Plus Jakarta Sans |
-| Café | Ink, paper and a window seat (illustrated headers, hand-drawn outlines) | Newsreader | Inter |
+- **Café** (the default): red and olive green with an ink-sketch café. Titles use Newsreader.
+- **Fairway**: clubhouse greens, a red flag and gold, with a golf course on every screen and golf pictures in the tab bar. Titles use Playfair Display.
 
-Fonts load from Google Fonts. If they can't load, each theme falls back to a similar system font.
+Body text uses Inter in both, from Google Fonts. If they can't load, the app falls back to similar system fonts.
+
 
 ## Getting started
 
@@ -108,16 +102,14 @@ clear-the-deck/
 └── src/
     ├── main.jsx        # entry point
     ├── storage.js      # localStorage version of window.storage
-    ├── App.jsx         # the whole app: themes, styles, views, logic
-    └── assets/
-        └── papyrus-bg.jpg   # painted background for the Papyrus theme
+    └── App.jsx         # the whole app: the look, styles, views, logic
 ```
 
-`App.jsx` is one large file on purpose, in this order: Excel export, themes, helpers and sample data, styles, shared components, then one section per screen. Search for the section banners (for example `TODAY`, `INBOX`, `COMPLETED`) to jump around.
+`App.jsx` is one large file on purpose, in this order: Excel export, the looks (themes), helpers and sample data, styles, shared components, then one section per screen. Search for the section banners (for example `TODAY`, `INBOX`, `COMPLETED`) to jump around.
 
-### Adding or changing a theme
+### Changing a look
 
-Every color, font, radius and shadow comes from a CSS variable set by the active theme. To add a theme, add an entry to the `THEMES` object in `App.jsx` (copy an existing one). The theme picker lists every entry automatically.
+Every color, font, radius and shadow comes from a CSS variable. They are all in the `THEMES` entries (`cafe` and `golf`) near the top of `App.jsx`. The shared sketchbook styles start with `.cd[data-look="ink"]` in the stylesheet. Each theme's pictures live in `CAFE_ART` and `GOLF_ART`.
 
 ## Versioning
 
