@@ -1,5 +1,8 @@
 # Changelog
 
+## 9.9
+- **Fix: a big empty band under the tab bar** in the installed iPhone app with the see-through status bar. The phone reports the page as shorter than the screen by the height of the status bar, so the Evening bar and tab bar stopped short of the bottom. In exactly that situation the app now uses the full screen height. Nothing changes anywhere else.
+
 ## 9.8
 - **The sort button on Today is a plain toggle.** No pop-up any more: each tap moves to the next way of sorting (My order, then the matrix, then category, then round to My order again). The button's picture shows which one you're on (arrows, grid, folder), and the line under "Today's To Do" says it in words.
 

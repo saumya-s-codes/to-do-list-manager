@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "9.8";
+const APP_VERSION = "9.9";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -543,7 +543,7 @@ async function listSnapshots() {
 /* ═══════════════════════════════ styles ═══════════════════════════════════ */
 
 const CSS = `
-.cd-outer{position:fixed;inset:0;display:flex;justify-content:center;align-items:stretch;background:var(--chrome-bg,#F6F3EC);overflow:hidden;overscroll-behavior:none}
+.cd-outer{position:fixed;inset:0;height:var(--app-h,auto);display:flex;justify-content:center;align-items:stretch;background:var(--chrome-bg,#F6F3EC);overflow:hidden;overscroll-behavior:none}
 .cd, .cd *{box-sizing:border-box}
 .cd{position:relative;width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;overflow:hidden;
   background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
@@ -3028,6 +3028,27 @@ export default function App() {
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastMsg(null), 2600);
   }, [loaded, dayKey]);
+
+  // In the installed iPhone app with the see-through status bar, the phone can report the page as shorter than the screen by the height of
+  // the status bar, so the Evening bar and tab bar stop short of the bottom and leave an empty band. When that is exactly what is going
+  // on (installed app, upright, a top margin exists, and the gap equals it), use the full screen height. Nothing else is touched.
+  useEffect(() => {
+    const root = document.documentElement;
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top)";
+    document.body.appendChild(probe);
+    const fit = () => {
+      const topInset = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+      const gap = (window.screen && window.screen.height ? window.screen.height : 0) - window.innerHeight;
+      const upright = window.innerHeight > window.innerWidth;
+      const installed = window.navigator.standalone === true;
+      if (installed && upright && topInset > 0 && gap > 0 && gap <= topInset + 4) root.style.setProperty("--app-h", window.screen.height + "px");
+      else root.style.removeProperty("--app-h");
+    };
+    fit();
+    window.addEventListener("resize", fit); window.addEventListener("orientationchange", fit); window.addEventListener("pageshow", fit);
+    return () => { window.removeEventListener("resize", fit); window.removeEventListener("orientationchange", fit); window.removeEventListener("pageshow", fit); probe.remove(); root.style.removeProperty("--app-h"); };
+  }, []);
 
   // The page must never move under your finger. A swipe is only allowed to do something when it lands on something that can scroll
   // (the lists, a sheet, a text box) and only in a direction it can still scroll. Anywhere else (the header, the tab bar, the end
