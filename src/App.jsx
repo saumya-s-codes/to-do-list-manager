@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "9.1";
+const APP_VERSION = "9.5";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -301,6 +301,7 @@ const THEMES = {  // Ink-and-paper café: cream paper, black ink outlines drawn 
   },
 
 };
+const FAST_CATEGORY = "Miscellaneous";   // where Fast add puts things
 const DEFAULT_THEME = "cafe";
 
 /* ═══════════════════════════ helpers & data ═══════════════════════════════ */
@@ -569,13 +570,10 @@ const CSS = `
 .cd-panel h3{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);font-size:19px;margin:0}
 .cd-panel p{margin:2px 0 12px;color:var(--muted);font-size:13.5px}
 .cd-dump{position:relative;background:var(--dump-bg,var(--card));border-radius:var(--radius-md)}
-.cd-dump textarea{display:block;width:100%;min-height:110px;resize:none;border:0;background:transparent;padding:14px;outline-offset:-2px;border-radius:var(--radius-md)}
+.cd-dump textarea{display:block;width:100%;min-height:84px;resize:none;border:0;background:transparent;padding:14px;outline-offset:-2px;border-radius:var(--radius-md)}
 .cd-dump textarea::placeholder{color:var(--muted)}
 .cd-dumprow{display:flex;align-items:stretch;gap:10px}
 .cd-dumprow .cd-dump{flex:1;min-width:0}
-.cd-dumpbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:none;width:76px;border-radius:var(--radius-md);background:var(--card);color:var(--muted);font-size:14px;font-weight:700;box-shadow:var(--shadow);transition:background .15s,color .15s,transform .1s}
-.cd-dumpbtn.on{background:var(--btn-bg);color:var(--btn-ink)}
-.cd-dumpbtn:active{transform:scale(.98)}
 
 .cd-sec{display:flex;align-items:center;justify-content:space-between;margin:26px 0 6px}
 .cd-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
@@ -1049,6 +1047,15 @@ const CSS = `
 .cd-ddrow.on{background:var(--accent-soft)}
 .cd-ddrow svg{color:var(--accent-text,var(--accent));flex:none}
 .cd-h2 .cd-count{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 8px;margin-left:10px;border-radius:999px;background:var(--accent-soft);color:var(--accent-text,var(--accent));font:700 13.5px var(--font-body);letter-spacing:0;vertical-align:middle;position:relative;top:-2px}   /* how many tasks are open today */
+.cd-dumpacts{display:flex;gap:8px;flex:none}
+.cd-bigbtn{width:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 4px;border-radius:var(--radius-md);font-weight:700;font-size:12.5px;line-height:1.15;text-align:center}
+.cd-bigbtn svg{flex:none}
+.cd-bigbtn.fast{background:var(--danger);color:var(--accent-ink)}
+.cd-bigbtn.tobox{background:var(--btn-bg);color:var(--btn-ink)}
+.cd-bigbtn:active{transform:scale(.98)}
+@media(max-width:359px){.cd-dumpacts{flex-direction:column}.cd-bigbtn{width:84px;flex:1}}   /* on a very narrow screen the two buttons stack so the box keeps its width */
+.cd.kb .cd-panel p{display:none}
+.cd.kb .cd-dump textarea{min-height:64px}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
 .cd button,.cd select{touch-action:manipulation}
@@ -1459,6 +1466,17 @@ function TodayView({ ctx, items }) {
     }, 460);
   };
 
+  // Fast add: every line goes straight onto Today (Miscellaneous, quick, high impact). The box stays open for the next one.
+  const fastAdd = () => {
+    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) { dumpRef.current?.focus(); return; }
+    const ids = ctx.fastAdd(lines);
+    setText("");
+    buzz([8, 30, 14]);
+    ctx.toast(`${lines.length} added to Today`, { label: "Undo", run: () => ctx.removeItems(ids) });
+    dumpRef.current?.focus();
+  };
+
   const eveSub = ctx.cleaned
     ? "Tap to review tomorrow’s deck"
     : openCount
@@ -1470,7 +1488,7 @@ function TodayView({ ctx, items }) {
     <PageHead ctx={ctx} title="Clear the day." sub="Capture. Choose. Do what matters." art="today" />
     <div className="cd-scroll" ref={scrollRef}>
 
-      <div className="cd-panel">
+      <div className="cd-panel" data-kb-anchor>
         <h3>Thought dump</h3>
         <p>Get it out of your head. One thought per line.</p>
         <div className={"cd-dumprow" + (sendState ? " send-" + sendState : "")}>
@@ -1478,18 +1496,15 @@ function TodayView({ ctx, items }) {
             <textarea ref={dumpRef} placeholder="Type anything…" value={text} onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => (e.metaKey || e.ctrlKey) && e.key === "Enter" && dump()} aria-label="Thought dump" />
           </div>
-          <button data-keep-kb className={"cd-dumpbtn" + (text.trim() ? " on" : "")} onMouseDown={(e) => e.preventDefault()} onClick={text.trim() ? dump : () => dumpRef.current?.focus()}
-            aria-label={text.trim() ? "Send to Inbox" : "Start typing"}>
-            {text.trim() ? <ArrowRight size={28} strokeWidth={2.4} /> : <Pencil size={26} />}
-            <span>{text.trim() ? "Send" : "Type"}</span>
-          </button>
+          <div className="cd-dumpacts">
+            <button data-keep-kb className="cd-bigbtn fast" onMouseDown={(e) => e.preventDefault()} onClick={fastAdd}>
+              <Zap size={24} strokeWidth={2.4} /><span>Fast add</span>
+            </button>
+            <button data-keep-kb className="cd-bigbtn tobox" onMouseDown={(e) => e.preventDefault()} onClick={text.trim() ? dump : () => dumpRef.current?.focus()}>
+              <Inbox size={24} strokeWidth={2.2} /><span>Move to inbox</span>
+            </button>
+          </div>
         </div>
-        <button className="cd-sortpill" onClick={() => ctx.goTab("inbox")}>
-          {ctx.unsorted > 0
-            ? <><span key={ctx.unsorted} className="cd-bump">{ctx.unsorted}</span> left to sort in Inbox</>
-            : <>Inbox is all sorted</>}
-          <ChevRight size={14} />
-        </button>
       </div>
 
       <div className="cd-sec">
@@ -3070,12 +3085,16 @@ export default function App() {
     };
     const f = () => {
       const kbh = Math.round(window.innerHeight - vv.height - vv.offsetTop);   // keyboard height
-      const isOpen = typing() && vv.scale < 1.05 && kbh > 120 && kbh < window.innerHeight * 0.7;
+      const el = document.activeElement;
+      // A box that stays visible above the keyboard (the thought dump, near the top) needs no change to the screen at all.
+      // The screen only rearranges when the keyboard would cover the box. Once rearranged it stays that way until you finish typing.
+      const anchor = el && el.closest ? (el.closest("[data-kb-anchor]") || el) : el;   // the Thought dump counts as a whole, buttons included
+      const covered = open || (!!anchor && anchor.getBoundingClientRect().bottom > vv.height + vv.offsetTop - 16);
+      const isOpen = typing() && vv.scale < 1.05 && kbh > 120 && kbh < window.innerHeight * 0.7 && covered;
       if (window.scrollY) window.scrollTo(0, 0);   // the page itself must never scroll
       clearTimeout(closeTimer);
       if (isOpen) { open = true; setVvh(kbh); }
-      // when the keyboard closes, wait for it to finish sliding down before the bottom bars come back
-      else { open = false; closeTimer = setTimeout(() => setVvh(null), 240); }
+      else { open = false; setVvh(null); }          // back to normal straight away, with no blank gap
     };
     f();
     // The phone does not always say when the keyboard goes away, so also look again whenever focus moves, the app comes back,
@@ -3253,6 +3272,22 @@ export default function App() {
         : i)),
     })),
     removeItem: (id) => update((s) => ({ items: s.items.filter((i) => i.id !== id) })),
+    removeItems: (ids) => update((s) => ({ items: s.items.filter((i) => !ids.includes(i.id)) })),
+    // Fast add: straight onto Today as small, quick, high-impact tasks in "Miscellaneous" (made the first time it's needed)
+    fastAdd: (titles) => {
+      const ids = titles.map(() => uid());
+      update((s) => {
+        const existing = s.categories.find((c) => c.toLowerCase() === FAST_CATEGORY.toLowerCase());
+        const category = existing || FAST_CATEGORY;
+        const t = Date.now();
+        return {
+          categories: existing ? s.categories : [...s.categories, FAST_CATEGORY],
+          items: [...s.items, ...titles.map((title, k) => normalizeItem({ id: ids[k], title, category, effort: "quick", impact: "high", status: "today",
+            due: iso(), urgency: "now", someday: false, createdAt: t + k, doneAt: null, doneFrom: null }))],
+        };
+      });
+      return ids;
+    },
     restoreItem: (item) => update((s) => ({ items: s.items.some((i) => i.id === item.id) ? s.items : [...s.items, item] })),
     justDone,
     toggleDone: (id) => {
