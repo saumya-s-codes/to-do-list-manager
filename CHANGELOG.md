@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.11
+- **The Screen fit setting is gone.** The bottom bar now sits at the bottom of the screen on its own: in the installed iPhone app with the see-through status bar, the app uses a page as tall as the screen. There is nothing to choose in Settings any more.
+
+## 9.10
+- **Screen fit, to cure the empty band under the tab bar.** 9.9 tried to stretch the app to the full screen height, but the phone cuts off a fixed layout at the page height, so the tab labels were clipped. The app now offers a "page" layout that is as tall as the screen. Settings has a new **Screen fit** setting: **Auto** (turns it on only when the phone reports the page as exactly one status-bar shorter than the screen), **Stretch** (forces it in the installed app) and **Standard** (never). A small line under it shows the numbers the phone reports, so the right setting can be chosen quickly. The choice is kept on that phone only.
+
 ## 9.9
 - **Fix: a big empty band under the tab bar** in the installed iPhone app with the see-through status bar. The phone reports the page as shorter than the screen by the height of the status bar, so the Evening bar and tab bar stopped short of the bottom. In exactly that situation the app now uses the full screen height. Nothing changes anywhere else.
 

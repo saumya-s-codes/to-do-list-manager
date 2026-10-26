@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "9.10";
+const APP_VERSION = "9.11";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -1057,11 +1057,10 @@ const CSS = `
 @media(max-width:359px){.cd-dumpacts{flex-direction:column}.cd-bigbtn{width:84px;flex:1}}   /* on a very narrow screen the two buttons stack so the box keeps its width */
 .cd.kb .cd-panel p{display:none}
 .cd.kb .cd-dump textarea{min-height:64px}
-.cd-fitinfo{font-size:11px;color:var(--muted);margin:6px 0 10px;font-variant-numeric:tabular-nums;line-height:1.5}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 html[data-fit="page"],html[data-fit="page"] body,html[data-fit="page"] #root{height:var(--app-h);overflow:hidden}
 html[data-fit="page"] body{position:relative;inset:auto}
-html[data-fit="page"] .cd-outer{position:absolute;inset:0;height:var(--app-h)}   /* Screen fit: the app lives in a page as tall as the screen */
+html[data-fit="page"] .cd-outer{position:absolute;inset:0;height:var(--app-h)}   /* the app lives in a page as tall as the screen (see Screen fit above) */
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
 .cd button,.cd select{touch-action:manipulation}
 .cd-nav{-webkit-backdrop-filter:blur(10px)}
@@ -2975,14 +2974,6 @@ function Settings({ ctx, themeId, close }) {
         <button className="cd-ghost" onClick={() => ctx.exportData()}><Download size={18} /> Export</button>
         <button className="cd-ghost" style={{ color: "var(--danger)" }} onClick={() => { ctx.resetData("empty"); close(); }}><Trash2 size={18} /> Clear all</button>
       </div>
-      <div className="cd-fl">Screen fit</div>
-      <div className="cd-pills">
-        {[["auto", "Auto"], ["stretch", "Stretch"], ["standard", "Standard"]].map(([v, l]) => (
-          <button key={v} className={"cd-segbtn sm" + (ctx.fitMode === v ? " on" : "")} onClick={() => ctx.setFitMode(v)}>{l}</button>
-        ))}
-      </div>
-      <div className="cd-hint" style={{ textAlign: "left" }}>Empty space under the tab bar? Try Stretch. If the bar gets cut off, choose Standard.</div>
-      {ctx.fitInfo && <div className="cd-fitinfo">page {ctx.fitInfo.inner} · visible {ctx.fitInfo.visible} · screen {ctx.fitInfo.screen} · top {ctx.fitInfo.top} · bottom {ctx.fitInfo.bottom} · {ctx.fitInfo.installed ? "installed" : "browser"} · {ctx.fitInfo.stretched ? "stretched" : "standard"}</div>}
       <div className="cd-version">Clear the Day · Version {APP_VERSION}</div>
     </Sheet>
   );
@@ -3042,32 +3033,24 @@ export default function App() {
   }, [loaded, dayKey]);
 
   // SCREEN FIT. In the installed iPhone app with the see-through status bar, the phone can report the page as shorter than the screen
-  // by the height of the status bar, which leaves an empty band under the tab bar. A fixed layout cannot draw into that strip, so in
-  // "page" mode the app lives in a page that is as tall as the screen instead. Auto turns it on only when exactly that is going on;
-  // Stretch forces it (installed app, upright); Standard never. The choice is kept on this phone only.
-  const [fitMode, setFitMode] = useState(() => { try { const v = localStorage.getItem("ctd:fit"); return v === "stretch" || v === "standard" ? v : "auto"; } catch (e) { return "auto"; } });
-  const [fitInfo, setFitInfo] = useState(null);
+  // (by the height of the status bar), which would leave an empty band under the tab bar, and it cuts off a fixed layout at that line.
+  // So, in exactly that situation (installed, upright, a top margin exists), the app lives in a page as tall as the screen.
   useEffect(() => {
-    try { localStorage.setItem("ctd:fit", fitMode); } catch (e) { /* storage unavailable */ }
     const root = document.documentElement;
+    try { localStorage.removeItem("ctd:fit"); } catch (e) { /* storage unavailable */ }   // a choice an earlier test version remembered
     const probe = document.createElement("div");
-    probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)";
+    probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top)";
     document.body.appendChild(probe);
     const fit = () => {
-      const cs = getComputedStyle(probe), top = parseFloat(cs.paddingTop) || 0, bottom = parseFloat(cs.paddingBottom) || 0;
-      const vv = window.visualViewport, inner = window.innerHeight, scr = (window.screen && window.screen.height) || 0;
-      const upright = inner > window.innerWidth, installed = window.navigator.standalone === true;
-      const detected = installed && upright && top > 0 && scr - inner > 0 && scr - inner <= top + 4;
-      const on = fitMode === "stretch" ? installed && upright && scr > inner : fitMode === "auto" ? detected : false;
-      if (on) { root.setAttribute("data-fit", "page"); root.style.setProperty("--app-h", scr + "px"); }
+      const top = parseFloat(getComputedStyle(probe).paddingTop) || 0, scr = (window.screen && window.screen.height) || 0;
+      const upright = window.innerHeight > window.innerWidth, installed = window.navigator.standalone === true;
+      if (installed && upright && top > 0 && scr > window.innerHeight) { root.setAttribute("data-fit", "page"); root.style.setProperty("--app-h", scr + "px"); }
       else { root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); }
-      const next = { inner, visible: vv ? Math.round(vv.height + vv.offsetTop) : null, screen: scr, top: Math.round(top), bottom: Math.round(bottom), installed, stretched: on };
-      setFitInfo((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
     };
     fit();
     window.addEventListener("resize", fit); window.addEventListener("orientationchange", fit); window.addEventListener("pageshow", fit);
     return () => { window.removeEventListener("resize", fit); window.removeEventListener("orientationchange", fit); window.removeEventListener("pageshow", fit); probe.remove(); root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); };
-  }, [fitMode]);
+  }, []);
 
   // The page must never move under your finger. A swipe is only allowed to do something when it lands on something that can scroll
   // (the lists, a sheet, a text box) and only in a direction it can still scroll. Anywhere else (the header, the tab bar, the end
@@ -3259,7 +3242,6 @@ export default function App() {
     inboxOrder, setInboxOrder,
     todaySortMode: state.todaySort || "mine",
     setTodaySortMode: (mode) => update(() => ({ todaySort: mode })),
-    fitMode, setFitMode, fitInfo,
     setTheme: (id) => { loadThemeFonts(id).then(() => update(() => ({ themeId: id }))); },
     goRadar: (mode) => { setRadarMode(mode); setTab("radar"); setJustDone(new Set()); },
     cleaned: state.cleanedOn === iso(),
