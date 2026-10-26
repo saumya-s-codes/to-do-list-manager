@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "9.5";
+const APP_VERSION = "9.8";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -570,7 +570,7 @@ const CSS = `
 .cd-panel h3{font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);font-size:19px;margin:0}
 .cd-panel p{margin:2px 0 12px;color:var(--muted);font-size:13.5px}
 .cd-dump{position:relative;background:var(--dump-bg,var(--card));border-radius:var(--radius-md)}
-.cd-dump textarea{display:block;width:100%;min-height:84px;resize:none;border:0;background:transparent;padding:14px;outline-offset:-2px;border-radius:var(--radius-md)}
+.cd-dump textarea{display:block;width:100%;min-height:132px;resize:none;border:0;background:transparent;padding:14px;outline-offset:-2px;border-radius:var(--radius-md)}
 .cd-dump textarea::placeholder{color:var(--muted)}
 .cd-dumprow{display:flex;align-items:stretch;gap:10px}
 .cd-dumprow .cd-dump{flex:1;min-width:0}
@@ -1006,6 +1006,7 @@ const CSS = `
 .cd[data-theme="golf"] .cd-headcard.compact::before{background-size:100% auto;background-position:right 34%}   /* rule of thirds: the left third is for the title, the picture fills the right two thirds, the dog's face sits on the right third line; on a short header it is cropped, never shrunk */
 
 .cd[data-theme="golf"] .cd-headcard .cd-sub{max-width:44%;opacity:.95;text-shadow:0 0 5px var(--bg),0 0 5px var(--bg),0 0 2px var(--bg)}   /* the line stays in the clear part of the header, over plain paper */
+.cd[data-theme="golf"] .cd-headcard.compact[data-art="today"]::before{background-position:right 90%}   /* the compact Today header shows the table and the pond */
 .cd[data-theme="golf"] .cd-headcard .cd-h1{text-shadow:0 0 6px var(--bg),0 0 12px var(--bg)}   /* a long title stays readable where it touches the picture */
 .cd[data-theme="golf"] .cd-subhint{display:none}   /* the card already says how to swipe; this keeps the line clear of the picture */
 .cd[data-theme="golf"] .cd-headcard.compact .cd-headact{flex-direction:column-reverse;align-items:flex-end;gap:8px}   /* Undo goes under the settings button, away from the dog's face */
@@ -1377,7 +1378,7 @@ const emptyArt = (ctx, k) => (THEME_ART[ctx.themeId] ? { "--empty-art": `url("${
 function PageHead({ ctx, title, sub, action, art, compact }) {
   const SettingsIcon = ctx.themeIcon;
   return (
-    <header className={"cd-headcard" + (compact ? " compact" : "")} style={art && THEME_ART[ctx.themeId] ? { "--hdr-art": `url("${THEME_ART[ctx.themeId].hdr[art]}")` } : undefined}>
+    <header className={"cd-headcard" + (compact ? " compact" : "")} data-art={art || undefined} style={art && THEME_ART[ctx.themeId] ? { "--hdr-art": `url("${THEME_ART[ctx.themeId].hdr[art]}")` } : undefined}>
       <h1 className="cd-h1">{title}</h1>
       <p className="cd-sub">{sub}</p>
       <div className="cd-headact">
@@ -1433,6 +1434,7 @@ function ItemRow({ item, ctx, trailing, hideDue = false, focusLabel = false, tod
 
 /* ════════════════════════════════ TODAY ═══════════════════════════════════ */
 
+const SORT_NAMES = { mine: "my order", matrix: "the matrix", category: "category" };   // the sort button cycles my order, the matrix, category, and round again
 function TodayView({ ctx, items }) {
   const [text, setText] = useState("");
   const [sendState, setSendState] = useState(null);   // null | "out" (the thought drops toward the Inbox) | "in" (the box comes back empty)
@@ -1466,7 +1468,7 @@ function TodayView({ ctx, items }) {
     }, 460);
   };
 
-  // Fast add: every line goes straight onto Today (Miscellaneous, quick, high impact). The box stays open for the next one.
+  // Fast add: every line goes straight onto Today (Miscellaneous, quick, low impact). The box stays open for the next one.
   const fastAdd = () => {
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     if (!lines.length) { dumpRef.current?.focus(); return; }
@@ -1485,7 +1487,7 @@ function TodayView({ ctx, items }) {
 
   return (
     <>
-    <PageHead ctx={ctx} title="Clear the day." sub="Capture. Choose. Do what matters." art="today" />
+    <PageHead ctx={ctx} title="Clear the day." sub="Capture. Choose. Do what matters." art="today" compact />
     <div className="cd-scroll" ref={scrollRef}>
 
       <div className="cd-panel" data-kb-anchor>
@@ -1510,7 +1512,10 @@ function TodayView({ ctx, items }) {
       <div className="cd-sec">
         <div className="cd-sechead"><h2 className="cd-h2">Today’s To Do<span className="cd-count" aria-label={`${openCount} ${openCount === 1 ? "task" : "tasks"} open`}>{openCount}</span></h2>{shown.length > 1 && <div className="cd-cap">{mode === "matrix" ? "Sorted by the matrix" : mode === "category" ? "Grouped by category" : "Hold and drag to reorder"}</div>}</div>
         <div className="cd-secact">
-          <button className={"cd-sortbtn" + (grouped ? " on" : "")} onClick={() => ctx.setSheet({ type: "sort" })} aria-label="Sort the list"><ArrowUpDown size={20} /></button>
+          <button className={"cd-sortbtn" + (grouped ? " on" : "")} aria-label={`Sorted by ${SORT_NAMES[mode]}. Tap to change.`}
+              onClick={() => { buzz(8); ctx.setTodaySortMode(mode === "mine" ? "matrix" : mode === "matrix" ? "category" : "mine"); }}>
+              {mode === "matrix" ? <LayoutGrid size={20} /> : mode === "category" ? <FolderIcon size={20} /> : <ArrowUpDown size={20} />}
+            </button>
           <button className="cd-plus" onClick={() => ctx.setSheet({ type: "edit", id: null, status: "today" })} aria-label="Add task"><Plus size={22} /></button>
         </div>
       </div>
@@ -2971,26 +2976,6 @@ function Settings({ ctx, themeId, close }) {
   );
 }
 
-// Choose how Today's list is sorted
-function SortSheet({ ctx, close }) {
-  const mode = ctx.todaySortMode;
-  const pick = (m) => { ctx.setTodaySortMode(m); close(); };
-  return (
-    <Sheet title="Sort Today’s list" onClose={close}>
-      <button className={"cd-delopt" + (mode === "mine" ? " on" : "")} onClick={() => pick("mine")}>
-        <b>My order</b><span>Hold and drag tasks to put them where you want.</span>
-      </button>
-      <button className={"cd-delopt" + (mode === "matrix" ? " on" : "")} onClick={() => pick("matrix")}>
-        <b>By the matrix</b><span>Quick Wins, Major Focus, Admin / Fillers and Deferral, each in its own card.</span>
-      </button>
-      <button className={"cd-delopt" + (mode === "category" ? " on" : "")} onClick={() => pick("category")}>
-        <b>By category</b><span>One card for each category.</span>
-      </button>
-      <button className="cd-ghost" onClick={close}>Close</button>
-    </Sheet>
-  );
-}
-
 /* ═════════════════════════════════ APP ════════════════════════════════════ */
 
 const TABS = [
@@ -3273,7 +3258,7 @@ export default function App() {
     })),
     removeItem: (id) => update((s) => ({ items: s.items.filter((i) => i.id !== id) })),
     removeItems: (ids) => update((s) => ({ items: s.items.filter((i) => !ids.includes(i.id)) })),
-    // Fast add: straight onto Today as small, quick, high-impact tasks in "Miscellaneous" (made the first time it's needed)
+    // Fast add: straight onto Today as small, quick, low-impact tasks in "Miscellaneous" (made the first time it's needed)
     fastAdd: (titles) => {
       const ids = titles.map(() => uid());
       update((s) => {
@@ -3282,7 +3267,7 @@ export default function App() {
         const t = Date.now();
         return {
           categories: existing ? s.categories : [...s.categories, FAST_CATEGORY],
-          items: [...s.items, ...titles.map((title, k) => normalizeItem({ id: ids[k], title, category, effort: "quick", impact: "high", status: "today",
+          items: [...s.items, ...titles.map((title, k) => normalizeItem({ id: ids[k], title, category, effort: "quick", impact: "low", status: "today",
             due: iso(), urgency: "now", someday: false, createdAt: t + k, doneAt: null, doneFrom: null }))],
         };
       });
@@ -3408,7 +3393,6 @@ export default function App() {
         {sheet?.type === "edit" && <Editor ctx={ctx} item={editItem} initialStatus={sheet.status} close={close} />}
         {sheet?.type === "evening" && <Evening ctx={ctx} items={items} close={close} />}
         {sheet?.type === "settings" && <Settings ctx={ctx} themeId={state.themeId} close={close} />}
-        {sheet?.type === "sort" && <SortSheet ctx={ctx} close={close} />}
         {sheet?.type === "cats" && <CatManager ctx={ctx} items={items} close={close} />}
       {sheet?.type === "delcat" && <DeleteCategory ctx={ctx} items={items} name={sheet.name} close={close} />}
         {sheet?.type === "backup" && <BackupSheet ctx={ctx} close={close} />}

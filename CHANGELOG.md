@@ -1,5 +1,26 @@
 # Changelog
 
+## 9.8
+- **The sort button on Today is a plain toggle.** No pop-up any more: each tap moves to the next way of sorting (My order, then the matrix, then category, then round to My order again). The button's picture shows which one you're on (arrows, grid, folder), and the line under "Today's To Do" says it in words.
+
+## 9.7
+- **Fast add is now Low impact** (Miscellaneous, Quick, Low impact, due today). Chores land in the Admin / Fillers group in the matrix view instead of Quick Wins, so Quick Wins stays for things that really matter. Tasks you already added with Fast add keep High impact.
+
+## 9.6
+- **Smaller Today header, bigger Thought dump.** Today now uses the same compact header as the Inbox, and the room that frees up goes to the Thought dump: its box and the two buttons beside it are about 50 points taller.
+
+## 9.5 (a trial)
+- **Both Thought dump buttons on the right.** Fast add and Move to inbox sit side by side to the right of the box, full height, instead of under it. This is a try-out: `revert-to-9.4.zip` puts the two-buttons-underneath layout back in one step (replace `src/App.jsx`).
+
+## 9.4
+- **Two big buttons in the Thought dump.** The small "left to sort in Inbox" chip and the little Type/Send square are gone. Under the box there are now two chunky buttons side by side: a red **Fast add** (straight onto Today as Miscellaneous, Quick, High impact) and **Move to inbox** (sort it later). Tapping either with an empty box just puts the cursor in the box. The Inbox tab still shows its count.
+
+## 9.3
+- **Fast add.** A red button in the Thought dump, just before the "left to sort in Inbox" chip. Type one or more chores (one per line) and tap it: they go straight onto Today as Miscellaneous, Quick, High impact, due today, with an Undo. The box stays open for the next one. The category "Miscellaneous" is created the first time you use it. The Type/Send button still sends to the Inbox.
+
+## 9.2
+- **Typing in the thought dump no longer rearranges the screen.** The header picture and the tab bars used to vanish, with a blank gap flashing, every time the keyboard opened or closed. The screen now only rearranges when the keyboard would actually cover the box you are typing in (for example a box low on the screen), and it goes back to normal the instant the keyboard closes.
+
 ## 9.1
 - **Fairway Inbox header uses the rule of thirds.** The left third is kept clear for the title, the picture fills the right two thirds, and the dog's face sits on the right-hand third line. (It was a little too wide in 9.0.)
 
