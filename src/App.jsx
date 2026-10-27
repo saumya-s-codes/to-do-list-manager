@@ -5,11 +5,11 @@
  */
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
-  Download, Sun, Pencil, Plus, Moon, Check, X, Eye, LayoutGrid, CalendarDays, BarChart3, CheckCircle2, MoreHorizontal, Zap, Target, ClipboardList, Hourglass, Trash2, ArrowRight, Calendar, Inbox, RotateCcw, Sparkles, AlertCircle, ArrowUp, Leaf, ArrowLeft, Radar, ArrowUpDown, Flag, ChevronDown, Star, ArrowDown,
+  Download, Sun, Plus, Moon, Check, X, Eye, LayoutGrid, CalendarDays, BarChart3, CheckCircle2, MoreHorizontal, Zap, Target, ClipboardList, Hourglass, Trash2, ArrowRight, Calendar, Inbox, RotateCcw, Sparkles, AlertCircle, ArrowUp, Leaf, ArrowLeft, Radar, ArrowUpDown, Flag, ChevronDown, Star, ArrowDown,
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.6";
+const APP_VERSION = "10.8";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -1083,7 +1083,14 @@ const CSS = `
 .cd-gplan+.cd-gcount{margin-left:0}
 .cd-rowmove{display:flex;gap:6px;flex:none;align-items:center}
 .cd-rowmove .cd-planbtn{width:36px;height:36px}
-.cd-planbtn .cd-navimg{height:24px;max-width:28px;filter:none;opacity:1}
+.cd-planbtn .cd-navimg{height:26px;max-width:30px;filter:none;opacity:1}
+.cd-editsec{margin-top:18px;padding-top:14px;border-top:1.5px solid var(--line)}
+.cd-act{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 6px;border-radius:var(--radius-lg);font-weight:700;font-size:14px}
+.cd-act:active{transform:scale(.97)}
+.cd-act.someday{background:var(--someday-bg);color:var(--someday-ink)}
+.cd-act.watch{background:var(--watch-bg);color:var(--watch-ink)}
+.cd-act.del{background:transparent;border:2px solid var(--danger);color:var(--danger)}
+.cd-two2>*{min-width:0}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 html[data-fit="page"],html[data-fit="page"] body,html[data-fit="page"] #root{height:var(--app-h);overflow:hidden}
 html[data-fit="page"] body{position:relative;inset:auto}
@@ -1437,12 +1444,12 @@ function ItemRow({ item, ctx, trailing, hideDue = false, focusLabel = false, tod
   const migrated = todayView && item.status === "today" && item.migratedOn ? (item.migratedOn === offsetDay(-1) ? "Migrated from yesterday" : `Migrated from ${shortDay(item.migratedOn)}`)
     : todayView && item.status === "today" && item.pulledOn ? "Pulled forward" : null;
   const hasMeta = item.category || showDue || isFocus || showImpact || urgent || migrated;
-  const open = () => (todayView ? ctx.setSheet({ type: "edit", id: item.id }) : ctx.openMenu(item.id));   // on Today a tap goes straight to Edit details
+  const open = () => ctx.setSheet({ type: "edit", id: item.id });   // a tap goes straight to Edit details, on every page
   const { className: extraCls = "", ...rp } = rowProps || {};
   return (
     <div className={"cd-row" + (done ? " done" : "") + extraCls} {...rp}>
       <Check_ done={done} onClick={() => ctx.toggleDone(item.id)} label={done ? "Mark not done" : "Mark done"} />
-      <button className="cd-row-main" onClick={open} aria-label={todayView ? `Edit ${item.title}` : `Options for ${item.title}`}>
+      <button className="cd-row-main" onClick={open} aria-label={`Edit ${item.title}`}>
         <span className="cd-row-title">
           {item.title}
         </span>
@@ -1458,7 +1465,7 @@ function ItemRow({ item, ctx, trailing, hideDue = false, focusLabel = false, tod
         )}
       </button>
       {trailing || (
-        <button className="cd-more" onClick={open} aria-label={todayView ? "Edit details" : "More actions"}><MoreHorizontal size={20} /></button>
+        <button className="cd-more" onClick={open} aria-label="Edit details"><MoreHorizontal size={20} /></button>
       )}
     </div>
   );
@@ -1940,7 +1947,7 @@ function FutureView({ ctx, items }) {
 
   const toToday = (i) => i.status === "done" ? null : (
     <button className="cd-pill sched" onClick={() => { const lacks = !i.effort || !i.impact; ctx.moveToToday(i.id); ctx.toast(lacks ? "Needs effort and impact first, so it's waiting in the Inbox" : "Moved to Today"); }}>
-      <ArrowRight size={12} /> Today
+      <SunriseIcon size={14} strokeWidth={2.4} /> Today
     </button>
   );
 
@@ -1966,7 +1973,7 @@ function FutureView({ ctx, items }) {
     return (
       <div className="cd-rowmove">
         <button className="cd-planbtn up" onClick={() => moveRow(i, up)} aria-label={up === "today" ? `Move ${i.title} to Today` : `Pull ${i.title} to tomorrow`}>
-          {up === "today" ? <TodayGlyph size={20} /> : <ArrowUp size={18} strokeWidth={2.4} />}
+          {up === "today" ? <TodayGlyph ctx={ctx} size={20} /> : <ArrowUp size={18} strokeWidth={2.4} />}
         </button>
         <button className="cd-planbtn" onClick={() => moveRow(i, down)} aria-label={down === "someday" ? `Park ${i.title} as Someday` : `Push ${i.title} back to ${down === "week" ? "this week" : "later"}`}><ArrowDown size={18} strokeWidth={2.2} /></button>
       </div>
@@ -1987,7 +1994,7 @@ function FutureView({ ctx, items }) {
 
       <div className="cd-futrow">
         <div className="cd-seg">
-          {[["matrix", "Matrix"], ["calendar", "Calendar"]].map(([k, l]) => (
+          {[["calendar", "Calendar"], ["matrix", "Matrix"]].map(([k, l]) => (
             <button key={k} className={"cd-segbtn" + (mode === k ? " on" : "")} onClick={() => setMode(k)}>{l}</button>
           ))}
         </div>
@@ -2236,11 +2243,11 @@ function WatchGroup({ g, ctx, scrollRef, onSent }) {
               )}
               <div className={"cd-row cd-wrow" + (done ? " done" : "") + (mine || isOpen ? " swiping" : "")} style={rowStyle}>
                 <Check_ done={done} onClick={() => ctx.toggleDone(i.id)} label={done ? "Mark not done" : "Mark done"} />
-                <button className="cd-row-main" onClick={() => ctx.openMenu(i.id)} aria-label={`Options for ${i.title}`}>
+                <button className="cd-row-main" onClick={() => ctx.setSheet({ type: "edit", id: i.id })} aria-label={`Edit ${i.title}`}>
                   <span className="cd-row-title">{i.title}</span>
                   {i.due && !done && <span className="cd-meta"><span className={dueInfo(i.due).cls}>{dueInfo(i.due).text}</span></span>}
                 </button>
-                <button className="cd-more" onClick={() => ctx.openMenu(i.id)} aria-label="More actions"><MoreHorizontal size={20} /></button>
+                <button className="cd-more" onClick={() => ctx.setSheet({ type: "edit", id: i.id })} aria-label="Edit details"><MoreHorizontal size={20} /></button>
               </div>
             </div>
           );
@@ -2291,7 +2298,7 @@ function SomedayList({ ctx, items }) {
   const list = items.filter((i) => i.someday && (i.status === "future" || (i.status === "done" && i.doneFrom === "future" && ctx.justDone.has(i.id))));
   const toToday = (i) => i.status === "done" ? null : (
     <button className="cd-pill sched" onClick={() => { const lacks = !i.effort || !i.impact; ctx.moveToToday(i.id); ctx.toast(lacks ? "Needs effort and impact first, so it's waiting in the Inbox" : "Moved to Today"); }}>
-      <ArrowRight size={12} /> Today
+      <SunriseIcon size={14} strokeWidth={2.4} /> Today
     </button>
   );
   return (
@@ -2529,101 +2536,37 @@ function CompletedView({ ctx, items }) {
 
 /* ═══════════════════════════════ SHEETS ═══════════════════════════════════ */
 
-// the same three colours as the buttons: scheduling = accent, Someday, Watch
-const MENU_TINT = { "Move to tomorrow": "var(--accent)", "Move to this week": "var(--accent)", "Move to future": "var(--accent)", "Move to Future": "var(--accent)", "Move to Today": "var(--accent)",
-  "Move to someday": "var(--someday-icon, var(--someday-bg))", "Move to Someday": "var(--someday-icon, var(--someday-bg))", "Move out of Someday": "var(--someday-icon, var(--someday-bg))", "Move to watch": "var(--watch-icon, var(--watch-bg))", "Mark as Watching": "var(--watch-icon, var(--watch-bg))" };
-function ItemMenu({ ctx, item, close }) {
-  const act = (fn, msg, view) => () => { fn(); close(); if (msg) ctx.toast(msg, view ? { label: "View", run: () => ctx.goRadar(view) } : undefined); };
-  const p = (patch, msg, view) => act(() => ctx.patchItem(item.id, patch), msg, view);
-  const rows = [];
-  const done = item.status === "done";
-  // A future date puts the task in Future; one without its labels waits in the Inbox to be finished
-  const waits = !item.effort || !item.impact ? " (it needs effort and impact, so it's waiting in the Inbox)" : "";
-  if (item.status === "today") {
-    rows.push(
-      { Icon: Moon, label: "Move to tomorrow", run: p({ status: "future", someday: false, urgency: "now", due: offsetDay(1), migratedOn: iso() }, "Moved to tomorrow" + waits) },
-      { Icon: Calendar, label: "Move to this week", run: p({ status: "future", someday: false, urgency: "next", due: offsetDay(3) }, `Moved to this week · due ${fmtShort(offsetDay(3))}` + waits) },
-      { Icon: CalendarDays, label: "Move to future", run: p({ status: "future", someday: false, urgency: "later", due: offsetDay(7) }, `Moved to Future · due ${fmtShort(offsetDay(7))}` + waits) },
-      { Icon: Sparkles, label: "Move to someday", run: p({ status: "future", someday: true }, "Moved to Someday", "someday") },
-      { Icon: Eye, label: "Move to watch", run: p({ status: "watching", someday: false }, "Moved to Watching", "watching") },
-      { Icon: Pencil, label: "Edit details", run: () => ctx.setSheet({ type: "edit", id: item.id }) },
-      { Icon: Trash2, label: "Delete", cls: "del", run: act(() => ctx.removeItem(item.id), "Deleted") },
-    );
-  } else {
-    if (!done && !item.someday) rows.push({ Icon: Calendar, label: "Edit date", run: () => ctx.setSheet({ type: "date", id: item.id }) });
-    if (item.status !== "today" && item.status !== "watching" && !done) rows.push({ Icon: ArrowRight, label: "Move to Today", run: act(() => ctx.moveToToday(item.id), !item.effort || !item.impact ? "Needs effort and impact first, so it's waiting in the Inbox" : "Moved to Today") });
-    if (item.status === "today") rows.push({ Icon: ArrowUp, label: "Move to top", run: act(() => ctx.moveToTop(item.id), "Moved to the top") });
-    if (item.status === "today") rows.push({ Icon: CalendarDays, label: "Move to Future", run: p({ status: "future", urgency: "later", due: offsetDay(7) }, `Moved to Future · Later, due ${fmtShort(offsetDay(7))}`) });
-    if (item.status === "inbox") rows.push({ Icon: Sparkles, label: "Move to Someday", run: p({ status: "future", someday: true }, "Moved to Someday", "someday") });
-    if (item.status === "future" && !item.someday) rows.push({ Icon: Sparkles, label: "Move to Someday", run: p({ someday: true }, "Moved to Someday", "someday") });
-    if (item.status === "future" && item.someday) rows.push({ Icon: Sparkles, label: "Move out of Someday", run: p({ status: "inbox", someday: false, urgency: null, due: null }, "Sent to Inbox to set urgency") });
-    if (item.status === "today" || item.status === "future") rows.push({ Icon: Eye, label: "Mark as Watching", run: p({ status: "watching", someday: false }, "Moved to Watching", "watching") });
-    if (item.status === "watching") rows.push({ Icon: LayoutGrid, label: "Send to Inbox", run: p({ status: "inbox", urgency: null }, "Sent to Inbox") });
-    if (done) rows.push({ Icon: RotateCcw, label: "Restore", run: act(() => ctx.toggleDone(item.id), "Restored") });
-    rows.push({ Icon: Pencil, label: "Edit details", run: () => ctx.setSheet({ type: "edit", id: item.id }) });
-    rows.push({ Icon: Trash2, label: "Delete", cls: "del", run: act(() => ctx.removeItem(item.id), "Deleted") });
-    const ei = rows.findIndex((r) => r.label === "Edit details");
-    if (ei > 0) rows.unshift(...rows.splice(ei, 1));   // Edit details goes to the top
-  }
-  return (
-    <Sheet title={item.title} onClose={close}>
-      <div className="cd-menu">
-        {rows.map(({ Icon, label, run, cls }) => (
-          <button key={label} className={cls} onClick={run}><Icon size={20} style={MENU_TINT[label] ? { color: MENU_TINT[label] } : undefined} /> {label}</button>
-        ))}
-      </div>
-    </Sheet>
-  );
-}
-
-function DateEditor({ ctx, item, close }) {
-  const [due, setDue] = useState(item.due || "");
-  const save = () => { if (!due) return; ctx.patchItem(item.id, { due, urgency: urgencyForDate(due) }); close(); ctx.toast("Date saved"); };
-  const quick = [["Today", offsetDay(0)], ["Tomorrow", offsetDay(1)], ["Next week", offsetDay(7)]];
-  return (
-    <Sheet title="Edit date" onClose={close}>
-      <div className="cd-sub" style={{ marginBottom: 12, overflowWrap: "anywhere" }}>{item.title}</div>
-      <div className="cd-pills">
-        {quick.map(([l, d]) => (
-          <button key={l} className={"cd-segbtn sm" + (due === d ? " on" : "")} onClick={() => setDue(d)}>{l}</button>
-        ))}
-      </div>
-      <div className="cd-fl">Due date</div>
-      <input className="cd-input" type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Due date" />
-      <button className="cd-primary" disabled={!due} onClick={save}>Save date</button>
-      {item.due && <button className="cd-ghost" onClick={() => { ctx.patchItem(item.id, { due: null, urgency: null }); close(); ctx.toast("Date cleared"); }}>Clear date</button>}
-    </Sheet>
-  );
-}
-
 // Where a task goes, and the date that goes with it: Today = today, This week = in 3 days, Future = in 7 days
-const destDue = (dest) => (dest === "today" ? iso() : dest === "week" ? offsetDay(3) : dest === "future" ? offsetDay(7) : "");
-const destStatus = (dest) => (dest === "today" ? "today" : dest === "watching" ? "watching" : "future");
+// Where a task goes from Edit details: Today = due today, Tomorrow = +1 day, This week = +3 days, Future = +7 days.
+// (A task in Someday or Watching has none of the four selected until you pick one.)
+const destDue = (dest) => (dest === "today" ? iso() : dest === "tomorrow" ? offsetDay(1) : dest === "week" ? offsetDay(3) : dest === "future" ? offsetDay(7) : "");
+const destStatus = (dest) => (dest === "today" ? "today" : "future");
+const destOfDate = (due) => (due <= iso() ? "today" : due <= offsetDay(1) ? "tomorrow" : daysFromToday(due) <= 6 ? "week" : "future");
+const DEST_NAMES = { today: "Today", tomorrow: "Tomorrow", week: "This week", future: "Future" };
 const destOf = (it, initial) => {
   if (it) {
-    if (it.status === "watching") return "watching";
+    if (it.status === "watching" || (it.status === "future" && it.someday)) return "";
     if (it.status === "today") return "today";
-    if (it.status === "future" && !it.someday && it.due) return it.due <= iso() ? "today" : it.due <= offsetDay(3) ? "week" : "future";
-    return "future";
+    return it.due ? destOfDate(it.due) : "future";
   }
-  return initial === "watching" ? "watching" : initial === "future" ? "future" : "today";
+  return initial === "watching" ? "" : initial === "future" ? "future" : "today";
 };
 function Editor({ ctx, item, initialStatus, close }) {
   const [d, setD] = useState(() => {
     const dest = destOf(item, initialStatus);
     return {
       title: item?.title || "", category: item?.category || null, effort: item?.effort || null,
-      impact: item?.impact || null, due: item ? (item.due || "") : destDue(dest), status: item?.status || destStatus(dest), dest, someday: !!item?.someday,
+      impact: item?.impact || null, due: item ? (item.due || "") : destDue(dest), status: item?.status || (initialStatus === "watching" ? "watching" : destStatus(dest)), dest, someday: !!item?.someday,
       doneOn: item?.status === "done" && item?.doneAt ? iso(new Date(item.doneAt)) : "",   // date completed (finished tasks only)
     };
   });
   const set = (k, v) => setD((x) => ({ ...x, [k]: v }));
   // choosing where it goes fills in the date (you can still change the date afterwards)
-  const pick = (dest) => setD((x) => ({ ...x, dest, status: destStatus(dest), someday: dest === "watching" ? false : false, due: dest === "watching" ? x.due : destDue(dest) }));
+  const pick = (dest) => setD((x) => ({ ...x, dest, status: destStatus(dest), someday: false, due: destDue(dest) }));
   // changing the date by hand moves the task to the matching place
   const setDue = (v) => setD((x) => {
-    if (!v || x.dest === "watching" || x.someday) return { ...x, due: v };
-    const dest = v <= iso() ? "today" : v <= offsetDay(3) ? "week" : "future";
+    if (!v || !x.dest) return { ...x, due: v };   // a Watching task keeps a date without moving anywhere
+    const dest = destOfDate(v);
     return { ...x, due: v, dest, status: destStatus(dest) };
   });
   const active = d.status === "today" || (d.status === "future" && !d.someday);   // Today and Future tasks need effort and impact
@@ -2635,7 +2578,7 @@ function Editor({ ctx, item, initialStatus, close }) {
     const noDate = d.status === "future" && d.someday;   // Someday has no date; Watching may have one
     const payload = { ...d, title, due: noDate ? null : (d.due || null),
       someday: d.status === "future" || d.status === "done" ? d.someday : false };
-    if (!parked) { payload.due = payload.due || destDue(d.dest) || iso(); payload.urgency = urgencyForDate(payload.due); }   // urgency always follows the date
+    if (!parked) { payload.due = payload.due || destDue(d.dest) || iso(); payload.urgency = payload.due <= offsetDay(1) ? "now" : urgencyForDate(payload.due); }   // urgency always follows the date (today and tomorrow are Now)
     delete payload.dest;
     delete payload.doneOn;
     if (item?.status === "done" && d.doneOn) {   // a new completion date keeps the original time of day
@@ -2648,15 +2591,17 @@ function Editor({ ctx, item, initialStatus, close }) {
     ctx.toast(item ? "Saved" : "Added");
   };
   const needsInbox = d.status === "future" && !d.someday && !d.category;
-  // Move to tomorrow (keeps anything you've just edited) and Delete live here now that a tap on Today opens this sheet
-  const toTomorrow = () => {
+  // Someday and Watch (they keep anything you've just edited) sit in their own section below, with Delete. A task already in Someday has no Someday
+  // button, and one already in Watching has no Watch button.
+  const park = (kind) => {
     if (!item) return;
-    const payload = { ...d, title: d.title.trim() || item.title, status: "future", someday: false, urgency: "now", due: offsetDay(1), migratedOn: iso() };
-    delete payload.dest; delete payload.doneOn;
-    ctx.patchItem(item.id, payload);
+    const base = { title: d.title.trim() || item.title, category: d.category, effort: d.effort, impact: d.impact };
+    ctx.patchItem(item.id, kind === "someday" ? { ...base, status: "future", someday: true, urgency: null, due: null } : { ...base, status: "watching", someday: false, urgency: null, due: d.due || null });
     close();
-    ctx.toast("Moved to tomorrow" + (!d.effort || !d.impact ? " (it needs effort and impact, so it's waiting in the Inbox)" : ""));
+    ctx.toast(kind === "someday" ? "Moved to Someday" : "Moved to Watching");
   };
+  const canSomeday = !!item && item.status !== "done" && !(item.status === "future" && item.someday);
+  const canWatch = !!item && item.status !== "done" && item.status !== "watching";
   const del = () => { if (!item) return; ctx.removeItem(item.id); close(); ctx.toast("Deleted", { label: "Undo", run: () => ctx.restoreItem(item) }); };
   return (
     <Sheet title={item ? "Edit item" : "New item"} onClose={close}>
@@ -2664,42 +2609,40 @@ function Editor({ ctx, item, initialStatus, close }) {
         onChange={(e) => set("title", e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") { if (d.title.trim()) save(); else e.currentTarget.blur(); } }}
         enterKeyHint="done" aria-label="Item title" />
-      {d.status === "done" ? (
-        <>
-          <div className="cd-fl">Date completed</div>
-          <input className="cd-input" type="date" value={d.doneOn} max={iso()} onChange={(e) => set("doneOn", e.target.value)} aria-label="Date completed" />
-        </>
-      ) : (
+      {d.status !== "done" && (
         <>
           <div className="cd-fl">Goes to</div>
           <div className="cd-pills">
-            {[["today", "Today"], ["week", "This week"], ["future", "Future"], ["watching", "Watching"]].map(([v, l]) => (
+            {Object.entries(DEST_NAMES).map(([v, l]) => (
               <button key={v} className={"cd-segbtn sm" + (d.dest === v ? " on" : "")} onClick={() => pick(v)}>{l}</button>
             ))}
           </div>
+          {d.someday && d.status === "future" && <div className="cd-hint" style={{ textAlign: "left" }}>Someday items have no date. Choose where it goes to give it one.</div>}
+          {d.status === "watching" && <div className="cd-hint" style={{ textAlign: "left" }}>Choose where it goes to take it off Watching.</div>}
         </>
       )}
-      <div className="cd-fl">Category</div>
-      <CategoryPicker categories={ctx.categories} value={d.category} onChange={(c) => set("category", c)} onAdd={ctx.addCategory} />
+      <div className="cd-two2" style={{ marginTop: 4 }}>
+        {d.status === "done"
+          ? <div><div className="cd-fl">Date completed</div><input className="cd-input" type="date" value={d.doneOn} max={iso()} onChange={(e) => set("doneOn", e.target.value)} aria-label="Date completed" /></div>
+          : <div><div className="cd-fl">Due date</div><input className="cd-input" type="date" value={d.due} disabled={d.status === "future" && d.someday} onChange={(e) => setDue(e.target.value)} aria-label="Due date" /></div>}
+        <div><div className="cd-fl">Category</div><CategoryPicker categories={ctx.categories} value={d.category} onChange={(c) => set("category", c)} onAdd={ctx.addCategory} /></div>
+      </div>
       <div className="cd-two2">
         {d.status !== "watching" && <div><div className="cd-fl">Effort</div><Pills options={EFFORT_OPTS} value={d.effort} onChange={(v) => set("effort", v)} /></div>}
         <div><div className="cd-fl">Impact</div><Pills options={IMPACT_OPTS} value={d.impact} onChange={(v) => set("impact", v)} /></div>
       </div>
-      {d.someday && d.status === "future" && <div className="cd-hint" style={{ textAlign: "left" }}>Someday items have no date. Choose Today, This week or Future above to give it one.</div>}
-      {!(d.status === "future" && d.someday) && (
-        <>
-          <div className="cd-fl">Due date</div>
-          <input className="cd-input" type="date" value={d.due} onChange={(e) => setDue(e.target.value)} aria-label="Due date" />
-        </>
-      )}
       <button className="cd-primary" disabled={!d.title.trim() || missing} onClick={save}>{item ? "Save changes" : "Add item"}</button>
       {item && (
-        <div className="cd-editacts">
-          {item.status !== "done" && <button className="cd-ghost" onClick={toTomorrow}><Moon size={18} /> Move to tomorrow</button>}
-          <button className="cd-ghost" style={{ color: "var(--danger)" }} onClick={del}><Trash2 size={18} /> Delete</button>
+        <div className="cd-editsec">
+          <div className="cd-fl" style={{ marginTop: 0 }}>Move or remove</div>
+          <div className="cd-editacts">
+            {canSomeday && <button className="cd-act someday" onClick={() => park("someday")}><Sparkles size={18} /> Someday</button>}
+            {canWatch && <button className="cd-act watch" onClick={() => park("watching")}><Eye size={18} /> Watch</button>}
+            <button className="cd-act del" onClick={del}><Trash2 size={18} /> Delete</button>
+          </div>
         </div>
       )}
-      {missing && <div className="cd-hint" style={{ marginTop: 10 }}>Choose effort and impact to put this on {d.dest === "today" ? "Today" : d.dest === "week" ? "This week" : "Future"}. Every task there needs a date, urgency, effort and impact.</div>}
+      {missing && <div className="cd-hint" style={{ marginTop: 10 }}>Choose effort and impact to put this on {DEST_NAMES[d.dest] || "Future"}. Every task there needs a date, urgency, effort and impact.</div>}
       {!missing && needsInbox && <div className="cd-hint" style={{ marginTop: 10 }}>Items without a category wait in the Inbox.</div>}
     </Sheet>
   );
@@ -2725,7 +2668,10 @@ const SunriseIcon = ({ size = 22, strokeWidth = 2 }) => (
     <path d="M3 18h18" /><path d="M7 18a5 5 0 0 1 10 0" /><path d="M12 6v3M5.6 10.6l1.8 1.8M18.4 10.6l-1.8 1.8" />
   </svg>
 );
-const TodayGlyph = ({ size = 20 }) => <SunriseIcon size={size} strokeWidth={2.2} />;
+// The Today picture for a light round button: Fairway's coloured sunrise from the tab bar, Café's line sunrise
+const TodayGlyph = ({ ctx, size = 20 }) => (THEME_ART[ctx.themeId] && THEME_ART[ctx.themeId].nav
+  ? <img className="cd-navimg" src={THEME_ART[ctx.themeId].nav.today} alt="" />
+  : <SunriseIcon size={size} strokeWidth={2.2} />);
 const isFocusTask = (i) => i.effort === "deep" && i.impact === "high";
 const planSort = (a, b) => (a.due || "9999").localeCompare(b.due || "9999") || (b.impact === "high") - (a.impact === "high") || isFocusTask(b) - isFocusTask(a) || a.title.localeCompare(b.title);
 const tomorrowSort = (a, b) => (b.impact === "high") - (a.impact === "high") || isFocusTask(b) - isFocusTask(a) || (a.effort === "quick") - (b.effort === "quick") || a.title.localeCompare(b.title);
@@ -3086,6 +3032,11 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToastMsg(null), 2600);
   }, [loaded, dayKey]);
 
+  // Calendar became the main view of Future: one time only, a saved "Matrix" moves to Calendar. After that, whatever you pick is remembered.
+  useEffect(() => {
+    if (state && !state.futureViewMigrated) setState((st) => (st.futureViewMigrated ? st : { ...st, futureMode: "calendar", futureViewMigrated: true }));
+  }, [state && state.futureViewMigrated]);
+
   // Keep the "always one default category" rule true, whatever was loaded or restored
   useEffect(() => {
     if (!state) return;
@@ -3306,13 +3257,12 @@ export default function App() {
     inboxOrder, setInboxOrder,
     todaySortMode: state.todaySort || "mine",
     setTodaySortMode: (mode) => update(() => ({ todaySort: mode })),
-    futureMode: state.futureMode === "calendar" ? "calendar" : "matrix", setFutureMode: (m) => update(() => ({ futureMode: m })),   // Matrix or Calendar, remembered
+    futureMode: state.futureMode === "matrix" ? "matrix" : "calendar", setFutureMode: (m) => update(() => ({ futureMode: m })),   // Calendar (the default) or Matrix, remembered
     futureCat, setFutureCat,
     setTheme: (id) => { loadThemeFonts(id).then(() => update(() => ({ themeId: id }))); },
     goRadar: (mode) => { setRadarMode(mode); setTab("radar"); setJustDone(new Set()); },
     cleaned: state.cleanedOn === iso(),
     markCleaned: () => { celebrate(); update(() => ({ cleanedOn: iso() })); },
-    openMenu: (id) => setSheet({ type: "menu", id }),
     catStyle: (name) => {
       const own = (state.categoryColors || {})[name];
       if (own != null && CAT_COLORS[own]) return CAT_COLORS[own].pair;
@@ -3442,9 +3392,7 @@ export default function App() {
 
   const unlabeledCount = items.filter(isUnlabeled).length;
   const attnCount = items.filter((i) => i.status === "future" && !i.someday && i.due && i.due < iso()).length;
-  const menuItem = sheet?.type === "menu" ? items.find((i) => i.id === sheet.id) : null;
   const editItem = sheet?.type === "edit" && sheet.id ? items.find((i) => i.id === sheet.id) : null;
-  const dateItem = sheet?.type === "date" ? items.find((i) => i.id === sheet.id) : null;
   const close = () => setSheet(null);
 
   const View = { today: TodayView, inbox: InboxView, future: FutureView, dashboard: DashboardView, completed: CompletedView, radar: RadarView }[tab];
@@ -3483,9 +3431,6 @@ export default function App() {
             );
           })}
         </nav>
-
-        {sheet?.type === "menu" && menuItem && <ItemMenu ctx={ctx} item={menuItem} close={close} />}
-        {sheet?.type === "date" && dateItem && <DateEditor ctx={ctx} item={dateItem} close={close} />}
         {sheet?.type === "edit" && <Editor ctx={ctx} item={editItem} initialStatus={sheet.status} close={sheet.returnTo === "plan" ? () => setSheet({ type: "plan" }) : close} />}
         {sheet?.type === "plan" && <PlanTomorrow ctx={ctx} items={items} close={close} />}
         {sheet?.type === "settings" && <Settings ctx={ctx} themeId={state.themeId} close={close} />}

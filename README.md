@@ -12,11 +12,11 @@ The tab bar runs **Today, Future, Inbox, Radar, Dashboard**. Inbox is the big ci
 
 - **Today**: your list for the day.
   - **Thought dump**: type one thought per line, then tap **Fast add** (straight onto Today as a small, quick, low-impact task in your default category) or **Move to inbox** (sort it later).
-  - Tap a task to open **Edit details**. It has **Move to tomorrow** and **Delete** too. Hold and drag to reorder.
+  - Tap a task to open **Edit details**. Hold and drag to reorder.
   - The sort button next to **+** cycles through **My order**, **By the matrix** and **By category** with each tap. The icon shows which one you're on, and the choice is remembered.
   - Tasks sent on from yesterday carry a "Migrated from yesterday" tag; tasks pulled up from later carry "Pulled forward".
   - The dark bar at the bottom, **Plan tomorrow**, opens the planner (below).
-- **Future**: everything not for today, as a **Matrix** (Quick Wins, Major Focus, Admin / Fillers, Deferral) or a **Calendar** made of three cards: **Tomorrow**, **This week** and **Later**. On the Calendar, every task has an up and a down button: down pushes it back (tomorrow, this week, later, Someday); up pulls it forward (on a Tomorrow task the up button is the Today icon, because it sends the task to Today). Past-due tasks collect in "Needs attention". Your Matrix/Calendar choice is remembered, and so is the category filter while you move around the app.
+- **Future**: everything not for today, as a **Calendar** (the main view) made of three cards, **Tomorrow**, **This week** and **Later**, or as a **Matrix** (Quick Wins, Major Focus, Admin / Fillers, Deferral). On the Calendar, every task has an up and a down button: down pushes it back (tomorrow, this week, later, Someday); up pulls it forward (on a Tomorrow task the up button is the Today icon, because it sends the task to Today). Past-due tasks collect in "Needs attention". Your Matrix/Calendar choice is remembered, and so is the category filter while you move around the app.
 - **Inbox**: a swipeable card deck for sorting thoughts. Every card starts as your **default category**, **Quick**, **High impact** and **Now**, so most cards need only **Prioritize**. Change anything that's different, or send the card to **Someday** or **Watch**. Nothing is saved until you tap. Swipe left to skip to the back of the deck, swipe right to go to the previous card.
 - **Radar**: **Watching** (things you're waiting on, grouped by category; swipe left to send one back to the Inbox) and **Someday** (ideas for later), one tap apart.
 - **Dashboard**: momentum stats, today's focus, open items by category, and the matrix at a glance. **See what you finished** lists everything completed, grouped by day.
@@ -33,6 +33,14 @@ One screen replaces the old evening card deck. Tasks sit on a ladder of time: **
 ### Categories and the default
 
 Add categories anywhere; manage them in **Settings, Manage categories**. A **star** marks the **default category**: new Inbox cards and Fast add start as that category. There is always exactly one default. It can't be deleted (make another one the default first), and if it's ever missing the app falls back to **Miscellaneous** (and creates it if needed).
+
+### Edit details
+
+Tapping a task on **any** page (Today, Future, Radar, finished tasks) opens the same Edit details sheet; there is no pop-up menu.
+
+- **Goes to**: Today, Tomorrow, This week or Future. Picking one fills in the date (today, +1, +3 or +7 days); typing a date by hand moves the choice to match. A task in Someday or Watching has none selected until you pick one.
+- **Due date and Category** sit on one line under it, then **Effort** and **Impact**, then **Save changes**.
+- **Move or remove** is a separate section at the bottom: **Someday**, **Watch** and **Delete**. A task already in Someday has no Someday button, and one already in Watching has no Watch button; on Today and Future both show, next to Delete. Finished tasks show Delete only. Whatever you've just edited is kept when you tap Someday or Watch.
 
 ## How dates and urgency work
 

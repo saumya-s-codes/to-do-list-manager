@@ -1,5 +1,16 @@
 # Changelog
 
+## 10.8
+- **One way to edit a task, everywhere.** Tapping a task on Future or Radar (Watching and Someday) now opens Edit details straight away, like Today. The pop-up menu and the separate date sheet are gone.
+- **"Goes to" is the same four places for every task:** Today, Tomorrow, This week, Future. Picking one fills in the date (today, +1, +3, +7 days); typing a date by hand moves the choice to match. A task in Someday or Watching has none selected until you pick one.
+- **The due date sits right under "Goes to", on the same line as Category.** Effort and Impact are on the line below.
+- **A separate "Move or remove" section** at the bottom of the sheet has Someday, Watch and Delete. A task already in Someday has no Someday button, and one already in Watching has no Watch button; on Today and Future both show, next to Delete. Finished tasks show Delete only. Whatever you've just edited is kept when you tap Someday or Watch.
+- Saving a task for tomorrow now sets its urgency to Now, the same as Plan tomorrow does.
+
+## 10.7
+- **Calendar is the main view of Future.** It's listed first and is the default. If your phone was left on Matrix, it moves to Calendar once when this version first opens; after that, whichever you pick is remembered.
+- **The Today icon is the same everywhere.** On Fairway, the "move to Today" button on Tomorrow rows now shows the colored sunrise from the tab bar. The green "Today" pills and the "Move to Today" menu item use the sunrise too, instead of a generic arrow.
+
 ## 10.6
 - **New Fairway tab icons from your icon set:** Today (sunrise over the fairway with the flag), Radar (binoculars), Dashboard (scorecard), and the Inbox circle now shows your cream basket on the green. Future keeps its existing picture. Unselected tabs are softened and greyed; the selected tab shows full color.
 
