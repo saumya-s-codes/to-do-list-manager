@@ -1,5 +1,53 @@
 # Changelog
 
+## 10.6
+- **New Fairway tab icons from your icon set:** Today (sunrise over the fairway with the flag), Radar (binoculars), Dashboard (scorecard), and the Inbox circle now shows your cream basket on the green. Future keeps its existing picture. Unselected tabs are softened and greyed; the selected tab shows full color.
+
+## 10.5
+- **Sharper Fairway empty-screen drawings.** "The deck is clear" on Today now shows your new green with the flag, hole, ball and bunker, and "All sorted" in the Inbox shows your new basket of golf balls. The old versions were tiny (the basket was about 100 pixels wide, shown about 130 points tall); the new ones are cut at about three times the size they're shown. The trophy ("Nothing finished yet", "Someday is empty", "Nothing sorted here yet") and the binoculars ("Nothing to watch") are still the old pictures.
+
+## 10.4
+- **Sharper Fairway tab pictures.** The Today (sunrise over the fairway with the flag), Inbox (basket of golf balls, in cream on the green circle) and Radar (binoculars) pictures are now your new line drawings, made transparent and cut at several times the size they're shown. The old pictures were about 100 pixels wide and were washed grey, which is why they looked blurry. Future and Dashboard still use the old pictures until they get the same treatment.
+
+## 10.3
+- **The Today icon is a sunrise** (a sun coming up over a horizon line), simpler than the clubhouse picture. It's on the Today tab in both themes and on the "move to Today" buttons on the Future page, so the button looks like the tab it sends the task to.
+
+## 10.2
+- **The Future page no longer shows Today.** The Calendar view now has Tomorrow, This week and Later.
+- **Up and down buttons on the Future page's calendar rows,** like Plan tomorrow: down pushes a task back (tomorrow → this week → later → Someday), up pulls it forward. On a Tomorrow task the up button is the **Today picture**, because it moves the task to Today; on This week and Later it's an up arrow that pulls the task to tomorrow. Each move has a short message with Undo. The Matrix view is unchanged.
+- **New Today icon on the tab bar:** a sun (Fairway keeps its clubhouse picture). "Move to tomorrow" now uses a moon, so sun = today and moon = tomorrow everywhere.
+
+## 10.1
+- **The Future page's Calendar view uses the same rungs as Plan tomorrow:** Now, Tomorrow, This week and Later, instead of one card per date. This week lists its days under each other; Later lists its months. The Tomorrow card has a Plan button that opens the planner. Overdue tasks stay in "Needs attention" at the top. The Matrix view is unchanged.
+
+## 10.0
+- **Plan tomorrow replaces Evening Clean Up.** The card deck, its swipes and its recap are gone. The bar on Today now says "Plan tomorrow" and opens one screen with everything on a ladder of time: left over today, tomorrow, this week, later, and parked (Someday and Watching).
+  - **▼** pushes a task back one rung (left over → tomorrow → this week → later → Someday). **▲** pulls a task from This week, Later or Parked straight to tomorrow. "All to tomorrow" moves every leftover at once. Undo takes back the last move.
+  - **Long lists:** This week and Later show the soonest five (then highest impact, then major focus), with a button to show more.
+  - **Load bar:** how many tasks are planned for tomorrow, how many are deep focus, and how many you usually finish (the average on the days you finished things in the last two weeks).
+  - Tapping a task opens Edit details and returns you to the planner.
+  - Tasks you pull forward get a "Pulled forward" tag when they reach Today (like "Migrated from yesterday").
+  - After you tap Done, the bar says "Tomorrow is planned" for the rest of the day.
+
+## 9.16
+- **The Inbox circle is the same color as the Evening Clean Up bar** (deep forest green in Fairway; olive in Café, where they already matched).
+
+## 9.15
+- **Fairway's Inbox circle is green**, like Café's, with a new cream icon: a golf ball about to drop into the inbox tray.
+
+## 9.14
+- **A default category you choose.** In Settings, Manage categories, a star marks the default category. It's what new Inbox cards start as, and what Fast add files things under. Tap another star to change it. There is always exactly one: the default can't be deleted (make another one the default first), and if it's ever missing, the app falls back to Miscellaneous (and creates it if needed). Backups remember it.
+
+## 9.13
+- **Tab bar alignment.** The "Inbox" label now sits inside the big circle, and all five tabs share one centre line, so the row is balanced instead of the circle standing above the others. The bar is also a little shorter.
+
+## 9.12
+- **Fairway Inbox header:** the dog's head is no longer cut off. The picture now starts below the status bar, where it can be seen.
+- **Inbox starting labels.** Every card starts as Miscellaneous, Quick, High impact, due Now, so most cards need only Prioritize. Nothing is saved until you tap, and you can change any of them. "Miscellaneous" is created the first time it's needed.
+- **Future page:** the Matrix or Calendar choice is remembered when you leave the page (and when you reopen the app), and so is the category filter while you move around the app. The category filter now sits on the same line as Matrix and Calendar.
+- **Today:** tapping a task (or its "...") opens Edit details straight away. Move to tomorrow and Delete are in that sheet; the other moves are available through "Goes to".
+- **Tab bar:** Future and Inbox swap places, and Inbox is now a big circle in the middle with the other four around it.
+
 ## 9.11
 - **The Screen fit setting is gone.** The bottom bar now sits at the bottom of the screen on its own: in the installed iPhone app with the see-through status bar, the app uses a page as tall as the screen. There is nothing to choose in Settings any more.
 
