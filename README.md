@@ -16,6 +16,8 @@ The tab bar runs **Today, Future, Inbox, Radar, Dashboard**. Inbox is the big ci
   - The sort button next to **+** cycles through **My order**, **By the matrix** and **By category** with each tap. The icon shows which one you're on, and the choice is remembered.
   - Tasks sent on from yesterday carry a "Migrated from yesterday" tag; tasks pulled up from later carry "Pulled forward".
   - The dark bar at the bottom, **Plan tomorrow**, opens the planner (below).
+  - Finishing a task sets off confetti: two cannons at the bottom left and right each fire once toward the middle while confetti rains from the top. Clearing the last task on Today, or tapping Done in Plan tomorrow, sets off the big one (about 580 pieces). Phones set to reduce motion get none.
+  - A finished task stays for about a second, checked off, then fades out. It's still listed under Dashboard, See what you finished.
 - **Future**: everything not for today, as a **Calendar** (the main view) made of three cards, **Tomorrow**, **This week** and **Later**, or as a **Matrix** (Quick Wins, Major Focus, Admin / Fillers, Deferral). On the Calendar, every task has an up and a down button: down pushes it back (tomorrow, this week, later, Someday); up pulls it forward (on a Tomorrow task the up button is the Today icon, because it sends the task to Today). Past-due tasks collect in "Needs attention". Your Matrix/Calendar choice is remembered, and so is the category filter while you move around the app.
 - **Inbox**: a swipeable card deck for sorting thoughts. Every card starts as your **default category**, **Quick**, **High impact** and **Now**, so most cards need only **Prioritize**. Change anything that's different, or send the card to **Someday** or **Watch**. Nothing is saved until you tap. Swipe left to skip to the back of the deck, swipe right to go to the previous card.
 - **Radar**: **Watching** (things you're waiting on, grouped by category; swipe left to send one back to the Inbox) and **Someday** (ideas for later), one tap apart.
@@ -39,7 +41,8 @@ Add categories anywhere; manage them in **Settings, Manage categories**. A **sta
 Tapping a task on **any** page (Today, Future, Radar, finished tasks) opens the same Edit details sheet; there is no pop-up menu.
 
 - **Goes to**: Today, Tomorrow, This week or Future. Picking one fills in the date (today, +1, +3 or +7 days); typing a date by hand moves the choice to match. A task in Someday or Watching has none selected until you pick one.
-- **Due date and Category** sit on one line under it, then **Effort** and **Impact**, then **Save changes**.
+- **Due date and Category** sit on one line under it, then **Effort** and **Impact**.
+- **There is no Save button.** An existing task saves itself a moment after every change (and when the sheet closes), and a small "Saved" tag shows by the title. A change that can't be saved yet, like moving a task to Today before it has an effort and impact, waits until it's complete. A new task is added with the **Add item** button.
 - **Move or remove** is a separate section at the bottom: **Someday**, **Watch** and **Delete**. A task already in Someday has no Someday button, and one already in Watching has no Watch button; on Today and Future both show, next to Delete. Finished tasks show Delete only. Whatever you've just edited is kept when you tap Someday or Watch.
 
 ## How dates and urgency work

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.8";
+const APP_VERSION = "10.11";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -588,6 +588,8 @@ const CSS = `
 .cd-row-main{flex:1;min-width:0;display:block;text-align:left}
 .cd-row-title{display:block;font-weight:500;line-height:1.3;overflow-wrap:anywhere}
 .cd-row.done{opacity:.5;transition:opacity .2s}
+.cd-row.gone{overflow:hidden;pointer-events:none;animation:cd-vanish .38s ease-in forwards}
+@keyframes cd-vanish{0%{opacity:.5;max-height:140px;transform:none}55%{opacity:0;max-height:140px}100%{opacity:0;max-height:0;transform:translateX(-24px);padding-top:0;padding-bottom:0;margin-top:0;margin-bottom:0;border-width:0}}
 .cd-row.done .cd-row-title{text-decoration:line-through;color:var(--muted)}
 .cd-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:3px;color:var(--muted);font-size:12.5px}
 .cd-cattext{display:inline-flex;align-items:center;gap:5px;font-weight:600}
@@ -873,9 +875,8 @@ const CSS = `
 .cd-catitem{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .cd-catitem .n{margin-left:auto;color:var(--muted);font-size:12.5px}
 .cd-catitem .cd-cattext{font-size:14.5px}
-.cd-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:60}
-.cd-confetti i{position:absolute;top:-14px;width:8px;height:13px;border-radius:2px;animation:cd-fall 1.6s ease-in forwards}
-@keyframes cd-fall{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),105vh) rotate(var(--r));opacity:.9}}
+.cd-confetti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
+@media(prefers-reduced-motion:reduce){.cd-confetti{display:none}}
 @keyframes cd-pop{0%{transform:scale(.88)}60%{transform:scale(1.07)}100%{transform:scale(1)}}
 @keyframes cd-ready{0%{transform:scale(.96)}55%{transform:scale(1.035)}100%{transform:scale(1)}}
 @keyframes cd-shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
@@ -1091,6 +1092,7 @@ const CSS = `
 .cd-act.watch{background:var(--watch-bg);color:var(--watch-ink)}
 .cd-act.del{background:transparent;border:2px solid var(--danger);color:var(--danger)}
 .cd-two2>*{min-width:0}
+.cd-savedtag{display:inline-flex;align-items:center;gap:3px;margin-left:10px;font-family:var(--font-ui,inherit);font-size:12px;font-weight:700;color:var(--ok,#3E7D4F);vertical-align:middle;animation:cd-fade .2s}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 html[data-fit="page"],html[data-fit="page"] body,html[data-fit="page"] #root{height:var(--app-h);overflow:hidden}
 html[data-fit="page"] body{position:relative;inset:auto}
@@ -1447,7 +1449,7 @@ function ItemRow({ item, ctx, trailing, hideDue = false, focusLabel = false, tod
   const open = () => ctx.setSheet({ type: "edit", id: item.id });   // a tap goes straight to Edit details, on every page
   const { className: extraCls = "", ...rp } = rowProps || {};
   return (
-    <div className={"cd-row" + (done ? " done" : "") + extraCls} {...rp}>
+    <div className={"cd-row" + (done ? " done" : "") + (ctx.vanishing && ctx.vanishing.has(item.id) ? " gone" : "") + extraCls} {...rp}>
       <Check_ done={done} onClick={() => ctx.toggleDone(item.id)} label={done ? "Mark not done" : "Mark done"} />
       <button className="cd-row-main" onClick={open} aria-label={`Edit ${item.title}`}>
         <span className="cd-row-title">
@@ -2241,7 +2243,7 @@ function WatchGroup({ g, ctx, scrollRef, onSent }) {
                   </span>
                 </button>
               )}
-              <div className={"cd-row cd-wrow" + (done ? " done" : "") + (mine || isOpen ? " swiping" : "")} style={rowStyle}>
+              <div className={"cd-row cd-wrow" + (done ? " done" : "") + (ctx.vanishing && ctx.vanishing.has(i.id) ? " gone" : "") + (mine || isOpen ? " swiping" : "")} style={rowStyle}>
                 <Check_ done={done} onClick={() => ctx.toggleDone(i.id)} label={done ? "Mark not done" : "Mark done"} />
                 <button className="cd-row-main" onClick={() => ctx.setSheet({ type: "edit", id: i.id })} aria-label={`Edit ${i.title}`}>
                   <span className="cd-row-title">{i.title}</span>
@@ -2571,9 +2573,10 @@ function Editor({ ctx, item, initialStatus, close }) {
   });
   const active = d.status === "today" || (d.status === "future" && !d.someday);   // Today and Future tasks need effort and impact
   const missing = active && (!d.effort || !d.impact);
-  const save = () => {
+  // What the current choices would save, or null while something is missing (a title, or effort and impact on a Today / Future task)
+  const buildPayload = () => {
     const title = d.title.trim();
-    if (!title || missing) return;
+    if (!title || missing) return null;
     const parked = d.status === "watching" || (d.status === "future" && d.someday);
     const noDate = d.status === "future" && d.someday;   // Someday has no date; Watching may have one
     const payload = { ...d, title, due: noDate ? null : (d.due || null),
@@ -2586,28 +2589,52 @@ function Editor({ ctx, item, initialStatus, close }) {
       const was = item.doneAt ? new Date(item.doneAt) : new Date();
       payload.doneAt = new Date(y, m - 1, dd, was.getHours(), was.getMinutes()).getTime();
     }
-    if (item) ctx.patchItem(item.id, payload); else ctx.addItem(payload);
-    close();
-    ctx.toast(item ? "Saved" : "Added");
+    return payload;
   };
+  // A NEW task is added with the button. An existing task has no Save button: every change saves itself a moment later, and anything still
+  // waiting is saved when the sheet closes. (A change that can't be saved yet, like Today without effort, waits until it's complete.)
+  const finished = useRef(false), lastSaved = useRef(""), timer = useRef(null), tagTimer = useRef(null);
+  const [saved, setSaved] = useState(false);
+  const add = () => { const payload = buildPayload(); if (!payload) return; ctx.addItem(payload); finished.current = true; close(); ctx.toast("Added"); };
+  const commit = () => {
+    if (!item || finished.current) return false;
+    const payload = buildPayload();
+    if (!payload) return false;
+    const key = JSON.stringify(payload);
+    if (key === lastSaved.current) return false;
+    lastSaved.current = key;
+    ctx.patchItem(item.id, payload);
+    return true;
+  };
+  const commitRef = useRef(commit); commitRef.current = commit;
+  useEffect(() => { if (item) { const p = buildPayload(); lastSaved.current = p ? JSON.stringify(p) : ""; } }, []);   // what is already saved
+  useEffect(() => {
+    if (!item) return undefined;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { if (commit()) { setSaved(true); clearTimeout(tagTimer.current); tagTimer.current = setTimeout(() => setSaved(false), 1600); } }, 350);
+    return () => clearTimeout(timer.current);
+  }, [d]);
+  useEffect(() => () => { clearTimeout(tagTimer.current); commitRef.current(); }, []);   // saved when the sheet goes away, however it closes
+  const closeNow = () => { clearTimeout(timer.current); commit(); finished.current = true; close(); };
   const needsInbox = d.status === "future" && !d.someday && !d.category;
   // Someday and Watch (they keep anything you've just edited) sit in their own section below, with Delete. A task already in Someday has no Someday
   // button, and one already in Watching has no Watch button.
   const park = (kind) => {
     if (!item) return;
     const base = { title: d.title.trim() || item.title, category: d.category, effort: d.effort, impact: d.impact };
+    finished.current = true;
     ctx.patchItem(item.id, kind === "someday" ? { ...base, status: "future", someday: true, urgency: null, due: null } : { ...base, status: "watching", someday: false, urgency: null, due: d.due || null });
     close();
     ctx.toast(kind === "someday" ? "Moved to Someday" : "Moved to Watching");
   };
   const canSomeday = !!item && item.status !== "done" && !(item.status === "future" && item.someday);
   const canWatch = !!item && item.status !== "done" && item.status !== "watching";
-  const del = () => { if (!item) return; ctx.removeItem(item.id); close(); ctx.toast("Deleted", { label: "Undo", run: () => ctx.restoreItem(item) }); };
+  const del = () => { if (!item) return; finished.current = true; ctx.removeItem(item.id); close(); ctx.toast("Deleted", { label: "Undo", run: () => ctx.restoreItem(item) }); };
   return (
-    <Sheet title={item ? "Edit item" : "New item"} onClose={close}>
+    <Sheet title={<>{item ? "Edit item" : "New item"}{saved && <small className="cd-savedtag"><Check size={13} strokeWidth={3} /> Saved</small>}</>} onClose={closeNow}>
       <input className="cd-input" placeholder="What needs doing?" value={d.title}
         onChange={(e) => set("title", e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") { if (d.title.trim()) save(); else e.currentTarget.blur(); } }}
+        onKeyDown={(e) => { if (e.key === "Enter") { if (!item && d.title.trim()) add(); else { commit(); e.currentTarget.blur(); } } }}
         enterKeyHint="done" aria-label="Item title" />
       {d.status !== "done" && (
         <>
@@ -2631,7 +2658,7 @@ function Editor({ ctx, item, initialStatus, close }) {
         {d.status !== "watching" && <div><div className="cd-fl">Effort</div><Pills options={EFFORT_OPTS} value={d.effort} onChange={(v) => set("effort", v)} /></div>}
         <div><div className="cd-fl">Impact</div><Pills options={IMPACT_OPTS} value={d.impact} onChange={(v) => set("impact", v)} /></div>
       </div>
-      <button className="cd-primary" disabled={!d.title.trim() || missing} onClick={save}>{item ? "Save changes" : "Add item"}</button>
+      {!item && <button className="cd-primary" disabled={!d.title.trim() || missing} onClick={add}>Add item</button>}
       {item && (
         <div className="cd-editsec">
           <div className="cd-fl" style={{ marginTop: 0 }}>Move or remove</div>
@@ -2642,7 +2669,7 @@ function Editor({ ctx, item, initialStatus, close }) {
           </div>
         </div>
       )}
-      {missing && <div className="cd-hint" style={{ marginTop: 10 }}>Choose effort and impact to put this on {DEST_NAMES[d.dest] || "Future"}. Every task there needs a date, urgency, effort and impact.</div>}
+      {missing && <div className="cd-hint" style={{ marginTop: 10 }}>Choose effort and impact to put this on {DEST_NAMES[d.dest] || "Future"}. Every task there needs a date, urgency, effort and impact.{item ? " It saves as soon as you do." : ""}</div>}
       {!missing && needsInbox && <div className="cd-hint" style={{ marginTop: 10 }}>Items without a category wait in the Inbox.</div>}
     </Sheet>
   );
@@ -2927,16 +2954,78 @@ function CatManager({ ctx, items, close }) {
   );
 }
 
-function Confetti() {
-  const colors = ["var(--q1)", "var(--q2)", "var(--q3)", "var(--q4)", "var(--accent)"];
-  return (
-    <div className="cd-confetti" aria-hidden="true">
-      {Array.from({ length: 30 }, (_, i) => (
-        <i key={i} style={{ left: `${(i * 37) % 100}%`, background: colors[i % 5], animationDelay: `${(i % 7) * 0.05}s`,
-          animationDuration: `${1.1 + (i % 5) * 0.18}s`, "--dx": `${((i * 53) % 90) - 45}px`, "--r": `${300 + (i * 41) % 360}deg` }} />
-      ))}
-    </div>
-  );
+// Confetti, drawn on a canvas so it can be big and still smooth. Two cannons, bottom left and bottom right, fire ONCE toward the middle (a flash at
+// the muzzle), and confetti rains from the top. A finished task gets a volley from each cannon and a shower (about 200 pieces); clearing the day
+// (or finishing Plan tomorrow) gets bigger volleys and a heavy shower (about 580).
+function Confetti({ big = false }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const cv = ref.current;
+    const g = cv && cv.getContext("2d");
+    if (!g) return undefined;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const W = cv.clientWidth || 400, H = cv.clientHeight || 800;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); g.scale(dpr, dpr);
+    const colors = ["#F4C430", "#FF8A3D", "#E4572E", "#D65FA8", "#8E5BD6", "#3B82C4", "#2BB3A3", "#2E9E5B", "#F7D774", "#FFFFFF"];
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const parts = [], flashes = [], events = [];
+    let total = 0;
+    const piece = (x, y, vx, vy) => {
+      const kind = Math.random();
+      const streamer = kind > 0.82, round = kind < 0.14;
+      parts.push({ x, y, vx, vy, age: 0, rot: rnd(0, 6.3), vr: rnd(-10, 10), flip: rnd(0, 6.3), vf: rnd(6, 17), sway: rnd(0, 6.3), swf: rnd(2, 5), swa: rnd(8, 38),
+        w: streamer ? 3.5 : round ? rnd(6, 9) : rnd(6, 10), h: streamer ? rnd(18, 28) : round ? 0 : rnd(9, 16), round, color: colors[Math.floor(rnd(0, colors.length))] });
+    };
+    const cannon = (side, n) => {            // side -1 = bottom left, 1 = bottom right; the confetti flies up toward the middle
+      const x = side < 0 ? 8 : W - 8, y = H - 8;
+      for (let i = 0; i < n; i++) {
+        const ang = rnd(0.7, 1.4), sp = rnd(1000, 2050);
+        piece(x, y, -side * Math.cos(ang) * sp, -Math.sin(ang) * sp);
+      }
+      flashes.push({ x, y, age: 0 });
+    };
+    const rain = (n) => { for (let i = 0; i < n; i++) piece(rnd(0, W), rnd(-40, -8), rnd(-70, 70), rnd(30, 170)); };
+    const volleys = [0], perVolley = big ? 170 : 70;
+    volleys.forEach((t) => { [-1, 1].forEach((side) => { events.push({ t, run: () => cannon(side, perVolley) }); total += perVolley; }); });
+    const showerN = big ? 240 : 60, showerOver = big ? 2.4 : 1.2;
+    for (let i = 0; i < showerN; i += 5) { events.push({ t: (i / showerN) * showerOver, run: () => rain(5) }); total += 5; }
+    events.sort((a, b) => a.t - b.t);
+    cv.dataset.pieces = String(total); cv.dataset.volleys = String(volleys.length);
+    const GRAV = 640, DRAG = 2.2;
+    let raf = 0, last = performance.now(); const start = last;
+    const tick = (now) => {
+      const dt = Math.min(0.034, (now - last) / 1000); last = now;
+      const t = (now - start) / 1000;
+      while (events.length && events[0].t <= t) events.shift().run();
+      g.clearRect(0, 0, W, H);
+      for (let i = flashes.length - 1; i >= 0; i--) {
+        const f = flashes[i]; f.age += dt; const k = f.age / 0.22;
+        if (k >= 1) { flashes.splice(i, 1); continue; }
+        g.globalAlpha = 0.85 * (1 - k); g.fillStyle = "#FFF3B0"; g.beginPath(); g.arc(f.x, f.y, 10 + k * 70, 0, 6.2832); g.fill();
+      }
+      g.globalAlpha = 1;
+      let n = 0;
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        p.age += dt;
+        p.vy += GRAV * dt; const k = Math.max(0, 1 - DRAG * dt); p.vx *= k; p.vy *= k;
+        p.sway += p.swf * dt;
+        p.x += (p.vx + Math.sin(p.sway) * p.swa) * dt; p.y += p.vy * dt;
+        p.rot += p.vr * dt; p.flip += p.vf * dt;
+        if (p.y > H + 40 || p.age > 7.5) continue;
+        parts[n++] = p;
+        g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.scale(1, Math.cos(p.flip)); g.fillStyle = p.color;
+        if (p.round) { g.beginPath(); g.arc(0, 0, p.w / 2, 0, 6.2832); g.fill(); } else g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        g.restore();
+      }
+      parts.length = n;
+      cv.dataset.alive = String(n);
+      if (events.length || parts.length || flashes.length) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return <canvas ref={ref} className="cd-confetti" aria-hidden="true" />;
 }
 
 function Settings({ ctx, themeId, close }) {
@@ -2999,12 +3088,15 @@ export default function App() {
   const [settled, setSettled] = useState(false);   // false for the first moments after launch: no fade-in animations
   useEffect(() => { const t = setTimeout(() => setSettled(true), 800); return () => clearTimeout(t); }, []);
   const lockedRef = useRef(false);            // true when saved data exists but couldn't be read: never save over it
-  const [burst, setBurst] = useState(0);        // confetti
+  const [burst, setBurst] = useState(null);     // confetti: { id, big }
   const [inboxOrder, setInboxOrder] = useState([]);   // the order of the Inbox deck
   const [futureCat, setFutureCat] = useState("All");   // the Future page's category filter, kept while you visit other pages
   const [radarMode, setRadarMode] = useState("watching");   // which Radar list is showing
   const burstTimer = useRef(null);
   const [dayKey, setDayKey] = useState(iso());
+  const [vanishing, setVanishing] = useState(() => new Set());   // finished tasks that are fading out right now
+  const vanishTimers = useRef(new Map());
+  useEffect(() => () => vanishTimers.current.forEach((t) => { clearTimeout(t.a); clearTimeout(t.b); }), []);   // (a hook, so it lives up here, before the "nothing to show yet" return)
   const [justDone, setJustDone] = useState(() => new Set());   // finished during this visit to a tab; cleared when you switch tabs
 
   // New day, or coming back to the app: re-check what's due today
@@ -3235,11 +3327,31 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToastMsg(null), a ? 5000 : 2200);
   };
   const update = (fn) => setState((s) => ({ ...s, ...fn(s) }));
-  const celebrate = () => {
-    buzz([12, 40, 12, 40, 24]);
-    setBurst(Date.now());
+  // A finished task stays for about a second (checked off, struck through), then fades out and its gap closes.
+  const cancelVanish = (id) => {
+    const t = vanishTimers.current.get(id);
+    if (t) { clearTimeout(t.a); clearTimeout(t.b); vanishTimers.current.delete(id); }
+    setVanishing((prev) => { if (!prev.has(id)) return prev; const n = new Set(prev); n.delete(id); return n; });
+  };
+  const scheduleVanish = (id) => {
+    cancelVanish(id);
+    const t = {};
+    t.a = setTimeout(() => {
+      setVanishing((prev) => new Set(prev).add(id));
+      t.b = setTimeout(() => {
+        setJustDone((prev) => { const n = new Set(prev); n.delete(id); return n; });
+        setVanishing((prev) => { const n = new Set(prev); n.delete(id); return n; });
+        vanishTimers.current.delete(id);
+      }, 380);
+    }, 1000);
+    vanishTimers.current.set(id, t);
+  };
+
+  const celebrate = (big = false) => {
+    buzz(big ? [14, 40, 14, 40, 14, 40, 30, 60, 40, 60, 30] : [10, 30, 16, 30, 10]);
+    setBurst({ id: Date.now(), big });
     clearTimeout(burstTimer.current);
-    burstTimer.current = setTimeout(() => setBurst(0), 2400);
+    burstTimer.current = setTimeout(() => setBurst(null), big ? 8000 : 5000);
   };
 
   const ctx = {
@@ -3262,7 +3374,7 @@ export default function App() {
     setTheme: (id) => { loadThemeFonts(id).then(() => update(() => ({ themeId: id }))); },
     goRadar: (mode) => { setRadarMode(mode); setTab("radar"); setJustDone(new Set()); },
     cleaned: state.cleanedOn === iso(),
-    markCleaned: () => { celebrate(); update(() => ({ cleanedOn: iso() })); },
+    markCleaned: () => { celebrate(true); update(() => ({ cleanedOn: iso() })); },
     catStyle: (name) => {
       const own = (state.categoryColors || {})[name];
       if (own != null && CAT_COLORS[own]) return CAT_COLORS[own].pair;
@@ -3312,14 +3424,15 @@ export default function App() {
       return ids;
     },
     restoreItem: (item) => update((s) => ({ items: s.items.some((i) => i.id === item.id) ? s.items : [...s.items, item] })),
-    justDone,
+    justDone, vanishing,
     toggleDone: (id) => {
       const it = items.find((i) => i.id === id);
       if (it && it.status !== "done") {
-        buzz(10);
-        if (it.status === "today" && items.filter((i) => i.status === "today" && i.id !== id).length === 0) celebrate();   // last one on the deck
+        // every finished task gets confetti; the last one on the deck gets the big celebration
+        celebrate(it.status === "today" && items.filter((i) => i.status === "today" && i.id !== id).length === 0);
       }
       if (it) setJustDone((prev) => { const n = new Set(prev); if (it.status === "done") n.delete(id); else n.add(id); return n; });
+      if (it) { if (it.status === "done") cancelVanish(id); else scheduleVanish(id); }   // finishing it starts the one-second clock; un-finishing stops it
       update((s) => ({
       items: s.items.map((i) => {
         if (i.id !== id) return i;
@@ -3437,7 +3550,7 @@ export default function App() {
         {sheet?.type === "cats" && <CatManager ctx={ctx} items={items} close={close} />}
       {sheet?.type === "delcat" && <DeleteCategory ctx={ctx} items={items} name={sheet.name} close={close} />}
         {sheet?.type === "backup" && <BackupSheet ctx={ctx} close={close} />}
-        {burst ? <Confetti key={burst} /> : null}
+        {burst ? <Confetti key={burst.id} big={burst.big} /> : null}
         {toastMsg && (
           <div className={"cd-toast" + (toastMsg.a ? " act" : "")} role="status">
             <span>{toastMsg.m}</span>

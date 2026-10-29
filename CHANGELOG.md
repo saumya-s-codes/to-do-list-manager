@@ -1,5 +1,19 @@
 # Changelog
 
+## 10.11
+- **The cannons fire once.** Each of the two bottom-corner cannons now fires a single volley (with one flash), instead of repeated volleys that felt jittery. The volleys are bigger to make up for it, and confetti still rains from the top. A finished task gets about 200 pieces; clearing the day or finishing Plan tomorrow gets about 580.
+- **Finished tasks vanish after about a second.** A task you tick off stays for a second, checked and struck through, then fades out and its gap closes, on Today (all three sort views), Future and Radar. Un-ticking it before it goes keeps it. Finished tasks are still in Dashboard, See what you finished.
+
+## 10.10
+- **A lot more confetti, from two cannons and the sky.** The confetti is now drawn on a canvas, so it can be big and stay smooth. Two cannons, bottom left and bottom right, fire volleys up toward the middle (with a flash at each muzzle), and confetti rains from the top.
+  - **Every finished task:** two volleys from each cannon plus a shower, about 200 pieces.
+  - **Clearing the last task on Today, or Done in Plan tomorrow:** six volleys from each cannon, a heavy shower from the top and a pop from each top corner, about 850 pieces over about six seconds, with a longer buzz.
+  - The pieces flutter and spin, in rectangles, dots and streamers, in festive colors. Phones set to reduce motion get none.
+
+## 10.9
+- **No Save button on Edit details.** An existing task saves itself a moment after every change (and when the sheet closes), and a small "Saved" tag shows next to the title. A change that can't be saved yet, like moving a task to Today before it has an effort and impact, waits until it's complete. A new task still has an Add item button.
+- **Much more confetti.** Every finished task now gets a burst from both bottom corners (about 60 pieces, in several shapes and bright festive colors, with a flutter). Finishing the last task on Today, or tapping Done in Plan tomorrow, gets the big one: five cannon shots plus a shower from the top, about 300 pieces over four seconds, with a stronger buzz. Phones set to reduce motion get no confetti.
+
 ## 10.8
 - **One way to edit a task, everywhere.** Tapping a task on Future or Radar (Watching and Someday) now opens Edit details straight away, like Today. The pop-up menu and the separate date sheet are gone.
 - **"Goes to" is the same four places for every task:** Today, Tomorrow, This week, Future. Picking one fills in the date (today, +1, +3, +7 days); typing a date by hand moves the choice to match. A task in Someday or Watching has none selected until you pick one.
