@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.11";
+const APP_VERSION = "10.13";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -2726,6 +2726,7 @@ function PlanTomorrow({ ctx, items, close }) {
   const [history, setHistory] = useState([]);                       // every move, so each can be undone
   const [shown, setShown] = useState({ week: PLAN_STEP, later: PLAN_STEP, parked: PLAN_STEP });
   const [parkedOpen, setParkedOpen] = useState(false);
+  const celebrated = useRef(false);                              // one big celebration per visit to the planner
   const tom = offsetDay(1);
 
   const open = items.filter((i) => i.status !== "done");
@@ -2756,6 +2757,8 @@ function PlanTomorrow({ ctx, items, close }) {
     const where = to === "tomorrow" ? "tomorrow" : to === "week" ? `this week (${parseDay(offsetDay(3)).toLocaleDateString("en-US", { weekday: "short" })})` : to === "later" ? `later (${shortDay(offsetDay(7))})` : "Someday";
     if (lacking.length) ctx.toast(`${lacking.length === 1 ? "That one needs" : `${lacking.length} need`} effort and impact first, so ${lacking.length === 1 ? "it" : "they"} went to the Inbox`);
     else ctx.toast(list.length > 1 ? `${list.length} moved to ${where}` : `${to === "someday" ? "Parked as" : to === "tomorrow" && list[0].status !== "today" ? "Pulled to" : "Moved to"} ${where}`);
+    // (after the message above, so "The day is clear." is the one you see) moving the last of today's leftovers out clears the day: that is worth a celebration
+    if (to === "tomorrow" && leftover.length > 0 && list.length === leftover.length && list.every((i) => i.status === "today") && !celebrated.current) { celebrated.current = true; ctx.celebrate(true, "The day is clear."); }
   };
   const move = (i, to) => moveMany([i], to);
   const undo = () => {
@@ -2765,7 +2768,9 @@ function PlanTomorrow({ ctx, items, close }) {
     setHistory((h) => h.slice(0, -1));
   };
   const more = (k) => setShown((s) => ({ ...s, [k]: s[k] + 10 }));
-  const done = () => { ctx.markCleaned(); close(); ctx.toast("Tomorrow is planned"); };
+  const done = () => { celebrated.current = true; ctx.markCleaned(); close(); ctx.toast("Tomorrow is planned"); };   // markCleaned sets off the confetti
+  // leaving the planner any other way (the X, swiping it down) after planning with the day clear also earns the confetti, once
+  const leave = () => { if (!celebrated.current && history.length > 0 && leftover.length === 0) { celebrated.current = true; ctx.celebrate(true, "Tomorrow is planned."); } close(); };
   const tomLabel = parseDay(tom).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
   const Section = ({ title, hint, extra, children }) => (
@@ -2784,7 +2789,7 @@ function PlanTomorrow({ ctx, items, close }) {
   );
 
   return (
-    <Sheet title="Plan tomorrow" onClose={close}>
+    <Sheet title="Plan tomorrow" onClose={leave}>
       <div className="cd-planhead">
         <span className="date">{tomLabel}</span>
         {history.length > 0 && <button className="cd-undo" onClick={undo} aria-label="Undo last move"><RotateCcw size={15} /> Undo</button>}
@@ -2994,8 +2999,8 @@ function Confetti({ big = false }) {
     const GRAV = 640, DRAG = 2.2;
     let raf = 0, last = performance.now(); const start = last;
     const tick = (now) => {
-      const dt = Math.min(0.034, (now - last) / 1000); last = now;
-      const t = (now - start) / 1000;
+      const dt = Math.max(0, Math.min(0.034, (now - last) / 1000)); last = now;
+      const t = Math.max(0, (now - start) / 1000);
       while (events.length && events[0].t <= t) events.shift().run();
       g.clearRect(0, 0, W, H);
       for (let i = flashes.length - 1; i >= 0; i--) {
@@ -3096,6 +3101,7 @@ export default function App() {
   const [dayKey, setDayKey] = useState(iso());
   const [vanishing, setVanishing] = useState(() => new Set());   // finished tasks that are fading out right now
   const vanishTimers = useRef(new Map());
+  const celebrateRef = useRef(null), lastBig = useRef(0), prevToday = useRef(null), loadedAt = useRef(0);   // for the "day is clear" watcher below
   useEffect(() => () => vanishTimers.current.forEach((t) => { clearTimeout(t.a); clearTimeout(t.b); }), []);   // (a hook, so it lives up here, before the "nothing to show yet" return)
   const [justDone, setJustDone] = useState(() => new Set());   // finished during this visit to a tab; cleared when you switch tabs
 
@@ -3128,6 +3134,19 @@ export default function App() {
   useEffect(() => {
     if (state && !state.futureViewMigrated) setState((st) => (st.futureViewMigrated ? st : { ...st, futureMode: "calendar", futureViewMigrated: true }));
   }, [state && state.futureViewMigrated]);
+
+  // The day is clear: Today had open tasks and now has none, and they were finished or moved (not deleted). However it happened (ticking off the
+  // last task, "All to tomorrow", moving the last one from Edit details) it earns the big celebration. Not when the app has just opened.
+  useEffect(() => { if (state && !loadedAt.current) loadedAt.current = Date.now(); }, [!!state]);
+  useEffect(() => {
+    if (!state) return;
+    const ids = state.items.filter((i) => i.status === "today").map((i) => i.id);
+    const prev = prevToday.current; prevToday.current = ids;
+    if (!prev || !prev.length || ids.length) return;
+    if (!prev.some((id) => state.items.some((i) => i.id === id))) return;   // they were deleted, not finished or moved
+    if (Date.now() - loadedAt.current < 1500) return;
+    if (celebrateRef.current) celebrateRef.current(true, "The day is clear.");
+  }, [state && state.items]);
 
   // Keep the "always one default category" rule true, whatever was loaded or restored
   useEffect(() => {
@@ -3347,12 +3366,17 @@ export default function App() {
     vanishTimers.current.set(id, t);
   };
 
-  const celebrate = (big = false) => {
+  const celebrate = (big = false, msg = null) => {
+    const now = Date.now();
+    if (big && now - lastBig.current < 2500) return;   // never two big celebrations on top of each other
+    if (big) lastBig.current = now;
     buzz(big ? [14, 40, 14, 40, 14, 40, 30, 60, 40, 60, 30] : [10, 30, 16, 30, 10]);
-    setBurst({ id: Date.now(), big });
+    setBurst({ id: now, big });
     clearTimeout(burstTimer.current);
     burstTimer.current = setTimeout(() => setBurst(null), big ? 8000 : 5000);
+    if (msg) toast(msg);
   };
+  celebrateRef.current = celebrate;
 
   const ctx = {
     categories,
@@ -3424,6 +3448,7 @@ export default function App() {
       return ids;
     },
     restoreItem: (item) => update((s) => ({ items: s.items.some((i) => i.id === item.id) ? s.items : [...s.items, item] })),
+    celebrate: (big, msg) => celebrate(!!big, msg),
     justDone, vanishing,
     toggleDone: (id) => {
       const it = items.find((i) => i.id === id);
