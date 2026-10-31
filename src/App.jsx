@@ -5,11 +5,11 @@
  */
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
-  Download, Sun, Plus, Moon, Check, X, Eye, LayoutGrid, CalendarDays, BarChart3, CheckCircle2, MoreHorizontal, Zap, Target, ClipboardList, Hourglass, Trash2, ArrowRight, Calendar, Inbox, RotateCcw, Sparkles, AlertCircle, ArrowUp, Leaf, ArrowLeft, Radar, ArrowUpDown, Flag, ChevronDown, Star, ArrowDown,
+  Download, Sun, Plus, Moon, Check, X, Eye, LayoutGrid, CalendarDays, BarChart3, CheckCircle2, MoreHorizontal, Zap, Target, ClipboardList, Hourglass, Trash2, ArrowRight, Calendar, Inbox, RotateCcw, Sparkles, AlertCircle, ArrowUp, Leaf, ArrowLeft, Radar, ArrowUpDown, Flag, ChevronDown, Star, ArrowDown, Clock,
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.13";
+const APP_VERSION = "10.17";
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -346,6 +346,7 @@ const CAT_COLORS = [
 const normalizeItem = (i) => {
   let o = i;
   if (o.status !== "today" && o.pos != null) o = { ...o, pos: null };
+  if (o.status !== "today" && o.slot != null) o = { ...o, slot: null };
   if (o.status !== "watching" && o.wpos != null) o = { ...o, wpos: null };
   return enforceComplete(o);
 };
@@ -706,6 +707,7 @@ const CSS = `
 .cd-ghost{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border-radius:var(--radius-lg);background:var(--panel);font-weight:600;margin-top:10px}
 .cd-toast{position:absolute;left:50%;width:max-content;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);background:var(--text);color:var(--card);padding:10px 18px;border-radius:var(--radius-pill);font-size:13.5px;font-weight:500;z-index:40;box-shadow:var(--shadow);max-width:88%;text-align:center;pointer-events:none;animation:cd-drop .22s ease-out}
 .cd-toast.act{pointer-events:auto;display:flex;align-items:center;gap:14px;padding:7px 7px 7px 18px}
+.cd-toast.act button+button{background:transparent;color:var(--card);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45)}
 .cd-toast.act button{padding:7px 15px;border-radius:var(--radius-pill);background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13.5px;flex:none}
 @keyframes cd-drop{from{transform:translate(-50%,-14px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 .cd-addrow{display:flex;gap:8px;margin-top:10px}
@@ -1093,6 +1095,11 @@ const CSS = `
 .cd-act.del{background:transparent;border:2px solid var(--danger);color:var(--danger)}
 .cd-two2>*{min-width:0}
 .cd-savedtag{display:inline-flex;align-items:center;gap:3px;margin-left:10px;font-family:var(--font-ui,inherit);font-size:12px;font-weight:700;color:var(--ok,#3E7D4F);vertical-align:middle;animation:cd-fade .2s}
+.cd-tod{display:flex;align-items:center;gap:8px;padding:12px 12px 6px;font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+.cd-tod .n{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600}
+.cd-timelist .cd-tod+.cd-row{border-top:0}
+.cd-timelist .cd-row+.cd-tod,.cd-timelist .cd-todempty+.cd-tod{border-top:1px solid var(--line);margin-top:2px}
+.cd-todempty{padding:20px 12px;margin:0 12px 8px;border:1.5px dashed var(--line);border-radius:var(--radius-md);font-size:13px;color:var(--muted);text-align:center}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 html[data-fit="page"],html[data-fit="page"] body,html[data-fit="page"] #root{height:var(--app-h);overflow:hidden}
 html[data-fit="page"] body{position:relative;inset:auto}
@@ -1475,23 +1482,28 @@ function ItemRow({ item, ctx, trailing, hideDue = false, focusLabel = false, tod
 
 /* ════════════════════════════════ TODAY ═══════════════════════════════════ */
 
-const SORT_NAMES = { mine: "my order", matrix: "the matrix", category: "category" };   // the sort button cycles my order, the matrix, category, and round again
+const SORT_NAMES = { mine: "my order", matrix: "the matrix", category: "category", time: "time of day" };   // the sort button cycles my order, the matrix, category, time of day, and round again
 function TodayView({ ctx, items }) {
   const [text, setText] = useState("");
   const [sendState, setSendState] = useState(null);   // null | "out" (the thought drops toward the Inbox) | "in" (the box comes back empty)
   const dumpRef = useRef(null);
   // Tasks you finish during this visit stay where they were (crossed out and faded) until you leave the tab
-  const mode = ctx.todaySortMode || "mine";   // mine | matrix | category
+  const mode = ctx.todaySortMode || "mine";   // mine | matrix | category | time
   const mine = todaySort(items.filter((i) => i.status === "today" || (i.status === "done" && i.doneFrom === "today" && ctx.justDone.has(i.id))));
   // matrix and category views show one card per group, like the Future page
   let groups = null;
   if (mode === "matrix") groups = QUADS.map((q) => ({ key: q.key, q, list: mine.filter((i) => quadOf(i) === q.key) })).filter((g) => g.list.length);
   else if (mode === "category") groups = [...ctx.categories, null].map((c) => ({ key: c || "none", cat: c, list: mine.filter((i) => (i.category || null) === c) })).filter((g) => g.list.length);
   const grouped = !!groups;
-  const shown = grouped ? groups.flatMap((g) => g.list) : mine;
+  // time of day: three sections in one card; a task with no section is in Morning. The Afternoon and Evening dividers (and a "drag here" row in an
+  // empty section) are part of the list, so a task dragged across a divider changes section.
+  const tod = mode === "time" ? TOD.map((t) => ({ ...t, list: mine.filter((i) => (i.slot || "morning") === t.k) })) : null;
+  const todIds = tod ? tod.flatMap((t, n) => [...(n ? ["__" + t.k] : []), ...(t.list.length ? t.list.map((i) => i.id) : ["__empty:" + t.k])]) : null;
+  const shown = grouped ? groups.flatMap((g) => g.list) : tod ? tod.flatMap((t) => t.list) : mine;
   const openCount = shown.filter((i) => i.status === "today").length;
   const scrollRef = useRef(null);
-  const reorder = useReorder(shown.map((i) => i.id), ctx.reorderToday, scrollRef);
+  const reorder = useReorder(todIds || shown.map((i) => i.id), tod ? ctx.planToday : ctx.reorderToday, scrollRef);
+  const fixedRow = (id) => { const rp = reorder.rowProps(id); return { "data-rid": rp["data-rid"], style: rp.style }; };   // a divider moves out of the way but can't be picked up
   const dateStr = dayNow().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 
   const dump = () => {
@@ -1500,11 +1512,15 @@ function TodayView({ ctx, items }) {
     setSendState("out");              // the thought squeezes, then drops down toward the Inbox tab...
     buzz(10);
     setTimeout(() => {
-      lines.forEach((title) => ctx.addItem({ title, status: "inbox" }));
+      const ids = lines.map((title) => ctx.addItem({ title, status: "inbox" }));
       setText("");
       setSendState("in");             // ...the box fades back in empty, and the Inbox badge pops
       buzz([8, 30, 14]);
-      ctx.toast(`${lines.length} ${lines.length === 1 ? "thought" : "thoughts"} sent to Inbox`);
+      ctx.toast(`${lines.length} ${lines.length === 1 ? "thought" : "thoughts"} sent to Inbox`, { label: "Undo", run: () => {
+        ctx.removeItems(ids);                                                                   // out of the Inbox...
+        setText((cur) => (cur.trim() ? lines.join("\n") + "\n" + cur : lines.join("\n")));      // ...and back into the box
+        dumpRef.current?.focus();
+      } });
       setTimeout(() => setSendState(null), 320);
     }, 460);
   };
@@ -1550,11 +1566,11 @@ function TodayView({ ctx, items }) {
       </div>
 
       <div className="cd-sec">
-        <div className="cd-sechead"><h2 className="cd-h2">Today’s To Do<span className="cd-count" aria-label={`${openCount} ${openCount === 1 ? "task" : "tasks"} open`}>{openCount}</span></h2>{shown.length > 1 && <div className="cd-cap">{mode === "matrix" ? "Sorted by the matrix" : mode === "category" ? "Grouped by category" : "Hold and drag to reorder"}</div>}</div>
+        <div className="cd-sechead"><h2 className="cd-h2">Today’s To Do<span className="cd-count" aria-label={`${openCount} ${openCount === 1 ? "task" : "tasks"} open`}>{openCount}</span></h2>{shown.length > 1 && <div className="cd-cap">{mode === "matrix" ? "Sorted by the matrix" : mode === "category" ? "Grouped by category" : mode === "time" ? "Hold and drag between morning, afternoon and evening" : "Hold and drag to reorder"}</div>}</div>
         <div className="cd-secact">
-          <button className={"cd-sortbtn" + (grouped ? " on" : "")} aria-label={`Sorted by ${SORT_NAMES[mode]}. Tap to change.`}
-              onClick={() => { buzz(8); ctx.setTodaySortMode(mode === "mine" ? "matrix" : mode === "matrix" ? "category" : "mine"); }}>
-              {mode === "matrix" ? <LayoutGrid size={20} /> : mode === "category" ? <FolderIcon size={20} /> : <ArrowUpDown size={20} />}
+          <button className={"cd-sortbtn" + (mode !== "mine" ? " on" : "")} aria-label={`Sorted by ${SORT_NAMES[mode]}. Tap to change.`}
+              onClick={() => { buzz(8); ctx.setTodaySortMode(mode === "mine" ? "matrix" : mode === "matrix" ? "category" : mode === "category" ? "time" : "mine"); }}>
+              {mode === "matrix" ? <LayoutGrid size={20} /> : mode === "category" ? <FolderIcon size={20} /> : mode === "time" ? <Clock size={20} /> : <ArrowUpDown size={20} />}
             </button>
           <button className="cd-plus" onClick={() => ctx.setSheet({ type: "edit", id: null, status: "today" })} aria-label="Add task"><Plus size={22} /></button>
         </div>
@@ -1575,8 +1591,14 @@ function TodayView({ ctx, items }) {
           </div>
         </div>
       )) : (
-        <div className={"cd-list" + (shown.length ? " cd-cardlist" : "")} ref={reorder.contRef}>
-          {shown.map((i) => <ItemRow key={i.id} item={i} ctx={ctx} focusLabel todayView rowProps={reorder.rowProps(i.id)} />)}
+        <div className={"cd-list" + (shown.length || tod ? " cd-cardlist" : "") + (tod ? " cd-timelist" : "")} ref={reorder.contRef}>
+          {tod ? tod.map((t, n) => (
+            <React.Fragment key={t.k}>
+              <div className="cd-tod" {...(n ? fixedRow("__" + t.k) : {})}><t.Icon size={16} /> {t.label}<span className="n">{t.list.filter((i) => i.status === "today").length}</span></div>
+              {t.list.length === 0 && <div className="cd-todempty" {...fixedRow("__empty:" + t.k)}>Drag a task here</div>}
+              {t.list.map((i) => <ItemRow key={i.id} item={i} ctx={ctx} focusLabel todayView rowProps={reorder.rowProps(i.id)} />)}
+            </React.Fragment>
+          )) : shown.map((i) => <ItemRow key={i.id} item={i} ctx={ctx} focusLabel todayView rowProps={reorder.rowProps(i.id)} />)}
         </div>
       )}
     </div>
@@ -1610,6 +1632,7 @@ function InboxView({ ctx, items }) {
   const [nudgeCat, setNudgeCat] = useState(false);  // shakes the category picker when something is tapped before a category is set
   const drag = useRef(null);
   const busy = useRef(false);
+  const undoRef = useRef(null);
   const [history, setHistory] = useState([]);     // every sort, newest last, so each one can be undone
   const pendingDraft = useRef(null);
   const noAuto = useRef(null);                    // card brought back by Undo must not auto-save straight away
@@ -1686,14 +1709,14 @@ function InboxView({ ctx, items }) {
     ctx.patchItem(cur.id, { category: draft.category, effort: draft.effort, impact: draft.impact, urgency: U ? U.v : null,
       status: U && U.v === "now" ? "today" : "future", due });
     setHandled((h) => h + 1);
-    ctx.toast(!U ? "Saved to Future" : U.v === "now" ? "Now: due today, moved to Today" : `${U.label}: due ${fmtShort(due)}`);
+    ctx.toast(!U ? "Saved to Future" : U.v === "now" ? "Now: due today, moved to Today" : `${U.label}: due ${fmtShort(due)}`, { label: "Undo", run: () => undoSoon(0) });
   };
   const watch = () => {
     if (!cur) return;
     setHistory((h) => [...h.slice(-19), { kind: "watch", id: cur.id, dir: 0, dirY: -1, draft: { ...draft }, before: snap() }]);
     ctx.patchItem(cur.id, { status: "watching", category: draft.category || cur.category });
     setHandled((h) => h + 1);
-    ctx.toast("Moved to Watching", { label: "View", run: () => ctx.goRadar("watching") });
+    ctx.toast("Moved to Watching", [{ label: "Undo", run: () => undoSoon(0) }, { label: "View", run: () => ctx.goRadar("watching") }]);
   };
   const park = () => {
     if (!cur) return;
@@ -1703,13 +1726,13 @@ function InboxView({ ctx, items }) {
       category: draft.category || cur.category, effort: draft.effort || cur.effort, impact: draft.impact || cur.impact,
     });
     setHandled((h) => h + 1);
-    ctx.toast("Moved to Someday", { label: "View", run: () => ctx.goRadar("someday") });
+    ctx.toast("Moved to Someday", [{ label: "Undo", run: () => undoSoon(0) }, { label: "View", run: () => ctx.goRadar("someday") }]);
   };
   const del = () => {
     if (!cur) return;
     setHistory((h) => [...h.slice(-19), { kind: "delete", id: cur.id, dir: -1, draft: { ...draft }, item: cur }]);
     ctx.removeItem(cur.id);
-    ctx.toast("Deleted. Tap Undo to bring it back");
+    ctx.toast("Deleted", { label: "Undo", run: () => undoSoon(0) });
   };
   const undo = () => {
     if (busy.current || !history.length) return;
@@ -1726,6 +1749,9 @@ function InboxView({ ctx, items }) {
     setPhase("drag"); setDx(e.dir * 420); setDy((e.dirY || 0) * 520);
     requestAnimationFrame(() => requestAnimationFrame(() => { setPhase("idle"); setDx(0); setDy(0); }));
   };
+  undoRef.current = undo;
+  // the Undo on a message: if the card is still flying away, wait for it to land first
+  const undoSoon = (tries = 0) => { if (busy.current && tries < 15) setTimeout(() => undoSoon(tries + 1), 120); else if (undoRef.current) undoRef.current(); };
 
   // Swipe LEFT (a short drag or a quick flick) to skip: the card goes to the back of the deck. Swipe RIGHT to go back to the previous card.
   const DIST = 44;      // px of drag that commits on its own
@@ -2558,7 +2584,7 @@ function Editor({ ctx, item, initialStatus, close }) {
     const dest = destOf(item, initialStatus);
     return {
       title: item?.title || "", category: item?.category || null, effort: item?.effort || null,
-      impact: item?.impact || null, due: item ? (item.due || "") : destDue(dest), status: item?.status || (initialStatus === "watching" ? "watching" : destStatus(dest)), dest, someday: !!item?.someday,
+      impact: item?.impact || null, slot: item?.slot || null, due: item ? (item.due || "") : destDue(dest), status: item?.status || (initialStatus === "watching" ? "watching" : destStatus(dest)), dest, someday: !!item?.someday,
       doneOn: item?.status === "done" && item?.doneAt ? iso(new Date(item.doneAt)) : "",   // date completed (finished tasks only)
     };
   });
@@ -2644,6 +2670,14 @@ function Editor({ ctx, item, initialStatus, close }) {
               <button key={v} className={"cd-segbtn sm" + (d.dest === v ? " on" : "")} onClick={() => pick(v)}>{l}</button>
             ))}
           </div>
+          {d.dest === "today" && (
+            <>
+              <div className="cd-fl">Time of day</div>
+              <div className="cd-pills">
+                {TOD.map((t) => <button key={t.k} className={"cd-segbtn sm" + ((d.slot || "morning") === t.k ? " on" : "")} onClick={() => set("slot", t.k)}>{t.label}</button>)}
+              </div>
+            </>
+          )}
           {d.someday && d.status === "future" && <div className="cd-hint" style={{ textAlign: "left" }}>Someday items have no date. Choose where it goes to give it one.</div>}
           {d.status === "watching" && <div className="cd-hint" style={{ textAlign: "left" }}>Choose where it goes to take it off Watching.</div>}
         </>
@@ -2695,6 +2729,8 @@ const SunriseIcon = ({ size = 22, strokeWidth = 2 }) => (
     <path d="M3 18h18" /><path d="M7 18a5 5 0 0 1 10 0" /><path d="M12 6v3M5.6 10.6l1.8 1.8M18.4 10.6l-1.8 1.8" />
   </svg>
 );
+// Morning, Afternoon and Evening on Today (defined here because it uses the sunrise icon above)
+const TOD = [{ k: "morning", label: "Morning", Icon: SunriseIcon }, { k: "afternoon", label: "Afternoon", Icon: Sun }, { k: "evening", label: "Evening", Icon: Moon }];
 // The Today picture for a light round button: Fairway's coloured sunrise from the tab bar, Café's line sunrise
 const TodayGlyph = ({ ctx, size = 20 }) => (THEME_ART[ctx.themeId] && THEME_ART[ctx.themeId].nav
   ? <img className="cd-navimg" src={THEME_ART[ctx.themeId].nav.today} alt="" />
@@ -3087,6 +3123,7 @@ export default function App() {
   const [tab, setTab] = useState("today");
   const [sheet, setSheet] = useState(null);
   const [toastMsg, setToastMsg] = useState(null);
+  const toastRef = useRef(null); toastRef.current = toastMsg;   // lets timers see what is on screen without a stale copy
   const toastTimer = useRef(null);
   const [vvh, setVvh] = useState(null);
   const stateRef = useRef(null); stateRef.current = state;
@@ -3159,21 +3196,31 @@ export default function App() {
   // SCREEN FIT. In the installed iPhone app with the see-through status bar, the phone can report the page as shorter than the screen
   // (by the height of the status bar), which would leave an empty band under the tab bar, and it cuts off a fixed layout at that line.
   // So, in exactly that situation (installed, upright, a top margin exists), the app lives in a page as tall as the screen.
+  // iPhone does not always announce a change in that height (waking the phone, coming back from another app), so the check is repeated every
+  // second as well as on every event that might matter, and it only switches back after three misses in a row, so it can't flicker.
   useEffect(() => {
     const root = document.documentElement;
     try { localStorage.removeItem("ctd:fit"); } catch (e) { /* storage unavailable */ }   // a choice an earlier test version remembered
     const probe = document.createElement("div");
     probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top)";
     document.body.appendChild(probe);
+    let misses = 0;
     const fit = () => {
-      const top = parseFloat(getComputedStyle(probe).paddingTop) || 0, scr = (window.screen && window.screen.height) || 0;
-      const upright = window.innerHeight > window.innerWidth, installed = window.navigator.standalone === true;
-      if (installed && upright && top > 0 && scr > window.innerHeight) { root.setAttribute("data-fit", "page"); root.style.setProperty("--app-h", scr + "px"); }
-      else { root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); }
+      const top = parseFloat(getComputedStyle(probe).paddingTop) || 0, scr = (window.screen && window.screen.height) || 0, inner = window.innerHeight;
+      const upright = inner > window.innerWidth, installed = window.navigator.standalone === true;
+      if (installed && upright && top > 0 && scr > inner) {
+        misses = 0;
+        if (root.getAttribute("data-fit") !== "page" || root.style.getPropertyValue("--app-h") !== scr + "px") { root.setAttribute("data-fit", "page"); root.style.setProperty("--app-h", scr + "px"); }
+      } else if (++misses >= 3) { root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); }
     };
     fit();
-    window.addEventListener("resize", fit); window.addEventListener("orientationchange", fit); window.addEventListener("pageshow", fit);
-    return () => { window.removeEventListener("resize", fit); window.removeEventListener("orientationchange", fit); window.removeEventListener("pageshow", fit); probe.remove(); root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); };
+    const timer = setInterval(fit, 800);
+    const vv = window.visualViewport;
+    const evs = ["resize", "orientationchange", "pageshow", "focus"];
+    evs.forEach((e) => window.addEventListener(e, fit));
+    document.addEventListener("visibilitychange", fit);
+    if (vv) vv.addEventListener("resize", fit);
+    return () => { clearInterval(timer); evs.forEach((e) => window.removeEventListener(e, fit)); document.removeEventListener("visibilitychange", fit); if (vv) vv.removeEventListener("resize", fit); probe.remove(); root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); };
   }, []);
 
   // The page must never move under your finger. A swipe is only allowed to do something when it lands on something that can scroll
@@ -3317,6 +3364,7 @@ export default function App() {
     const stale = !s.lastBackupAt || Date.now() - s.lastBackupAt > 7 * 864e5;
     if (!stale || s.items.length < 10 || s.backupNudgeOn === iso()) return;
     const t = setTimeout(() => {
+      if (toastRef.current && toastRef.current.a) return;   // an Undo is on screen: don't replace it (the nudge tries again next time the app opens)
       setState((x) => ({ ...x, backupNudgeOn: iso() }));
       setToastMsg({ m: s.lastBackupAt ? "It’s been over a week since your last backup." : "You haven’t backed up your tasks yet.",
         a: { label: "Back up", run: () => setSheet({ type: "backup" }) } });
@@ -3366,6 +3414,13 @@ export default function App() {
     vanishTimers.current.set(id, t);
   };
 
+  // Undo for "mark done": puts the task back where it came from. Works from a toast tapped later, so it only uses functional updates.
+  const undoDone = (id) => {
+    cancelVanish(id);
+    setJustDone((prev) => { if (!prev.has(id)) return prev; const n = new Set(prev); n.delete(id); return n; });
+    update((s) => ({ items: s.items.map((i) => (i.id === id && i.status === "done" ? { ...i, status: i.doneFrom || "future", doneAt: null, doneFrom: null } : i)) }));
+  };
+
   const celebrate = (big = false, msg = null) => {
     const now = Date.now();
     if (big && now - lastBig.current < 2500) return;   // never two big celebrations on top of each other
@@ -3406,10 +3461,14 @@ export default function App() {
       return theme.catPalette[idx % theme.catPalette.length];
     },
     setCategoryColor: (name, idx) => update((s) => { const m = { ...(s.categoryColors || {}) }; if (idx == null) delete m[name]; else m[name] = idx; return { categoryColors: m }; }),
-    addItem: (p) => update((s) => ({
-      items: [...s.items, normalizeItem(clearParked({ id: uid(), title: "", category: null, effort: null, impact: null, status: "inbox", due: null,
-        someday: false, createdAt: Date.now(), doneAt: null, doneFrom: null, ...p }))],
-    })),
+    addItem: (p) => {
+      const id = uid();
+      update((s) => ({
+        items: [...s.items, normalizeItem(clearParked({ id, title: "", category: null, effort: null, impact: null, status: "inbox", due: null,
+          someday: false, createdAt: Date.now(), doneAt: null, doneFrom: null, ...p }))],
+      }));
+      return id;
+    },
     patchItem: (id, patch) => update((s) => ({ items: s.items.map((i) => {
       if (i.id !== id) return i;
       const next = { ...i, ...patch };
@@ -3420,6 +3479,13 @@ export default function App() {
       return normalizeItem(clearParked(next));
     }) })),
     reorderToday: (ids) => update((s) => ({ items: s.items.map((i) => { const k = ids.indexOf(i.id); return k >= 0 ? { ...i, pos: k } : i; }) })),
+    // The time-of-day view: the order holds the tasks plus the Afternoon and Evening dividers (and "drag here" placeholders, which are ignored).
+    // Each task takes the section it ended up in, and its place in the order.
+    planToday: (order) => update((s) => {
+      let cur = "morning", k = 0; const m = {};
+      order.forEach((id) => { if (id === "__afternoon") cur = "afternoon"; else if (id === "__evening") cur = "evening"; else if (!String(id).startsWith("__")) m[id] = { pos: k++, slot: cur }; });
+      return { items: s.items.map((i) => (m[i.id] ? { ...i, ...m[i.id] } : i)) };
+    }),
     reorderWatching: (ids) => update((s) => ({ items: s.items.map((i) => { const k = ids.indexOf(i.id); return k >= 0 ? { ...i, wpos: k } : i; }) })),
     moveToTop: (id) => update((s) => {
       const ids = [id, ...todaySort(s.items.filter((i) => i.status === "today")).map((i) => i.id).filter((x) => x !== id)];
@@ -3454,7 +3520,9 @@ export default function App() {
       const it = items.find((i) => i.id === id);
       if (it && it.status !== "done") {
         // every finished task gets confetti; the last one on the deck gets the big celebration
-        celebrate(it.status === "today" && items.filter((i) => i.status === "today" && i.id !== id).length === 0);
+        const last = it.status === "today" && items.filter((i) => i.status === "today" && i.id !== id).length === 0;
+        celebrate(last);
+        toast(last ? "The day is clear." : "Marked done", { label: "Undo", run: () => undoDone(id) });   // after celebrate, so nothing replaces it
       }
       if (it) setJustDone((prev) => { const n = new Set(prev); if (it.status === "done") n.delete(id); else n.add(id); return n; });
       if (it) { if (it.status === "done") cancelVanish(id); else scheduleVanish(id); }   // finishing it starts the one-second clock; un-finishing stops it
@@ -3510,7 +3578,7 @@ export default function App() {
       const prev = { items, categories, categoryColors: state.categoryColors || {}, todaySort: state.todaySort || "mine", defaultCategory: withDefault(state).def, themeId: state.themeId, cleanedOn: state.cleanedOn };
       lockedRef.current = false;   // restoring is an explicit choice, so saving is safe again
       update(() => ({ items: st.items.map(normalizeItem), categories: st.categories, categoryColors: st.categoryColors || {},
-        ...(["mine", "matrix", "category"].includes(st.todaySort) ? { todaySort: st.todaySort } : {}),
+        ...(["mine", "matrix", "category", "time"].includes(st.todaySort) ? { todaySort: st.todaySort } : {}),
         ...(typeof st.defaultCategory === "string" ? { defaultCategory: st.defaultCategory } : {}),
         ...(st.themeId && THEMES[st.themeId] ? { themeId: st.themeId } : {}), ...(st.cleanedOn ? { cleanedOn: st.cleanedOn } : {}) }));
       toast("Backup restored", { label: "Undo", run: () => update(() => prev) });
@@ -3579,7 +3647,7 @@ export default function App() {
         {toastMsg && (
           <div className={"cd-toast" + (toastMsg.a ? " act" : "")} role="status">
             <span>{toastMsg.m}</span>
-            {toastMsg.a && <button onClick={() => { toastMsg.a.run(); setToastMsg(null); }}>{toastMsg.a.label}</button>}
+            {toastMsg.a && (Array.isArray(toastMsg.a) ? toastMsg.a : [toastMsg.a]).map((act) => <button key={act.label} onClick={() => { setToastMsg(null); act.run(); }}>{act.label}</button>)}
           </div>
         )}
       </div>

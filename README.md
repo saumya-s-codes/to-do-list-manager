@@ -13,13 +13,14 @@ The tab bar runs **Today, Future, Inbox, Radar, Dashboard**. Inbox is the big ci
 - **Today**: your list for the day.
   - **Thought dump**: type one thought per line, then tap **Fast add** (straight onto Today as a small, quick, low-impact task in your default category) or **Move to inbox** (sort it later).
   - Tap a task to open **Edit details**. Hold and drag to reorder.
-  - The sort button next to **+** cycles through **My order**, **By the matrix** and **By category** with each tap. The icon shows which one you're on, and the choice is remembered.
+  - The sort button next to **+** cycles through **My order**, **By the matrix**, **By category** and **By time of day** with each tap. Time of day splits Today into **Morning, Afternoon and Evening**; hold and drag a task across a divider to move it between them (or pick it in Edit details). The icon shows which one you're on, and the choice is remembered.
   - Tasks sent on from yesterday carry a "Migrated from yesterday" tag; tasks pulled up from later carry "Pulled forward".
   - The dark bar at the bottom, **Plan tomorrow**, opens the planner (below).
   - Finishing a task sets off confetti: two cannons at the bottom left and right each fire once toward the middle while confetti rains from the top. Clearing the last task on Today, or tapping Done in Plan tomorrow, sets off the big one (about 580 pieces). Phones set to reduce motion get none.
   - A finished task stays for about a second, checked off, then fades out. It's still listed under Dashboard, See what you finished.
+  - **Undo after finishing:** ticking a task off (on Today, Future or Radar) shows a short message at the top with an **Undo** button, for about 5 seconds. Undo puts the task back where it came from, even after it has faded away. Finishing the last task of the day shows "The day is clear." with the same Undo. If you finish several tasks quickly, Undo covers the most recent one; older ones can be un-finished from Dashboard, See what you finished.
 - **Future**: everything not for today, as a **Calendar** (the main view) made of three cards, **Tomorrow**, **This week** and **Later**, or as a **Matrix** (Quick Wins, Major Focus, Admin / Fillers, Deferral). On the Calendar, every task has an up and a down button: down pushes it back (tomorrow, this week, later, Someday); up pulls it forward (on a Tomorrow task the up button is the Today icon, because it sends the task to Today). Past-due tasks collect in "Needs attention". Your Matrix/Calendar choice is remembered, and so is the category filter while you move around the app.
-- **Inbox**: a swipeable card deck for sorting thoughts. Every card starts as your **default category**, **Quick**, **High impact** and **Now**, so most cards need only **Prioritize**. Change anything that's different, or send the card to **Someday** or **Watch**. Nothing is saved until you tap. Swipe left to skip to the back of the deck, swipe right to go to the previous card.
+- **Inbox**: a swipeable card deck for sorting thoughts. Every card starts as your **default category**, **Quick**, **High impact** and **Now**, so most cards need only **Prioritize**. Change anything that's different, or send the card to **Someday** or **Watch**. Nothing is saved until you tap. Swipe left to skip to the back of the deck, swipe right to go to the previous card. Every send (Prioritize, Someday, Watch, Delete) has an **Undo** button on its message, and there's an Undo pill in the header.
 - **Radar**: **Watching** (things you're waiting on, grouped by category; swipe left to send one back to the Inbox) and **Someday** (ideas for later), one tap apart.
 - **Dashboard**: momentum stats, today's focus, open items by category, and the matrix at a glance. **See what you finished** lists everything completed, grouped by day.
 
@@ -30,7 +31,8 @@ One screen replaces the old evening card deck. Tasks sit on a ladder of time: **
 - **Down arrow** pushes a task back one rung (left over, tomorrow, this week, later, Someday). **Up arrow** pulls a task from This week, Later or Parked straight to tomorrow. **All to tomorrow** moves every leftover at once. **Undo** takes back the last move, and every move shows a short message.
 - This week and Later can be long, so each shows the soonest five (then highest impact, then major focus) with a button for more.
 - A load bar shows how many tasks are planned for tomorrow, how many are deep focus, and how many you usually finish (the average on the days you finished things in the last two weeks).
-- Tap a task to open Edit details, then save to come back. **Done** changes the Today bar to "Tomorrow is planned".
+- Tap a task to open Edit details; closing it brings you back. **Done** changes the Today bar to "Tomorrow is planned".
+- Whenever Today goes from having open tasks to none (you finish the last one, or move the rest with **All to tomorrow** or from Edit details), the big confetti goes off with a "The day is clear." message. Tapping **Done**, or leaving the planner after planning with the day clear, sets it off too. Two big ones never stack.
 
 ### Categories and the default
 
