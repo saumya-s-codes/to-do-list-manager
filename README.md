@@ -21,7 +21,7 @@ The tab bar runs **Today, Future, Inbox, Radar, Dashboard**. Inbox is the big ci
   - **Undo after finishing:** ticking a task off (on Today, Future or Radar) shows a short message at the top with an **Undo** button, for about 5 seconds. Undo puts the task back where it came from, even after it has faded away. Finishing the last task of the day shows "The day is clear." with the same Undo. If you finish several tasks quickly, Undo covers the most recent one; older ones can be un-finished from Dashboard, See what you finished.
 - **Future**: everything not for today, as a **Calendar** (the main view) made of three cards, **Tomorrow**, **This week** and **Later**, or as a **Matrix** (Quick Wins, Major Focus, Admin / Fillers, Deferral). On the Calendar, every task has an up and a down button: down pushes it back (tomorrow, this week, later, Someday); up pulls it forward (on a Tomorrow task the up button is the Today icon, because it sends the task to Today). Past-due tasks collect in "Needs attention". Your Matrix/Calendar choice is remembered, and so is the category filter while you move around the app.
 - **Inbox**: a swipeable card deck for sorting thoughts. Every card starts as your **default category**, **Quick**, **High impact** and **Now**, so most cards need only **Prioritize**. Change anything that's different, or send the card to **Someday** or **Watch**. Nothing is saved until you tap. Swipe left to skip to the back of the deck, swipe right to go to the previous card. Every send (Prioritize, Someday, Watch, Delete) has an **Undo** button on its message, and there's an Undo pill in the header.
-- **Radar**: **Watching** (things you're waiting on, grouped by category; swipe left to send one back to the Inbox) and **Someday** (ideas for later), one tap apart.
+- **Radar**: **Watching** (things you're waiting on; swipe left to send one back to the Inbox) and **Someday** (ideas for later), one tap apart. Watching is laid out like Today: a header with the count, a round **sort button** and **+**. The sort button switches between **By category** (a colored card per category, the default) and **My order** (one list; hold and drag items into any order, across categories; each item shows its category as a small colored label). The two orders are kept separately, so changing one never scrambles the other, and your choice is remembered. The **+** on the Watching page opens a short sheet with just a title and a category (your default category is pre-selected); open an item afterwards to add a due date or impact.
 - **Dashboard**: momentum stats, today's focus, open items by category, and the matrix at a glance. **See what you finished** lists everything completed, grouped by day.
 
 ### Plan tomorrow
@@ -33,6 +33,10 @@ One screen replaces the old evening card deck. Tasks sit on a ladder of time: **
 - A load bar shows how many tasks are planned for tomorrow, how many are deep focus, and how many you usually finish (the average on the days you finished things in the last two weeks).
 - Tap a task to open Edit details; closing it brings you back. **Done** changes the Today bar to "Tomorrow is planned".
 - Whenever Today goes from having open tasks to none (you finish the last one, or move the rest with **All to tomorrow** or from Edit details), the big confetti goes off with a "The day is clear." message. Tapping **Done**, or leaving the planner after planning with the day clear, sets it off too. Two big ones never stack.
+
+### Undo
+
+Most actions show a short message with an **Undo** button for about 5 seconds: finishing a task (on any page), adding a task, deleting, sending something to the Inbox (including swiping it off Watching), Someday and Watch, the **Today** shortcut on Future and Someday, pushing and pulling in Plan tomorrow, deleting a category, changing the default category, and restoring or clearing data. Closing **Edit details** after you changed something shows "Changes saved" with an Undo that puts the task back exactly as it was when you opened it. Undo covers the most recent action; if you do several things in a row, the earlier ones can't be undone from the message. Dragging to reorder has no Undo.
 
 ### Categories and the default
 
@@ -114,7 +118,9 @@ If a build fails with `Rollup failed to resolve import "/src/main.jsx"`, a file 
 
 Open the site in Safari, tap **Share, Add to Home Screen**. The app runs full screen with a see-through status bar (`apple-mobile-web-app-status-bar-style` in `index.html`) and its own icon and launch images (`public/`). iPhone reads these when the app is first added, so after changing them (the icon, the status bar, the launch images), back up your data, delete the Home Screen app, add it again, and restore.
 
-With the see-through status bar, some iPhones report the page as shorter than the screen by the height of the status bar. The app notices exactly that situation and uses a page as tall as the screen, so the tab bar sits at the bottom. This is the `Screen fit` effect near the top of `App`.
+With the see-through status bar, some iPhones report the page as shorter than the screen by the height of the status bar. The app notices exactly that situation and uses a page as tall as the screen, so the tab bar sits at the bottom. This is the `Screen fit` effect near the top of `App`. It checks at launch and after anything that could change the height (waking the phone, coming back from another app, rotating), keeps checking for about 6 seconds, then stops, so nothing repeats while you use the app.
+
+**Display check (for diagnosing screen glitches).** Press and hold the version line at the bottom of Settings to open a hidden panel showing what the phone reports about its screen (page size, safe areas, visual viewport), a log of every resize and layout change, how smooth each confetti burst was, and any slow frame or slow save. Nothing in it is saved or sent anywhere; **Copy** puts it on the clipboard so it can be pasted into a chat.
 
 ## Your data
 

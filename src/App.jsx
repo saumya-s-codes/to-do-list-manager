@@ -9,7 +9,13 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.17";
+const APP_VERSION = "10.24";
+
+// DISPLAY CHECK (hidden: press and hold the version line in Settings). A small log of what the phone reports about its screen and the page
+// (sizes, safe areas, every resize or layout change), so a screen glitch can be matched to what the phone was doing. Nothing is sent or saved.
+const DIAG = { log: [], start: Date.now(), now: () => ({}) };
+const diagPush = (msg) => { DIAG.log.push({ t: Date.now(), msg }); if (DIAG.log.length > 150) DIAG.log.shift(); };
+let diagTimer = null;
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -348,6 +354,7 @@ const normalizeItem = (i) => {
   if (o.status !== "today" && o.pos != null) o = { ...o, pos: null };
   if (o.status !== "today" && o.slot != null) o = { ...o, slot: null };
   if (o.status !== "watching" && o.wpos != null) o = { ...o, wpos: null };
+  if (o.status !== "watching" && o.fpos != null) o = { ...o, fpos: null };
   return enforceComplete(o);
 };
 // THE RULE: a task on Today or in Future (Someday is parked, so it's exempt) ALWAYS has a date, an urgency, an effort and an impact.
@@ -500,7 +507,12 @@ async function loadState() {
   }
 }
 async function saveState(s) {
-  try { await window.storage.set(STORAGE_KEY, JSON.stringify(s)); } catch { /* storage unavailable: stay in memory */ }
+  try {
+    const t0 = performance.now(), json = JSON.stringify(s), t1 = performance.now();
+    await window.storage.set(STORAGE_KEY, json);
+    const t2 = performance.now();
+    if (t2 - t0 > 12) diagPush(`save took ${Math.round(t2 - t0)} ms (${Math.round(json.length / 1024)} KB, ${Math.round(t1 - t0)} ms of it preparing)`);   // a slow save can freeze the screen
+  } catch { /* storage unavailable: stay in memory */ }
 }
 // ONE automatic backup, replaced every day: it is taken the first time the app opens each day, and it replaces the previous day's.
 // Today's copy is written first and only then are older ones removed, so there is never a moment with no backup.
@@ -650,6 +662,18 @@ const CSS = `
 .cd-gh:first-child{margin-top:8px}
 .cd-gh i{width:9px;height:9px;border-radius:50%;flex:none}
 .cd-gh .n{color:var(--muted);font-weight:500;font-size:13px}
+.cd-wcat{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.cd-wcat i{width:8px;height:8px;border-radius:50%;flex:none}
+/* Watching rows look like Today's rows: flat, sharing one card (My order) or a colored group card (By category) */
+.cd-wflat .cd-swrap{margin-bottom:0;border-bottom:1px solid var(--line);overflow-x:clip}
+.cd-wflat .cd-swrap:last-child{border-bottom:0}
+.cd-wflat .cd-swrap .cd-row.cd-wrow{padding:12px 0;min-height:56px;gap:12px;border-radius:0;box-shadow:none}
+.cd-wflat .cd-wrow .cd-row-title{font-family:inherit;font-weight:500;text-transform:none;letter-spacing:normal;font-size:inherit;line-height:1.3}
+.cd-wflat .cd-wrow .cd-meta{margin-top:3px;font-size:12.5px}
+.cd-wflat .cd-swlbl{display:none}
+.cd[data-look="ink"] .cd-wflat .cd-wrow{box-shadow:none}
+.cd[data-look="ink"] .cd-wflat .cd-wrow::after{display:none}
+.cd-wflat .cd-swrap.cd-lifting .cd-row.cd-wrow{border-radius:var(--radius-md);box-shadow:0 12px 30px rgba(0,0,0,.2)}
 
 .cd-progress{height:6px;border-radius:3px;background:var(--panel);overflow:hidden;margin-top:6px}
 .cd-progress i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
@@ -1974,7 +1998,7 @@ function FutureView({ ctx, items }) {
   const undated = base.filter((i) => i.status === "future" && !i.someday && !i.due).length;
 
   const toToday = (i) => i.status === "done" ? null : (
-    <button className="cd-pill sched" onClick={() => { const lacks = !i.effort || !i.impact; ctx.moveToToday(i.id); ctx.toast(lacks ? "Needs effort and impact first, so it's waiting in the Inbox" : "Moved to Today"); }}>
+    <button className="cd-pill sched" onClick={() => { const lacks = !i.effort || !i.impact; ctx.moveToToday(i.id); ctx.toast(lacks ? "Needs effort and impact first, so it's waiting in the Inbox" : "Moved to Today", { label: "Undo", run: () => ctx.revertItem(i) }); }}>
       <SunriseIcon size={14} strokeWidth={2.4} /> Today
     </button>
   );
@@ -2117,8 +2141,8 @@ function FutureView({ ctx, items }) {
 
 /* ═══════════════════════════════ WATCHING ═════════════════════════════════ */
 
-function WatchGroup({ g, ctx, scrollRef, onSent }) {
-  const reorder = useReorder(g.items.map((i) => i.id), ctx.reorderWatching, scrollRef);
+function WatchGroup({ g, ctx, scrollRef, onSent, flat = false }) {
+  const reorder = useReorder(g.items.map((i) => i.id), flat ? ctx.reorderWatchingFlat : ctx.reorderWatching, scrollRef);
   const color = g.name ? ctx.catStyle(g.name)[1] : "var(--muted)";
   const tint = g.name ? ctx.catStyle(g.name)[0] : "var(--panel)";
   const open = g.items.filter((i) => i.status === "watching").length;
@@ -2227,13 +2251,15 @@ function WatchGroup({ g, ctx, scrollRef, onSent }) {
   });
 
   return (
-    <section aria-label={g.name || "No category"}>
-      <div className="cd-gh" style={{ background: tint }}>
-        <i style={{ background: color }} />
-        <span style={{ color }}>{g.name || "No category"}</span>
-        <span className="n">{open}</span>
-      </div>
-      <div className="cd-list" ref={reorder.contRef}>
+    <section aria-label={flat ? "Watching" : g.name || "No category"} className={"cd-wflat " + (flat ? "cd-cardlist" : "cd-group")}>
+      {!flat && (
+        <div className="cd-ghead" style={{ background: tint }}>
+          <span className="cd-gdot" style={{ background: color }} />
+          <div><div className="t">{g.name || "No category"}</div><div className="s">{open} {open === 1 ? "item" : "items"}</div></div>
+          <span className="cd-gcount">{open}</span>
+        </div>
+      )}
+      <div className={"cd-list" + (flat ? "" : " cd-gbody")} ref={reorder.contRef}>
         {g.items.map((i) => {
           const done = i.status === "done";
           const { className: extra = "", style: rstyle, ...rp } = reorder.rowProps(i.id);
@@ -2273,7 +2299,12 @@ function WatchGroup({ g, ctx, scrollRef, onSent }) {
                 <Check_ done={done} onClick={() => ctx.toggleDone(i.id)} label={done ? "Mark not done" : "Mark done"} />
                 <button className="cd-row-main" onClick={() => ctx.setSheet({ type: "edit", id: i.id })} aria-label={`Edit ${i.title}`}>
                   <span className="cd-row-title">{i.title}</span>
-                  {i.due && !done && <span className="cd-meta"><span className={dueInfo(i.due).cls}>{dueInfo(i.due).text}</span></span>}
+                  {!done && ((flat && i.category) || i.due) && (
+                    <span className="cd-meta">
+                      {flat && i.category && <span className="cd-wcat" style={{ color: ctx.catStyle(i.category)[1] }}><i style={{ background: ctx.catStyle(i.category)[1] }} />{i.category}</span>}
+                      {i.due && <span className={dueInfo(i.due).cls}>{dueInfo(i.due).text}</span>}
+                    </span>
+                  )}
                 </button>
                 <button className="cd-more" onClick={() => ctx.setSheet({ type: "edit", id: i.id })} aria-label="Edit details"><MoreHorizontal size={20} /></button>
               </div>
@@ -2288,12 +2319,15 @@ function WatchGroup({ g, ctx, scrollRef, onSent }) {
 function WatchingList({ ctx, items }) {
   const scrollRef = useRef(null);
   const [history, setHistory] = useState([]);   // cards sent to Inbox from here, newest last, so each can be undone
-  const onSent = (item) => setHistory((h) => [...h.slice(-19), item]);
+  const onSent = (item) => {
+    setHistory((h) => [...h.slice(-19), item]);
+    ctx.toast("Sent to Inbox", { label: "Undo", run: () => { setHistory((h) => h.filter((x) => x.id !== item.id)); ctx.revertItem(item); } });
+  };
   const undo = () => {
     if (!history.length) return;
     const it = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
-    ctx.patchItem(it.id, { status: "watching", effort: it.effort, impact: it.impact, wpos: it.wpos });   // back where it was
+    ctx.patchItem(it.id, { status: "watching", effort: it.effort, impact: it.impact, wpos: it.wpos, fpos: it.fpos });   // back where it was
   };
   // items you check off stay (faded) until you leave the tab, like on Today
   const list = items
@@ -2304,18 +2338,39 @@ function WatchingList({ ctx, items }) {
   const groups = [...ctx.categories, null]
     .map((name) => ({ name, items: list.filter((i) => (i.category && known.has(i.category) ? i.category : null) === name) }))
     .filter((g) => g.items.length);
+  // One list (no headers): your own order if you've dragged in this view; until then it reads like the grouped view, and new arrivals go last
+  const flat = ctx.watchFlat;
+  const openN = list.filter((i) => i.status === "watching").length;
+  const catIdx = (i) => { const k = ctx.categories.indexOf(i.category); return k < 0 ? 1e6 : k; };
+  const flatItems = [...list].sort((a, b) => (a.fpos ?? 1e9) - (b.fpos ?? 1e9) || catIdx(a) - catIdx(b) || (a.wpos ?? 1e9) - (b.wpos ?? 1e9));
   return (
     <div className="cd-host">
     <div className="cd-scroll" ref={scrollRef} style={{ paddingBottom: 110 }}>
       <div style={{ marginTop: 6 }}>
-        {groups.map((g) => <WatchGroup key={g.name || "none"} g={g} ctx={ctx} scrollRef={scrollRef} onSent={onSent} />)}
+        <div className="cd-sec">
+          <div className="cd-sechead">
+            <h2 className="cd-h2">Watching<span className="cd-count" aria-label={`${openN} ${openN === 1 ? "item" : "items"} watching`}>{openN}</span></h2>
+            {list.length > 1 && <div className="cd-cap">{flat ? "Hold and drag to reorder" : "Grouped by category"}</div>}
+          </div>
+          <div className="cd-secact">
+            {list.length > 1 && (
+              <button className={"cd-sortbtn" + (flat ? "" : " on")} aria-label={`Shown ${flat ? "in my order" : "by category"}. Tap to change.`}
+                onClick={() => { buzz(8); ctx.setWatchFlat(!flat); }}>
+                {flat ? <ArrowUpDown size={20} /> : <FolderIcon size={20} />}
+              </button>
+            )}
+            <button className="cd-plus" onClick={() => ctx.setSheet({ type: "edit", id: null, status: "watching" })} aria-label="Add watched item"><Plus size={22} /></button>
+          </div>
+        </div>
+        {flat && list.length > 0
+          ? <WatchGroup key="flat" g={{ name: null, items: flatItems }} ctx={ctx} scrollRef={scrollRef} onSent={onSent} flat />
+          : groups.map((g) => <WatchGroup key={g.name || "none"} g={g} ctx={ctx} scrollRef={scrollRef} onSent={onSent} />)}
         {list.length === 0 && <div className="cd-empty" data-art="book" style={emptyArt(ctx, "book")}><b>Nothing to watch.</b>Mark an item as Watching from your Inbox, or add one here.</div>}
       </div>
     </div>
     {/* floats over the list so they're always in reach while scrolling */}
     <div className="cd-float">
       <button className="cd-undo" onClick={undo} disabled={!history.length} aria-label="Undo last send to Inbox"><RotateCcw size={16} /> Undo</button>
-      <button className="cd-plus" onClick={() => ctx.setSheet({ type: "edit", id: null, status: "watching" })} aria-label="Add watched item"><Plus size={26} /></button>
     </div>
     </div>
   );
@@ -2325,7 +2380,7 @@ function WatchingList({ ctx, items }) {
 function SomedayList({ ctx, items }) {
   const list = items.filter((i) => i.someday && (i.status === "future" || (i.status === "done" && i.doneFrom === "future" && ctx.justDone.has(i.id))));
   const toToday = (i) => i.status === "done" ? null : (
-    <button className="cd-pill sched" onClick={() => { const lacks = !i.effort || !i.impact; ctx.moveToToday(i.id); ctx.toast(lacks ? "Needs effort and impact first, so it's waiting in the Inbox" : "Moved to Today"); }}>
+    <button className="cd-pill sched" onClick={() => { const lacks = !i.effort || !i.impact; ctx.moveToToday(i.id); ctx.toast(lacks ? "Needs effort and impact first, so it's waiting in the Inbox" : "Moved to Today", { label: "Undo", run: () => ctx.revertItem(i) }); }}>
       <SunriseIcon size={14} strokeWidth={2.4} /> Today
     </button>
   );
@@ -2580,10 +2635,11 @@ const destOf = (it, initial) => {
   return initial === "watching" ? "" : initial === "future" ? "future" : "today";
 };
 function Editor({ ctx, item, initialStatus, close }) {
+  const quick = !item && initialStatus === "watching";   // adding from the Watching page: just a title and a category
   const [d, setD] = useState(() => {
     const dest = destOf(item, initialStatus);
     return {
-      title: item?.title || "", category: item?.category || null, effort: item?.effort || null,
+      title: item?.title || "", category: item?.category || (quick ? ctx.defaultCategory : null), effort: item?.effort || null,
       impact: item?.impact || null, slot: item?.slot || null, due: item ? (item.due || "") : destDue(dest), status: item?.status || (initialStatus === "watching" ? "watching" : destStatus(dest)), dest, someday: !!item?.someday,
       doneOn: item?.status === "done" && item?.doneAt ? iso(new Date(item.doneAt)) : "",   // date completed (finished tasks only)
     };
@@ -2620,8 +2676,9 @@ function Editor({ ctx, item, initialStatus, close }) {
   // A NEW task is added with the button. An existing task has no Save button: every change saves itself a moment later, and anything still
   // waiting is saved when the sheet closes. (A change that can't be saved yet, like Today without effort, waits until it's complete.)
   const finished = useRef(false), lastSaved = useRef(""), timer = useRef(null), tagTimer = useRef(null);
+  const original = useRef(item), initialKey = useRef("");   // the task as it was when the sheet opened, so edits can be undone
   const [saved, setSaved] = useState(false);
-  const add = () => { const payload = buildPayload(); if (!payload) return; ctx.addItem(payload); finished.current = true; close(); ctx.toast("Added"); };
+  const add = () => { const payload = buildPayload(); if (!payload) return; const id = ctx.addItem(payload); finished.current = true; close(); ctx.toast("Added", { label: "Undo", run: () => ctx.removeItem(id) }); };
   const commit = () => {
     if (!item || finished.current) return false;
     const payload = buildPayload();
@@ -2633,7 +2690,7 @@ function Editor({ ctx, item, initialStatus, close }) {
     return true;
   };
   const commitRef = useRef(commit); commitRef.current = commit;
-  useEffect(() => { if (item) { const p = buildPayload(); lastSaved.current = p ? JSON.stringify(p) : ""; } }, []);   // what is already saved
+  useEffect(() => { if (item) { const p = buildPayload(); lastSaved.current = p ? JSON.stringify(p) : ""; initialKey.current = lastSaved.current; } }, []);   // what is already saved
   useEffect(() => {
     if (!item) return undefined;
     clearTimeout(timer.current);
@@ -2641,28 +2698,34 @@ function Editor({ ctx, item, initialStatus, close }) {
     return () => clearTimeout(timer.current);
   }, [d]);
   useEffect(() => () => { clearTimeout(tagTimer.current); commitRef.current(); }, []);   // saved when the sheet goes away, however it closes
-  const closeNow = () => { clearTimeout(timer.current); commit(); finished.current = true; close(); };
+  const closeNow = () => {
+    clearTimeout(timer.current); commit();
+    const edited = !!item && !finished.current && lastSaved.current !== initialKey.current;   // something was saved while the sheet was open
+    finished.current = true; close();
+    if (edited) ctx.toast("Changes saved", { label: "Undo", run: () => ctx.revertItem(original.current) });
+  };
   const needsInbox = d.status === "future" && !d.someday && !d.category;
   // Someday and Watch (they keep anything you've just edited) sit in their own section below, with Delete. A task already in Someday has no Someday
   // button, and one already in Watching has no Watch button.
   const park = (kind) => {
     if (!item) return;
+    const before = item;
     const base = { title: d.title.trim() || item.title, category: d.category, effort: d.effort, impact: d.impact };
     finished.current = true;
     ctx.patchItem(item.id, kind === "someday" ? { ...base, status: "future", someday: true, urgency: null, due: null } : { ...base, status: "watching", someday: false, urgency: null, due: d.due || null });
     close();
-    ctx.toast(kind === "someday" ? "Moved to Someday" : "Moved to Watching");
+    ctx.toast(kind === "someday" ? "Moved to Someday" : "Moved to Watching", { label: "Undo", run: () => ctx.revertItem(before) });
   };
   const canSomeday = !!item && item.status !== "done" && !(item.status === "future" && item.someday);
   const canWatch = !!item && item.status !== "done" && item.status !== "watching";
   const del = () => { if (!item) return; finished.current = true; ctx.removeItem(item.id); close(); ctx.toast("Deleted", { label: "Undo", run: () => ctx.restoreItem(item) }); };
   return (
-    <Sheet title={<>{item ? "Edit item" : "New item"}{saved && <small className="cd-savedtag"><Check size={13} strokeWidth={3} /> Saved</small>}</>} onClose={closeNow}>
-      <input className="cd-input" placeholder="What needs doing?" value={d.title}
+    <Sheet title={<>{item ? "Edit item" : quick ? "Add to Watching" : "New item"}{saved && <small className="cd-savedtag"><Check size={13} strokeWidth={3} /> Saved</small>}</>} onClose={closeNow}>
+      <input className="cd-input" placeholder={quick ? "What are you waiting on?" : "What needs doing?"} value={d.title}
         onChange={(e) => set("title", e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") { if (!item && d.title.trim()) add(); else { commit(); e.currentTarget.blur(); } } }}
         enterKeyHint="done" aria-label="Item title" />
-      {d.status !== "done" && (
+      {d.status !== "done" && !quick && (
         <>
           <div className="cd-fl">Goes to</div>
           <div className="cd-pills">
@@ -2682,16 +2745,17 @@ function Editor({ ctx, item, initialStatus, close }) {
           {d.status === "watching" && <div className="cd-hint" style={{ textAlign: "left" }}>Choose where it goes to take it off Watching.</div>}
         </>
       )}
-      <div className="cd-two2" style={{ marginTop: 4 }}>
+      {quick && <div style={{ marginTop: 4 }}><div className="cd-fl">Category</div><CategoryPicker categories={ctx.categories} value={d.category} onChange={(c) => set("category", c)} onAdd={ctx.addCategory} /></div>}
+      {!quick && <div className="cd-two2" style={{ marginTop: 4 }}>
         {d.status === "done"
           ? <div><div className="cd-fl">Date completed</div><input className="cd-input" type="date" value={d.doneOn} max={iso()} onChange={(e) => set("doneOn", e.target.value)} aria-label="Date completed" /></div>
           : <div><div className="cd-fl">Due date</div><input className="cd-input" type="date" value={d.due} disabled={d.status === "future" && d.someday} onChange={(e) => setDue(e.target.value)} aria-label="Due date" /></div>}
         <div><div className="cd-fl">Category</div><CategoryPicker categories={ctx.categories} value={d.category} onChange={(c) => set("category", c)} onAdd={ctx.addCategory} /></div>
-      </div>
-      <div className="cd-two2">
+      </div>}
+      {!quick && <div className="cd-two2">
         {d.status !== "watching" && <div><div className="cd-fl">Effort</div><Pills options={EFFORT_OPTS} value={d.effort} onChange={(v) => set("effort", v)} /></div>}
         <div><div className="cd-fl">Impact</div><Pills options={IMPACT_OPTS} value={d.impact} onChange={(v) => set("impact", v)} /></div>
-      </div>
+      </div>}
       {!item && <button className="cd-primary" disabled={!d.title.trim() || missing} onClick={add}>Add item</button>}
       {item && (
         <div className="cd-editsec">
@@ -2866,6 +2930,25 @@ function PlanTomorrow({ ctx, items, close }) {
   );
 }
 
+function DisplayCheck({ ctx, close }) {
+  const [, again] = useState(0);
+  const n = DIAG.now();
+  const t0 = Date.now();
+  const lines = [...DIAG.log].reverse().map((l) => `+${((l.t - DIAG.start) / 1000).toFixed(1)}s  ${l.msg}`);
+  const text = `Clear the Day ${APP_VERSION}\n` + Object.entries(n).map(([k, v]) => `${k}: ${v}`).join("\n") + `\n\nEvents (newest first, ${((t0 - DIAG.start) / 1000).toFixed(0)}s since the app opened):\n` + lines.join("\n");
+  const copy = async () => { try { await navigator.clipboard.writeText(text); ctx.toast("Copied"); } catch (e) { ctx.toast("Couldn’t copy. A screenshot works too"); } };
+  return (
+    <Sheet title="Display check" onClose={close}>
+      <div className="cd-hint" style={{ textAlign: "left", marginTop: 0 }}>For finding screen glitches. Nothing here is sent anywhere or saved. Take a screenshot of this, or tap Copy.</div>
+      <pre style={{ margin: "10px 0 0", padding: 12, background: "var(--panel)", borderRadius: 12, fontSize: 11.5, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "ui-monospace, Menlo, monospace", maxHeight: "48vh", overflowY: "auto" }}>{text}</pre>
+      <div className="cd-two2" style={{ marginTop: 12 }}>
+        <button className="cd-ghost" onClick={() => again((x) => x + 1)}>Refresh</button>
+        <button className="cd-ghost" onClick={copy}>Copy</button>
+      </div>
+    </Sheet>
+  );
+}
+
 function BackupSheet({ ctx, close }) {
   const [snaps, setSnaps] = useState(null);
   const [found] = useState(() => findStoredCandidates());
@@ -3004,9 +3087,9 @@ function Confetti({ big = false }) {
     const cv = ref.current;
     const g = cv && cv.getContext("2d");
     if (!g) return undefined;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = Math.min(1.5, window.devicePixelRatio || 1);   // 1.5x is still sharp for confetti and about half the pixels of 2x (smoother on a phone)
     const W = cv.clientWidth || 400, H = cv.clientHeight || 800;
-    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); g.scale(dpr, dpr);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     const colors = ["#F4C430", "#FF8A3D", "#E4572E", "#D65FA8", "#8E5BD6", "#3B82C4", "#2BB3A3", "#2E9E5B", "#F7D774", "#FFFFFF"];
     const rnd = (a, b) => a + Math.random() * (b - a);
     const parts = [], flashes = [], events = [];
@@ -3026,18 +3109,24 @@ function Confetti({ big = false }) {
       flashes.push({ x, y, age: 0 });
     };
     const rain = (n) => { for (let i = 0; i < n; i++) piece(rnd(0, W), rnd(-40, -8), rnd(-70, 70), rnd(30, 170)); };
-    const volleys = [0], perVolley = big ? 170 : 70;
+    const volleys = [0], perVolley = big ? 170 : 45;
     volleys.forEach((t) => { [-1, 1].forEach((side) => { events.push({ t, run: () => cannon(side, perVolley) }); total += perVolley; }); });
-    const showerN = big ? 240 : 60, showerOver = big ? 2.4 : 1.2;
+    const showerN = big ? 240 : 40, showerOver = big ? 2.4 : 1.2;
     for (let i = 0; i < showerN; i += 5) { events.push({ t: (i / showerN) * showerOver, run: () => rain(5) }); total += 5; }
     events.sort((a, b) => a.t - b.t);
     cv.dataset.pieces = String(total); cv.dataset.volleys = String(volleys.length);
     const GRAV = 640, DRAG = 2.2;
     let raf = 0, last = performance.now(); const start = last;
+    let frames = 0, worst = 0, slow = 0;   // for the Display check: how smooth was this burst?
+    diagPush(`confetti starts (${big ? "big" : "small"}, ${total} pieces, canvas ${W}×${H} at ${dpr}x)`);
     const tick = (now) => {
+      const gap = now - last;
+      if (frames > 0) { worst = Math.max(worst, gap); if (gap > 60 && slow < 8) { slow++; diagPush(`slow frame: ${Math.round(gap)} ms during confetti (${parts.length} pieces alive)`); } }
+      frames++;
       const dt = Math.max(0, Math.min(0.034, (now - last) / 1000)); last = now;
       const t = Math.max(0, (now - start) / 1000);
       while (events.length && events[0].t <= t) events.shift().run();
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, W, H);
       for (let i = flashes.length - 1; i >= 0; i--) {
         const f = flashes[i]; f.age += dt; const k = f.age / 0.22;
@@ -3055,13 +3144,14 @@ function Confetti({ big = false }) {
         p.rot += p.vr * dt; p.flip += p.vf * dt;
         if (p.y > H + 40 || p.age > 7.5) continue;
         parts[n++] = p;
-        g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.scale(1, Math.cos(p.flip)); g.fillStyle = p.color;
+        const cr = Math.cos(p.rot), sr = Math.sin(p.rot), fl = Math.cos(p.flip);   // rotate, then squash by the flip, in one step
+        g.setTransform(cr * dpr, sr * dpr, -sr * fl * dpr, cr * fl * dpr, p.x * dpr, p.y * dpr); g.fillStyle = p.color;
         if (p.round) { g.beginPath(); g.arc(0, 0, p.w / 2, 0, 6.2832); g.fill(); } else g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        g.restore();
       }
       parts.length = n;
       cv.dataset.alive = String(n);
       if (events.length || parts.length || flashes.length) raf = requestAnimationFrame(tick);
+      else { const secs = Math.max(0.1, (now - start) / 1000); diagPush(`confetti done: ${frames} frames in ${secs.toFixed(1)}s = ${Math.round(frames / secs)} per second, worst gap ${Math.round(worst)} ms`); }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
@@ -3103,7 +3193,9 @@ function Settings({ ctx, themeId, close }) {
         <button className="cd-ghost" onClick={() => ctx.exportData()}><Download size={18} /> Export</button>
         <button className="cd-ghost" style={{ color: "var(--danger)" }} onClick={() => { ctx.resetData("empty"); close(); }}><Trash2 size={18} /> Clear all</button>
       </div>
-      <div className="cd-version">Clear the Day · Version {APP_VERSION}</div>
+      <div className="cd-version" style={{ WebkitTouchCallout: "none", userSelect: "none" }}
+        onPointerDown={() => { clearTimeout(diagTimer); diagTimer = setTimeout(() => ctx.setSheet({ type: "diag" }), 800); }}
+        onPointerUp={() => clearTimeout(diagTimer)} onPointerLeave={() => clearTimeout(diagTimer)} onPointerCancel={() => clearTimeout(diagTimer)}>Clear the Day · Version {APP_VERSION}</div>
     </Sheet>
   );
 }
@@ -3196,15 +3288,16 @@ export default function App() {
   // SCREEN FIT. In the installed iPhone app with the see-through status bar, the phone can report the page as shorter than the screen
   // (by the height of the status bar), which would leave an empty band under the tab bar, and it cuts off a fixed layout at that line.
   // So, in exactly that situation (installed, upright, a top margin exists), the app lives in a page as tall as the screen.
-  // iPhone does not always announce a change in that height (waking the phone, coming back from another app), so the check is repeated every
-  // second as well as on every event that might matter, and it only switches back after three misses in a row, so it can't flicker.
+  // iPhone does not always announce a change in that height (waking the phone, coming back from another app), so after launch and after each
+  // of those events the check repeats for a few seconds, then STOPS: a check that kept running forever made the bottom of the screen blink on
+  // a real iPhone (a blank strip about every 1.6 s). It only switches back after three misses in a row, so it can't flicker.
   useEffect(() => {
     const root = document.documentElement;
     try { localStorage.removeItem("ctd:fit"); } catch (e) { /* storage unavailable */ }   // a choice an earlier test version remembered
     const probe = document.createElement("div");
     probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top)";
     document.body.appendChild(probe);
-    let misses = 0;
+    let misses = 0, timer = null, ticks = 0;
     const fit = () => {
       const top = parseFloat(getComputedStyle(probe).paddingTop) || 0, scr = (window.screen && window.screen.height) || 0, inner = window.innerHeight;
       const upright = inner > window.innerWidth, installed = window.navigator.standalone === true;
@@ -3213,14 +3306,70 @@ export default function App() {
         if (root.getAttribute("data-fit") !== "page" || root.style.getPropertyValue("--app-h") !== scr + "px") { root.setAttribute("data-fit", "page"); root.style.setProperty("--app-h", scr + "px"); }
       } else if (++misses >= 3) { root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); }
     };
-    fit();
-    const timer = setInterval(fit, 800);
+    // watch(): check now, and keep checking every 0.8 s for about 6 s (the phone can report the new height a moment late), then stop
+    const stop = () => { clearInterval(timer); timer = null; };
+    const watch = () => { ticks = 0; fit(); if (!timer) timer = setInterval(() => { fit(); if (++ticks >= 8) stop(); }, 800); };
+    watch();
     const vv = window.visualViewport;
-    const evs = ["resize", "orientationchange", "pageshow", "focus"];
-    evs.forEach((e) => window.addEventListener(e, fit));
-    document.addEventListener("visibilitychange", fit);
+    const once = ["resize"], again = ["orientationchange", "pageshow", "focus"];
+    once.forEach((e) => window.addEventListener(e, fit));
+    again.forEach((e) => window.addEventListener(e, watch));
+    document.addEventListener("visibilitychange", watch);
     if (vv) vv.addEventListener("resize", fit);
-    return () => { clearInterval(timer); evs.forEach((e) => window.removeEventListener(e, fit)); document.removeEventListener("visibilitychange", fit); if (vv) vv.removeEventListener("resize", fit); probe.remove(); root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); };
+    return () => { stop(); once.forEach((e) => window.removeEventListener(e, fit)); again.forEach((e) => window.removeEventListener(e, watch)); document.removeEventListener("visibilitychange", watch); if (vv) vv.removeEventListener("resize", fit); probe.remove(); root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); };
+  }, []);
+
+  // DISPLAY CHECK recorder (see DIAG at the top). It only listens; it never changes anything on screen.
+  useEffect(() => {
+    const root = document.documentElement;
+    const mk = (side) => { const d = document.createElement("div"); d.style.cssText = `position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-${side}:env(safe-area-inset-${side})`; document.body.appendChild(d); return d; };
+    const pt = mk("top"), pb = mk("bottom");
+    const px = (el, side) => Math.round(parseFloat(getComputedStyle(el)["padding" + side]) || 0);
+    const box = (sel) => { const el = document.querySelector(sel); return el ? `${el.clientWidth}×${el.clientHeight}` : "-"; };
+    const now = () => {
+      const vv = window.visualViewport;
+      return {
+        "page (inner)": `${window.innerWidth}×${window.innerHeight}`,
+        "screen": `${window.screen.width}×${window.screen.height}`,
+        "visual viewport": vv ? `${Math.round(vv.width)}×${Math.round(vv.height)}, top ${Math.round(vv.offsetTop)}, scale ${vv.scale}` : "none",
+        "safe area": `top ${px(pt, "Top")}, bottom ${px(pb, "Bottom")}`,
+        "app (outer / inner)": `${box(".cd-outer")} / ${box(".cd")}`,
+        "screen fit": root.getAttribute("data-fit") ? `on (${root.style.getPropertyValue("--app-h")})` : "off",
+        "installed": window.navigator.standalone === true ? "yes" : "no",
+        "page scrolled": String(window.scrollY),
+        "phone": (navigator.userAgent.match(/OS ([\d_]+)/) || [])[1] ? "iOS " + navigator.userAgent.match(/OS ([\d_]+)/)[1].replace(/_/g, ".") : "not iOS",
+      };
+    };
+    DIAG.now = now;
+    const short = () => { const n = now(); return `page ${n["page (inner)"]} · visual ${n["visual viewport"]} · app ${n["app (outer / inner)"]} · fit ${n["screen fit"]}`; };
+    diagPush("start · " + short());
+    const vv = window.visualViewport;
+    const ev = (name) => () => diagPush(name + " · " + short());
+    const wins = ["resize", "orientationchange", "pageshow", "pagehide", "focus", "blur"];
+    const handlers = wins.map((n) => [n, ev(n)]);
+    handlers.forEach(([n, h]) => window.addEventListener(n, h));
+    const visH = () => diagPush("visibility " + document.visibilityState + " · " + short());
+    document.addEventListener("visibilitychange", visH);
+    const vvH = [["vv-resize", ev("visual-viewport resize")], ["vv-scroll", ev("visual-viewport scroll")]];
+    if (vv) { vv.addEventListener("resize", vvH[0][1]); vv.addEventListener("scroll", vvH[1][1]); }
+    // layout changes of the page and the app boxes
+    const seen = new Map();
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver((entries) => {
+      entries.forEach((e) => { const k = e.target.className || e.target.id || e.target.tagName; const v = `${Math.round(e.contentRect.width)}×${Math.round(e.contentRect.height)}`; if (seen.get(e.target) !== v) { seen.set(e.target, v); diagPush(`size ${String(k).split(" ")[0]} → ${v}`); } });
+    }) : null;
+    const watched = new Set();
+    const attach = () => { if (!ro) return; [root, document.body, document.getElementById("root"), document.querySelector(".cd-outer"), document.querySelector(".cd")].forEach((el) => { if (el && !watched.has(el)) { watched.add(el); ro.observe(el); } }); };
+    attach();
+    const lateAttach = [500, 2000, 6000].map((ms) => setTimeout(attach, ms));
+    const mo = typeof MutationObserver === "function" ? new MutationObserver(() => diagPush("screen-fit attribute changed · " + short())) : null;
+    if (mo) mo.observe(root, { attributes: true, attributeFilter: ["data-fit", "style"] });
+    return () => {
+      handlers.forEach(([n, h]) => window.removeEventListener(n, h));
+      document.removeEventListener("visibilitychange", visH);
+      if (vv) { vv.removeEventListener("resize", vvH[0][1]); vv.removeEventListener("scroll", vvH[1][1]); }
+      if (ro) ro.disconnect(); if (mo) mo.disconnect(); lateAttach.forEach(clearTimeout);
+      pt.remove(); pb.remove();
+    };
   }, []);
 
   // The page must never move under your finger. A swipe is only allowed to do something when it lands on something that can scroll
@@ -3436,7 +3585,7 @@ export default function App() {
   const ctx = {
     categories,
     defaultCategory: withDefault(state).def,
-    setDefaultCategory: (name) => { if (categories.includes(name)) { update(() => ({ defaultCategory: name })); toast(`“${name}” is now the default category`); } },
+    setDefaultCategory: (name) => { if (categories.includes(name)) { const was = withDefault(state).def; update(() => ({ defaultCategory: name })); toast(`“${name}” is now the default category`, was && was !== name ? { label: "Undo", run: () => update(() => ({ defaultCategory: was })) } : undefined); } },
     toast,
     setSheet,
     themeIcon: theme.icon || Sun,
@@ -3448,6 +3597,7 @@ export default function App() {
     inboxOrder, setInboxOrder,
     todaySortMode: state.todaySort || "mine",
     setTodaySortMode: (mode) => update(() => ({ todaySort: mode })),
+    watchFlat: !!state.watchFlat, setWatchFlat: (v) => update(() => ({ watchFlat: !!v })),   // Watching as one list (no category headers), remembered
     futureMode: state.futureMode === "matrix" ? "matrix" : "calendar", setFutureMode: (m) => update(() => ({ futureMode: m })),   // Calendar (the default) or Matrix, remembered
     futureCat, setFutureCat,
     setTheme: (id) => { loadThemeFonts(id).then(() => update(() => ({ themeId: id }))); },
@@ -3486,6 +3636,7 @@ export default function App() {
       order.forEach((id) => { if (id === "__afternoon") cur = "afternoon"; else if (id === "__evening") cur = "evening"; else if (!String(id).startsWith("__")) m[id] = { pos: k++, slot: cur }; });
       return { items: s.items.map((i) => (m[i.id] ? { ...i, ...m[i.id] } : i)) };
     }),
+    reorderWatchingFlat: (ids) => update((s) => ({ items: s.items.map((i) => { const k = ids.indexOf(i.id); return k >= 0 ? { ...i, fpos: k } : i; }) })),   // order of the one-list view; the per-category order (wpos) is left alone
     reorderWatching: (ids) => update((s) => ({ items: s.items.map((i) => { const k = ids.indexOf(i.id); return k >= 0 ? { ...i, wpos: k } : i; }) })),
     moveToTop: (id) => update((s) => {
       const ids = [id, ...todaySort(s.items.filter((i) => i.status === "today")).map((i) => i.id).filter((x) => x !== id)];
@@ -3513,6 +3664,7 @@ export default function App() {
       });
       return ids;
     },
+    revertItem: (old) => update((s) => ({ items: s.items.map((i) => (i.id === old.id ? old : i)) })),   // puts an item back exactly as it was (used by Undo)
     restoreItem: (item) => update((s) => ({ items: s.items.some((i) => i.id === item.id) ? s.items : [...s.items, item] })),
     celebrate: (big, msg) => celebrate(!!big, msg),
     justDone, vanishing,
@@ -3643,6 +3795,7 @@ export default function App() {
         {sheet?.type === "cats" && <CatManager ctx={ctx} items={items} close={close} />}
       {sheet?.type === "delcat" && <DeleteCategory ctx={ctx} items={items} name={sheet.name} close={close} />}
         {sheet?.type === "backup" && <BackupSheet ctx={ctx} close={close} />}
+        {sheet?.type === "diag" && <DisplayCheck ctx={ctx} close={close} />}
         {burst ? <Confetti key={burst.id} big={burst.big} /> : null}
         {toastMsg && (
           <div className={"cd-toast" + (toastMsg.a ? " act" : "")} role="status">

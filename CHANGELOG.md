@@ -1,5 +1,33 @@
 # Changelog
 
+## 10.24
+- **Lighter confetti.** The confetti is drawn at a lower resolution (1.5x instead of 2x, still sharp) and each piece is drawn in one step instead of several, so bursts run smoother on the phone. The burst for a finished task is a little smaller, about 130 pieces instead of 200. Clearing the day or finishing Plan tomorrow is unchanged, about 580.
+- **Display check logs more.** It now records how smooth each confetti burst was (updates per second and the longest pause), any single slow frame, and any slow save of your tasks, so a stutter can be traced to what caused it.
+
+## 10.23
+- **Hidden Display check.** Press and hold the version line at the bottom of Settings to open a panel showing what the phone reports about its screen (page size, safe areas, visual viewport) and a log of every resize and layout change. It's for tracking down the blank strip that blinks at the bottom of the screen. Nothing in it is saved or sent anywhere, and Copy puts it on the clipboard. It's not a setting and changes nothing about how the app looks; a quick tap on the version line still does nothing.
+
+## 10.22
+- **The screen-fit check no longer runs forever.** It runs at launch and after anything that could change the screen height (waking the phone, coming back from another app, rotating), keeps checking for about 6 seconds, then stops. Before, it re-measured the page every 0.8 seconds for as long as the app was open, which was the first suspect for a blank strip blinking at the bottom of the screen about every 1.6 seconds. The screen-fit behavior itself is unchanged.
+
+## 10.21
+- **Undo for the rest of what you do.** The short Undo message (about 5 seconds) now also appears after: **Add item**, **Someday** and **Watch** from Edit details, the **Today** button on Future and Someday, swiping a Watching item to the Inbox (the Undo button at the bottom is still there too), and changing the default category.
+- **Undo for edits.** Closing Edit details after you changed something shows "Changes saved" with an Undo that puts the task back exactly as it was when you opened it. Closing without changing anything shows nothing.
+- Dragging to reorder still has no Undo.
+
+## 10.20
+- **Adding to Watching asks for just two things.** The **+** on the Watching page opens a short sheet with a title and a category, nothing else. Your default category is already selected, and the box asks "What are you waiting on?". Opening an existing Watching item, and adding from Today, still show every field.
+
+## 10.19
+- **Watching looks like Today.** A header with the count, a round sort button and a round **+**. The sort button switches between **By category** (a colored card per category, the default) and **My order** (one shared card; hold and drag items into any order, even across categories; each item shows its category as a small colored label). The two orders are kept separately, so changing one never scrambles the other, and your choice is remembered. Swipe left for Inbox works in both. The floating **+** moved into the header; the floating Undo stays.
+
+## 10.18
+- **Watching can be shown as one list**, without category headers, with its own drag order. (The two-button switch added here was replaced by the sort button in 10.19.)
+
+## 10.17
+- **Undo after ticking a task done.** Ticking a task off, on Today, Future or Radar, shows "Marked done" with an Undo button for about 5 seconds. Undo puts it back where it came from, even after it has faded out of the list. Finishing the last task of the day shows "The day is clear." with the same Undo. If you finish several tasks quickly, Undo covers the most recent one; older ones can be un-finished from Dashboard, See what you finished.
+- **The backup reminder no longer covers an Undo.** The once-a-day "You haven't backed up" message skips itself if an Undo is on screen, and tries again the next time the app opens.
+
 ## 10.11
 - **The cannons fire once.** Each of the two bottom-corner cannons now fires a single volley (with one flash), instead of repeated volleys that felt jittery. The volleys are bigger to make up for it, and confetti still rains from the top. A finished task gets about 200 pieces; clearing the day or finishing Plan tomorrow gets about 580.
 - **Finished tasks vanish after about a second.** A task you tick off stays for a second, checked and struck through, then fades out and its gap closes, on Today (all three sort views), Future and Radar. Un-ticking it before it goes keeps it. Finished tasks are still in Dashboard, See what you finished.
