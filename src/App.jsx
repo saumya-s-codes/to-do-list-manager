@@ -606,7 +606,7 @@ const CSS = `
 .cd-empty{text-align:center;color:var(--muted);padding:30px 10px}
 .cd-empty b{display:block;color:var(--text);font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);font-size:19px;margin-bottom:4px}
 
-.cd-nav{display:flex;border-top:1px solid var(--line);background:var(--nav-bg);padding:8px 4px calc(10px + env(safe-area-inset-bottom));backdrop-filter:blur(10px)}
+.cd-nav{display:flex;border-top:1px solid var(--line);background:var(--nav-bg);padding:8px 4px calc(2px + env(safe-area-inset-bottom));backdrop-filter:blur(10px)}
 .cd-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);position:relative;padding:4px 0}
 .cd-tab.on{color:var(--nav-active);font-weight:600}
 .cd-badge{position:absolute;top:-1px;left:calc(50% + 6px);min-width:17px;height:17px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:10.5px;font-weight:700;display:grid;place-items:center;padding:0 4px}
