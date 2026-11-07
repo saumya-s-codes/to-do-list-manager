@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.27";
+const APP_VERSION = "10.28";
 
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
@@ -555,7 +555,7 @@ async function listSnapshots() {
 const CSS = `
 .cd-outer{position:fixed;inset:0;display:flex;justify-content:center;align-items:stretch;background:var(--chrome-bg,#F6F3EC);overflow:hidden;overscroll-behavior:none}
 .cd, .cd *{box-sizing:border-box}
-.cd{position:relative;width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;overflow:hidden;
+.cd{position:relative;width:100%;max-width:430px;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
   background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
 @media(min-width:520px){.cd-outer{align-items:center;padding:20px 0;background:var(--outer-bg,#CFC8BC)}.cd{height:min(880px,calc(100vh - 40px));border-radius:38px;box-shadow:0 30px 80px rgba(0,0,0,.35)}}
 :where(.cd) button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
