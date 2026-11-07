@@ -9,13 +9,8 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.24";
+const APP_VERSION = "10.26";
 
-// DISPLAY CHECK (hidden: press and hold the version line in Settings). A small log of what the phone reports about its screen and the page
-// (sizes, safe areas, every resize or layout change), so a screen glitch can be matched to what the phone was doing. Nothing is sent or saved.
-const DIAG = { log: [], start: Date.now(), now: () => ({}) };
-const diagPush = (msg) => { DIAG.log.push({ t: Date.now(), msg }); if (DIAG.log.length > 150) DIAG.log.shift(); };
-let diagTimer = null;
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
 /* ════════════════ EXPORT (Excel) ════════════════ */
@@ -507,12 +502,7 @@ async function loadState() {
   }
 }
 async function saveState(s) {
-  try {
-    const t0 = performance.now(), json = JSON.stringify(s), t1 = performance.now();
-    await window.storage.set(STORAGE_KEY, json);
-    const t2 = performance.now();
-    if (t2 - t0 > 12) diagPush(`save took ${Math.round(t2 - t0)} ms (${Math.round(json.length / 1024)} KB, ${Math.round(t1 - t0)} ms of it preparing)`);   // a slow save can freeze the screen
-  } catch { /* storage unavailable: stay in memory */ }
+  try { await window.storage.set(STORAGE_KEY, JSON.stringify(s)); } catch { /* storage unavailable: stay in memory */ }
 }
 // ONE automatic backup, replaced every day: it is taken the first time the app opens each day, and it replaces the previous day's.
 // Today's copy is written first and only then are older ones removed, so there is never a moment with no backup.
@@ -1125,9 +1115,6 @@ const CSS = `
 .cd-timelist .cd-row+.cd-tod,.cd-timelist .cd-todempty+.cd-tod{border-top:1px solid var(--line);margin-top:2px}
 .cd-todempty{padding:20px 12px;margin:0 12px 8px;border:1.5px dashed var(--line);border-radius:var(--radius-md);font-size:13px;color:var(--muted);text-align:center}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
-html[data-fit="page"],html[data-fit="page"] body,html[data-fit="page"] #root{height:var(--app-h);overflow:hidden}
-html[data-fit="page"] body{position:relative;inset:auto}
-html[data-fit="page"] .cd-outer{position:absolute;inset:0;height:var(--app-h)}   /* the app lives in a page as tall as the screen (see Screen fit above) */
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
 .cd button,.cd select{touch-action:manipulation}
 .cd-nav{-webkit-backdrop-filter:blur(10px)}
@@ -2930,25 +2917,6 @@ function PlanTomorrow({ ctx, items, close }) {
   );
 }
 
-function DisplayCheck({ ctx, close }) {
-  const [, again] = useState(0);
-  const n = DIAG.now();
-  const t0 = Date.now();
-  const lines = [...DIAG.log].reverse().map((l) => `+${((l.t - DIAG.start) / 1000).toFixed(1)}s  ${l.msg}`);
-  const text = `Clear the Day ${APP_VERSION}\n` + Object.entries(n).map(([k, v]) => `${k}: ${v}`).join("\n") + `\n\nEvents (newest first, ${((t0 - DIAG.start) / 1000).toFixed(0)}s since the app opened):\n` + lines.join("\n");
-  const copy = async () => { try { await navigator.clipboard.writeText(text); ctx.toast("Copied"); } catch (e) { ctx.toast("Couldn’t copy. A screenshot works too"); } };
-  return (
-    <Sheet title="Display check" onClose={close}>
-      <div className="cd-hint" style={{ textAlign: "left", marginTop: 0 }}>For finding screen glitches. Nothing here is sent anywhere or saved. Take a screenshot of this, or tap Copy.</div>
-      <pre style={{ margin: "10px 0 0", padding: 12, background: "var(--panel)", borderRadius: 12, fontSize: 11.5, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "ui-monospace, Menlo, monospace", maxHeight: "48vh", overflowY: "auto" }}>{text}</pre>
-      <div className="cd-two2" style={{ marginTop: 12 }}>
-        <button className="cd-ghost" onClick={() => again((x) => x + 1)}>Refresh</button>
-        <button className="cd-ghost" onClick={copy}>Copy</button>
-      </div>
-    </Sheet>
-  );
-}
-
 function BackupSheet({ ctx, close }) {
   const [snaps, setSnaps] = useState(null);
   const [found] = useState(() => findStoredCandidates());
@@ -3117,12 +3085,7 @@ function Confetti({ big = false }) {
     cv.dataset.pieces = String(total); cv.dataset.volleys = String(volleys.length);
     const GRAV = 640, DRAG = 2.2;
     let raf = 0, last = performance.now(); const start = last;
-    let frames = 0, worst = 0, slow = 0;   // for the Display check: how smooth was this burst?
-    diagPush(`confetti starts (${big ? "big" : "small"}, ${total} pieces, canvas ${W}×${H} at ${dpr}x)`);
     const tick = (now) => {
-      const gap = now - last;
-      if (frames > 0) { worst = Math.max(worst, gap); if (gap > 60 && slow < 8) { slow++; diagPush(`slow frame: ${Math.round(gap)} ms during confetti (${parts.length} pieces alive)`); } }
-      frames++;
       const dt = Math.max(0, Math.min(0.034, (now - last) / 1000)); last = now;
       const t = Math.max(0, (now - start) / 1000);
       while (events.length && events[0].t <= t) events.shift().run();
@@ -3151,7 +3114,6 @@ function Confetti({ big = false }) {
       parts.length = n;
       cv.dataset.alive = String(n);
       if (events.length || parts.length || flashes.length) raf = requestAnimationFrame(tick);
-      else { const secs = Math.max(0.1, (now - start) / 1000); diagPush(`confetti done: ${frames} frames in ${secs.toFixed(1)}s = ${Math.round(frames / secs)} per second, worst gap ${Math.round(worst)} ms`); }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
@@ -3193,9 +3155,7 @@ function Settings({ ctx, themeId, close }) {
         <button className="cd-ghost" onClick={() => ctx.exportData()}><Download size={18} /> Export</button>
         <button className="cd-ghost" style={{ color: "var(--danger)" }} onClick={() => { ctx.resetData("empty"); close(); }}><Trash2 size={18} /> Clear all</button>
       </div>
-      <div className="cd-version" style={{ WebkitTouchCallout: "none", userSelect: "none" }}
-        onPointerDown={() => { clearTimeout(diagTimer); diagTimer = setTimeout(() => ctx.setSheet({ type: "diag" }), 800); }}
-        onPointerUp={() => clearTimeout(diagTimer)} onPointerLeave={() => clearTimeout(diagTimer)} onPointerCancel={() => clearTimeout(diagTimer)}>Clear the Day · Version {APP_VERSION}</div>
+      <div className="cd-version">Clear the Day · Version {APP_VERSION}</div>
     </Sheet>
   );
 }
@@ -3285,93 +3245,6 @@ export default function App() {
     setState((st) => { const x = withDefault(st); return x.def === st.defaultCategory && x.cats.length === (st.categories || []).length ? st : { ...st, categories: x.cats, defaultCategory: x.def }; });
   }, [state && state.categories, state && state.defaultCategory]);
 
-  // SCREEN FIT. In the installed iPhone app with the see-through status bar, the phone can report the page as shorter than the screen
-  // (by the height of the status bar), which would leave an empty band under the tab bar, and it cuts off a fixed layout at that line.
-  // So, in exactly that situation (installed, upright, a top margin exists), the app lives in a page as tall as the screen.
-  // iPhone does not always announce a change in that height (waking the phone, coming back from another app), so after launch and after each
-  // of those events the check repeats for a few seconds, then STOPS: a check that kept running forever made the bottom of the screen blink on
-  // a real iPhone (a blank strip about every 1.6 s). It only switches back after three misses in a row, so it can't flicker.
-  useEffect(() => {
-    const root = document.documentElement;
-    try { localStorage.removeItem("ctd:fit"); } catch (e) { /* storage unavailable */ }   // a choice an earlier test version remembered
-    const probe = document.createElement("div");
-    probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top)";
-    document.body.appendChild(probe);
-    let misses = 0, timer = null, ticks = 0;
-    const fit = () => {
-      const top = parseFloat(getComputedStyle(probe).paddingTop) || 0, scr = (window.screen && window.screen.height) || 0, inner = window.innerHeight;
-      const upright = inner > window.innerWidth, installed = window.navigator.standalone === true;
-      if (installed && upright && top > 0 && scr > inner) {
-        misses = 0;
-        if (root.getAttribute("data-fit") !== "page" || root.style.getPropertyValue("--app-h") !== scr + "px") { root.setAttribute("data-fit", "page"); root.style.setProperty("--app-h", scr + "px"); }
-      } else if (++misses >= 3) { root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); }
-    };
-    // watch(): check now, and keep checking every 0.8 s for about 6 s (the phone can report the new height a moment late), then stop
-    const stop = () => { clearInterval(timer); timer = null; };
-    const watch = () => { ticks = 0; fit(); if (!timer) timer = setInterval(() => { fit(); if (++ticks >= 8) stop(); }, 800); };
-    watch();
-    const vv = window.visualViewport;
-    const once = ["resize"], again = ["orientationchange", "pageshow", "focus"];
-    once.forEach((e) => window.addEventListener(e, fit));
-    again.forEach((e) => window.addEventListener(e, watch));
-    document.addEventListener("visibilitychange", watch);
-    if (vv) vv.addEventListener("resize", fit);
-    return () => { stop(); once.forEach((e) => window.removeEventListener(e, fit)); again.forEach((e) => window.removeEventListener(e, watch)); document.removeEventListener("visibilitychange", watch); if (vv) vv.removeEventListener("resize", fit); probe.remove(); root.removeAttribute("data-fit"); root.style.removeProperty("--app-h"); };
-  }, []);
-
-  // DISPLAY CHECK recorder (see DIAG at the top). It only listens; it never changes anything on screen.
-  useEffect(() => {
-    const root = document.documentElement;
-    const mk = (side) => { const d = document.createElement("div"); d.style.cssText = `position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-${side}:env(safe-area-inset-${side})`; document.body.appendChild(d); return d; };
-    const pt = mk("top"), pb = mk("bottom");
-    const px = (el, side) => Math.round(parseFloat(getComputedStyle(el)["padding" + side]) || 0);
-    const box = (sel) => { const el = document.querySelector(sel); return el ? `${el.clientWidth}×${el.clientHeight}` : "-"; };
-    const now = () => {
-      const vv = window.visualViewport;
-      return {
-        "page (inner)": `${window.innerWidth}×${window.innerHeight}`,
-        "screen": `${window.screen.width}×${window.screen.height}`,
-        "visual viewport": vv ? `${Math.round(vv.width)}×${Math.round(vv.height)}, top ${Math.round(vv.offsetTop)}, scale ${vv.scale}` : "none",
-        "safe area": `top ${px(pt, "Top")}, bottom ${px(pb, "Bottom")}`,
-        "app (outer / inner)": `${box(".cd-outer")} / ${box(".cd")}`,
-        "screen fit": root.getAttribute("data-fit") ? `on (${root.style.getPropertyValue("--app-h")})` : "off",
-        "installed": window.navigator.standalone === true ? "yes" : "no",
-        "page scrolled": String(window.scrollY),
-        "phone": (navigator.userAgent.match(/OS ([\d_]+)/) || [])[1] ? "iOS " + navigator.userAgent.match(/OS ([\d_]+)/)[1].replace(/_/g, ".") : "not iOS",
-      };
-    };
-    DIAG.now = now;
-    const short = () => { const n = now(); return `page ${n["page (inner)"]} · visual ${n["visual viewport"]} · app ${n["app (outer / inner)"]} · fit ${n["screen fit"]}`; };
-    diagPush("start · " + short());
-    const vv = window.visualViewport;
-    const ev = (name) => () => diagPush(name + " · " + short());
-    const wins = ["resize", "orientationchange", "pageshow", "pagehide", "focus", "blur"];
-    const handlers = wins.map((n) => [n, ev(n)]);
-    handlers.forEach(([n, h]) => window.addEventListener(n, h));
-    const visH = () => diagPush("visibility " + document.visibilityState + " · " + short());
-    document.addEventListener("visibilitychange", visH);
-    const vvH = [["vv-resize", ev("visual-viewport resize")], ["vv-scroll", ev("visual-viewport scroll")]];
-    if (vv) { vv.addEventListener("resize", vvH[0][1]); vv.addEventListener("scroll", vvH[1][1]); }
-    // layout changes of the page and the app boxes
-    const seen = new Map();
-    const ro = typeof ResizeObserver === "function" ? new ResizeObserver((entries) => {
-      entries.forEach((e) => { const k = e.target.className || e.target.id || e.target.tagName; const v = `${Math.round(e.contentRect.width)}×${Math.round(e.contentRect.height)}`; if (seen.get(e.target) !== v) { seen.set(e.target, v); diagPush(`size ${String(k).split(" ")[0]} → ${v}`); } });
-    }) : null;
-    const watched = new Set();
-    const attach = () => { if (!ro) return; [root, document.body, document.getElementById("root"), document.querySelector(".cd-outer"), document.querySelector(".cd")].forEach((el) => { if (el && !watched.has(el)) { watched.add(el); ro.observe(el); } }); };
-    attach();
-    const lateAttach = [500, 2000, 6000].map((ms) => setTimeout(attach, ms));
-    const mo = typeof MutationObserver === "function" ? new MutationObserver(() => diagPush("screen-fit attribute changed · " + short())) : null;
-    if (mo) mo.observe(root, { attributes: true, attributeFilter: ["data-fit", "style"] });
-    return () => {
-      handlers.forEach(([n, h]) => window.removeEventListener(n, h));
-      document.removeEventListener("visibilitychange", visH);
-      if (vv) { vv.removeEventListener("resize", vvH[0][1]); vv.removeEventListener("scroll", vvH[1][1]); }
-      if (ro) ro.disconnect(); if (mo) mo.disconnect(); lateAttach.forEach(clearTimeout);
-      pt.remove(); pb.remove();
-    };
-  }, []);
-
   // The page must never move under your finger. A swipe is only allowed to do something when it lands on something that can scroll
   // (the lists, a sheet, a text box) and only in a direction it can still scroll. Anywhere else (the header, the tab bar, the end
   // of a list) it is swallowed, so the whole window can't be pulled or bounce, and the header and bars stay put.
@@ -3404,6 +3277,8 @@ export default function App() {
     if (!vv) return;
     let closeTimer = null, open = false;
     // the keyboard can only be up while you are typing in a text box
+    let watchdog = null;   // the half-second look only exists while the layout thinks the keyboard is up
+    const watch = (on) => { if (on && !watchdog) watchdog = setInterval(() => f(), 500); else if (!on && watchdog) { clearInterval(watchdog); watchdog = null; } };
     const typing = () => {
       const el = document.activeElement;
       if (!el) return false;
@@ -3421,14 +3296,13 @@ export default function App() {
       const isOpen = typing() && vv.scale < 1.05 && kbh > 120 && kbh < window.innerHeight * 0.7 && covered;
       if (window.scrollY) window.scrollTo(0, 0);   // the page itself must never scroll
       clearTimeout(closeTimer);
-      if (isOpen) { open = true; setVvh(kbh); }
-      else { open = false; setVvh(null); }          // back to normal straight away, with no blank gap
+      if (isOpen) { open = true; setVvh(kbh); watch(true); }
+      else { open = false; setVvh(null); watch(false); }          // back to normal straight away, with no blank gap
     };
     f();
     // The phone does not always say when the keyboard goes away, so also look again whenever focus moves, the app comes back,
-    // the screen turns, and every half second while the layout thinks the keyboard is up (so it can never stay stuck).
+    // the screen turns, and every half second while (and only while) the layout thinks the keyboard is up, so it can never stay stuck.
     const later = () => { setTimeout(f, 60); setTimeout(f, 400); };
-    const watchdog = setInterval(() => { if (open) f(); }, 500);
     vv.addEventListener("resize", f);
     vv.addEventListener("scroll", f);
     document.addEventListener("focusin", later, true);
@@ -3438,7 +3312,7 @@ export default function App() {
     window.addEventListener("orientationchange", later);
     window.addEventListener("resize", f);
     return () => {
-      clearTimeout(closeTimer); clearInterval(watchdog);
+      clearTimeout(closeTimer); if (watchdog) clearInterval(watchdog);
       vv.removeEventListener("resize", f); vv.removeEventListener("scroll", f);
       document.removeEventListener("focusin", later, true); document.removeEventListener("focusout", later, true);
       document.removeEventListener("visibilitychange", f); window.removeEventListener("pageshow", f);
@@ -3795,7 +3669,6 @@ export default function App() {
         {sheet?.type === "cats" && <CatManager ctx={ctx} items={items} close={close} />}
       {sheet?.type === "delcat" && <DeleteCategory ctx={ctx} items={items} name={sheet.name} close={close} />}
         {sheet?.type === "backup" && <BackupSheet ctx={ctx} close={close} />}
-        {sheet?.type === "diag" && <DisplayCheck ctx={ctx} close={close} />}
         {burst ? <Confetti key={burst.id} big={burst.big} /> : null}
         {toastMsg && (
           <div className={"cd-toast" + (toastMsg.a ? " act" : "")} role="status">

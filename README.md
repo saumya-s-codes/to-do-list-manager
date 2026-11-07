@@ -118,9 +118,7 @@ If a build fails with `Rollup failed to resolve import "/src/main.jsx"`, a file 
 
 Open the site in Safari, tap **Share, Add to Home Screen**. The app runs full screen with a see-through status bar (`apple-mobile-web-app-status-bar-style` in `index.html`) and its own icon and launch images (`public/`). iPhone reads these when the app is first added, so after changing them (the icon, the status bar, the launch images), back up your data, delete the Home Screen app, add it again, and restore.
 
-With the see-through status bar, some iPhones report the page as shorter than the screen by the height of the status bar. The app notices exactly that situation and uses a page as tall as the screen, so the tab bar sits at the bottom. This is the `Screen fit` effect near the top of `App`. It checks at launch and after anything that could change the height (waking the phone, coming back from another app, rotating), keeps checking for about 6 seconds, then stops, so nothing repeats while you use the app.
-
-**Display check (for diagnosing screen glitches).** Press and hold the version line at the bottom of Settings to open a hidden panel showing what the phone reports about its screen (page size, safe areas, visual viewport), a log of every resize and layout change, how smooth each confetti burst was, and any slow frame or slow save. Nothing in it is saved or sent anywhere; **Copy** puts it on the clipboard so it can be pasted into a chat.
+With the see-through status bar, some iPhones report the page as shorter than the screen by the height of the status bar. The app doesn't try to correct for it (earlier versions did, and the correction made the bottom of the screen blink). Instead the page behind the app is painted in the tab bar's own color, so if the phone leaves a strip under the tab bar it simply looks like a little extra space below it.
 
 ## Your data
 

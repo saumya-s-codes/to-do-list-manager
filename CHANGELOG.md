@@ -1,5 +1,15 @@
 # Changelog
 
+## 10.26
+- **The screen-fit workaround is gone.** The app no longer measures the screen or stretches the page to make up for the phone reporting it as shorter than it is. That stretching is what made the bottom 62 points of the screen blink and slice the tab bar. Now the app just uses the page the phone gives it, and the page behind it is painted in the tab bar's own color, so if the phone leaves a strip under the tab bar, it simply looks like a little extra space. The tab bar can sit slightly higher than before on phones that report the shorter page.
+- **The hidden Display check is gone**, along with the logging behind it (the screen log, confetti smoothness and slow-save timing). It did its job: it was only there to track this glitch down.
+- **Fewer things running in the background.** The only repeating timer left in the app is the once-a-minute check for a new day. The keyboard watcher now exists only while the keyboard is up.
+- Confetti keeps its lighter drawing from 10.24.
+
+## 10.25
+- **The screen-fit check no longer repeats at all.** It measures once at launch (plus one follow-up about a second later, in case the phone reports its height late) and once each time you wake the phone or come back to the app. Nothing measures while you use the app. In a screen recording, the bottom 62 points of the screen blanked briefly, slicing the tab bar, only while those checks were running, so every extra check was the suspect. The screen-fit behavior itself is unchanged.
+- **Display check shows more.** It now logs every screen-fit check with its time, so a blink can be matched to a check, and it shows how the CSS height units (100vh, 100lvh, 100dvh, 100svh) come out on your phone.
+
 ## 10.24
 - **Lighter confetti.** The confetti is drawn at a lower resolution (1.5x instead of 2x, still sharp) and each piece is drawn in one step instead of several, so bursts run smoother on the phone. The burst for a finished task is a little smaller, about 130 pieces instead of 200. Clearing the day or finishing Plan tomorrow is unchanged, about 580.
 - **Display check logs more.** It now records how smooth each confetti burst was (updates per second and the longest pause), any single slow frame, and any slow save of your tasks, so a stutter can be traced to what caused it.
