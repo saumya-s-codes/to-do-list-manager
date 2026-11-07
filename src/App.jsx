@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.26";
+const APP_VERSION = "10.27";
 
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
