@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.28";
+const APP_VERSION = "10.29";
 
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
@@ -1001,9 +1001,10 @@ const CSS = `
 .cd-todempty{padding:20px 12px;margin:0 12px 8px;border:1.5px dashed var(--line);border-radius:var(--radius-md);font-size:13px;color:var(--muted);text-align:center}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
-/* In the installed iPhone app the phone can report the page as shorter than the screen (by the status bar's height), which left the tab bar floating above the bottom.
-   This is a plain style rule, with no code or timers: the app takes the tallest height the phone offers. Where all the heights agree it changes nothing. */
-@media all and (display-mode: standalone){.cd-outer{inset:0 0 auto 0;height:max(100%,100vh,100lvh,100dvh)}}
+/* In the installed iPhone app the phone only lets the page paint down to 62 points above the bottom of the screen (stretching the page past that
+   line makes the part beyond it disappear, which cut the tab labels off in 10.27). So the app lives inside that area, and the tab bar doesn't
+   reserve room for the home-indicator line, which sits down in the strip the page can't reach. Plain styling: no code, no measuring. */
+@media all and (display-mode: standalone){.cd-nav{padding-bottom:10px}}
 .cd button,.cd select{touch-action:manipulation}
 .cd-nav{-webkit-backdrop-filter:blur(10px)}
 .cd-scroll{animation:cd-fade .18s ease-out}
