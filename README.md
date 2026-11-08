@@ -116,9 +116,9 @@ If a build fails with `Rollup failed to resolve import "/src/main.jsx"`, a file 
 
 ## Installing on an iPhone
 
-Open the site in Safari, tap **Share, Add to Home Screen**. The app runs full screen with a see-through status bar (`apple-mobile-web-app-status-bar-style` in `index.html`) and its own icon and launch images (`public/`). iPhone reads these when the app is first added, so after changing them (the icon, the status bar, the launch images), back up your data, delete the Home Screen app, add it again, and restore.
+Open the site in Safari, tap **Share, Add to Home Screen** (leave **Open as Web App** on if it is shown). The app runs full screen with the default status bar (`apple-mobile-web-app-status-bar-style` in `index.html`): the clock and battery sit on their own strip, and the app starts below it and runs to the bottom of the screen. It has its own icon (`public/`) and a `manifest.webmanifest`. iPhone reads these when the app is first added, so after changing any of them (the icon, the manifest, the status bar style), back up your data, delete the Home Screen app, add it again, and restore.
 
-With the see-through status bar, some iPhones report the page as shorter than the screen by the height of the status bar, which left the tab bar floating above the bottom. In the installed app, one style rule (near the top of the stylesheet's page rules, in `App.jsx`) gives the app the tallest height the phone offers. It is only a style rule: no code measures the screen and there are no timers (earlier versions measured the screen, and that made the bottom of the screen blink). Where all the heights agree it changes nothing, and it doesn't apply in a normal Safari tab. The page behind the app is painted in the tab bar's own color.
+Why the status bar is `default` and not `black-translucent`: with the see-through style the app drew behind the clock, but on recent iPhones iOS then reported the page 62 points shorter than the screen (the height of the status bar) and only painted down to that line, which left a gap under the tab bar. Anything stretched past that line was cut off, and measuring the screen with code made it blink. The default status bar has none of that, and it is what the Meal Loop app uses. There are no launch pictures (startup images) either: they are optional and weren't showing.
 
 ## Your data
 
@@ -142,11 +142,11 @@ The storage layer is in `src/storage.js`. The app was first built to run as a Cl
 
 ```
 clear-the-deck/
-├── index.html          # page, icons, launch images, status bar style
+├── index.html          # page, icons, status bar style
 ├── package.json
 ├── vite.config.js
 ├── .github/workflows/deploy.yml
-├── public/             # favicon, app icons, manifest, launch images (splash/)
+├── public/             # favicon, app icons, manifest.webmanifest
 └── src/
     ├── main.jsx        # entry point
     ├── storage.js      # localStorage version of window.storage

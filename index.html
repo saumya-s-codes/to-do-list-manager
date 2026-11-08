@@ -6,8 +6,9 @@
     <meta name="theme-color" content="#FBF3E3" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Clear the Day" />
-    <!-- "black-translucent": the app draws behind the status bar (clock and battery), so that strip is the app's own cream instead of the phone's white -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- "default": the clock and battery sit on their own strip and the app starts below it and runs to the bottom of the screen.
+         ("black-translucent" drew the app behind the clock, but iOS then reported the page 62 points short, which left a gap under the tab bar.) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="description" content="Clear the Day: capture, sort, and clear your tasks." />
     <!-- Fonts start downloading now, in parallel with the app's code -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -22,18 +23,6 @@
     <link rel="icon" type="image/png" href="./favicon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-    <!-- Launch pictures: a soft-white screen while the app starts, instead of plain white (one per iPhone screen size) -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-1320x2868.png" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />  <!-- iPhone 16 Pro Max / 17 Pro Max -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-1206x2622.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />  <!-- iPhone 16 Pro / 17 / 17 Pro -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />  <!-- iPhone 16 Plus / 15 Plus / 15 Pro Max / 14 Pro Max -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />  <!-- iPhone 16 / 15 / 15 Pro / 14 Pro -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />  <!-- iPhone 14 Plus / 13 Pro Max / 12 Pro Max -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />  <!-- iPhone 14 / 13 / 13 Pro / 12 / 12 Pro -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />  <!-- iPhone 13 mini / 12 mini / 11 Pro / XS / X -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />  <!-- iPhone 11 Pro Max / XS Max -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />  <!-- iPhone 11 / XR -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />  <!-- iPhone 8 Plus -->
-    <link rel="apple-touch-startup-image" href="./splash/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />  <!-- iPhone SE (2nd, 3rd gen) / 8 -->
     <title>Clear the Day</title>
     <style>
       html, body, #root { margin: 0; height: 100%; }

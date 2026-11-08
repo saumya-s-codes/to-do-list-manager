@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.29";
+const APP_VERSION = "10.30";
 
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
@@ -699,7 +699,7 @@ const CSS = `
 .cd-reorder-hint{font-size:12.5px;color:var(--muted);margin:-2px 0 4px}
 
 /* page header: a fixed bar above the scrolling area (like the nav below it), the same size on every page */
-/* With the translucent status bar (index.html), the page draws behind the clock and battery. This strip fills that area. */
+/* If the page ever draws behind the clock and battery (a translucent status bar in index.html), this strip fills that area. With the default status bar it is 0 tall. */
 .cd::before{content:"";position:absolute;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--safe-bg,var(--eve-bg,var(--btn-bg)));z-index:6;pointer-events:none}
 .cd-headcard{position:relative;flex:none;z-index:4;display:flex;flex-direction:column;justify-content:center;min-height:104px;padding:var(--head-pad-top,calc(18px + env(safe-area-inset-top))) 20px 12px;margin:var(--head-margin,0);border-radius:var(--head-radius,0);
   background:var(--bar-stripe,none) no-repeat left bottom / 100% 4px,var(--eve-bg,var(--btn-bg));color:var(--eve-ink,var(--btn-ink));box-shadow:var(--shadow)}
@@ -1001,10 +1001,6 @@ const CSS = `
 .cd-todempty{padding:20px 12px;margin:0 12px 8px;border:1.5px dashed var(--line);border-radius:var(--radius-md);font-size:13px;color:var(--muted);text-align:center}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
-/* In the installed iPhone app the phone only lets the page paint down to 62 points above the bottom of the screen (stretching the page past that
-   line makes the part beyond it disappear, which cut the tab labels off in 10.27). So the app lives inside that area, and the tab bar doesn't
-   reserve room for the home-indicator line, which sits down in the strip the page can't reach. Plain styling: no code, no measuring. */
-@media all and (display-mode: standalone){.cd-nav{padding-bottom:10px}}
 .cd button,.cd select{touch-action:manipulation}
 .cd-nav{-webkit-backdrop-filter:blur(10px)}
 .cd-scroll{animation:cd-fade .18s ease-out}

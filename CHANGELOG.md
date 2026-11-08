@@ -1,5 +1,15 @@
 # Changelog
 
+## 10.30
+- **The tab bar reaches the bottom of the screen properly.** The cause was one line in `index.html`: the status bar was set to "black-translucent", which draws the app behind the clock. On this phone, iOS then reported the page 62 points too short and only painted down to that line, which is what left the gap, the blinking, and the cut-off labels in earlier versions. It is now the default status bar, like the Meal Loop app: the clock sits on its own strip, and the app starts below it and runs to the bottom. **This needs `index.html` replaced, and the app deleted from the Home Screen and added again** (back up first).
+- **The tab bar's extra trim from 10.29 is removed**, since the page now reaches the bottom and the tab bar gets its normal room for the home-indicator line again.
+- **The launch pictures are gone** (11 links in `index.html`). They were optional and weren't showing. The `public/splash/` folder can be deleted.
+- Until the app is added again, it keeps the old look (tab bar a little high), because iPhone only reads the status bar setting when the app is added.
+
+## 10.29
+- **The 10.27 stretch is removed.** It made the tab bar's labels get cut off at the bottom: on this phone the installed app can only paint down to 62 points above the bottom of the screen, and a page stretched past that line is clipped. That also explains the earlier blinking, so stretching the page is ruled out for good.
+- **The tab bar now fits the area the phone lets the app use.** In the installed app only, it no longer reserves room for the home-indicator line, which sits in the strip the page can't reach. That brings the tab bar about 34 points lower than 10.26, with every label fully visible. In a normal Safari tab nothing changes. It is a single style rule, with no code or timers.
+
 ## 10.28
 - **Export is gone.** Settings no longer has an Export button, and the code that built the Excel file is removed. It saved a spreadsheet that the app can't read back, which is easy to mistake for a backup. **Back up & restore** is now the only way to save a copy, and it's unchanged. **Clear all** now sits on its own line, full width.
 - **A clearer message when Restore gets the wrong file.** Choosing anything other than the `.json` backup (a spreadsheet, for example) now says "That isn't a Clear the Day backup. Choose clear-the-day-backup.json" instead of "Couldn't read that file".
