@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.30";
+const APP_VERSION = "10.31";
 
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
@@ -388,8 +388,17 @@ async function loadState() {
     return { state: null };   // nothing saved yet
   }
 }
+// If the phone refuses to keep the data, say so (once per launch) instead of failing silently: everything would look fine and be gone next time.
+const SAVE = { onFail: null, told: false };
 async function saveState(s) {
-  try { await window.storage.set(STORAGE_KEY, JSON.stringify(s)); } catch { /* storage unavailable: stay in memory */ }
+  try {
+    const json = JSON.stringify(s);
+    await window.storage.set(STORAGE_KEY, json);
+    const back = await window.storage.get(STORAGE_KEY);   // read it back: was it really stored?
+    if (!back || back.value !== json) throw new Error("not stored");
+  } catch {
+    if (!SAVE.told && SAVE.onFail) { SAVE.told = true; SAVE.onFail(); }
+  }
 }
 // ONE automatic backup, replaced every day: it is taken the first time the app opens each day, and it replaces the previous day's.
 // Today's copy is written first and only then are older ones removed, so there is never a moment with no backup.
@@ -3228,6 +3237,12 @@ export default function App() {
       }
     })();
     return () => { alive = false; };
+  }, []);
+
+  // Warn if saving ever fails
+  useEffect(() => {
+    SAVE.onFail = () => { setToastMsg({ m: "Your changes can’t be saved on this phone right now. Use Settings, Back up & restore, Download a backup so nothing is lost." }); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToastMsg(null), 12000); };
+    return () => { SAVE.onFail = null; };
   }, []);
 
   // Save shortly after the last change, so a burst of edits (drag-reorders, rapid taps) is one write

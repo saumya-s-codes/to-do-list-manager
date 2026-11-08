@@ -135,6 +135,7 @@ Tasks are saved in your browser's `localStorage` on the device you use. Nothing 
 - **Never change `STORAGE_KEY`** in `src/App.jsx` (it's `clear-the-deck:v4`), and don't change how `src/storage.js` names keys. Either change makes existing data look lost, because the app looks for it in a new place. If the shape of the saved data changes, migrate it when loading instead. An optional check script, `scripts/check-storage.mjs`, confirms this before a release; the app doesn't need it to run.
 - **Don't overwrite `src/storage.js` or `src/App.jsx` wholesale** when updating from another source without comparing them first (`git diff`).
 - If saved data exists but can't be read, the app shows a message and won't save until it loads, so it can't overwrite recoverable data.
+- After every save the app reads the data back to check it was really stored. If the phone refuses to keep it (or pretends to and keeps nothing), the app says so once per launch and points to **Download a backup**, instead of failing silently.
 
 The storage layer is in `src/storage.js`. The app was first built to run as a Claude artifact, which provides its own `window.storage`; this file gives the same small API in a normal browser.
 

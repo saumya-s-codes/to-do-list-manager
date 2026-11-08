@@ -1,5 +1,8 @@
 # Changelog
 
+## 10.31
+- **The app now warns you if your changes can't be saved.** Before, a failed save was silent: everything looked fine, and the data was gone the next time the app opened. After each save the app now reads the data back to confirm it was really stored. If the phone refuses to keep it, or pretends to and keeps nothing, a message appears (once per launch) pointing you to Back up & restore, Download a backup. Nothing changes when saving works.
+
 ## 10.30
 - **The tab bar reaches the bottom of the screen properly.** The cause was one line in `index.html`: the status bar was set to "black-translucent", which draws the app behind the clock. On this phone, iOS then reported the page 62 points too short and only painted down to that line, which is what left the gap, the blinking, and the cut-off labels in earlier versions. It is now the default status bar, like the Meal Loop app: the clock sits on its own strip, and the app starts below it and runs to the bottom. **This needs `index.html` replaced, and the app deleted from the Home Screen and added again** (back up first).
 - **The tab bar's extra trim from 10.29 is removed**, since the page now reaches the bottom and the tab bar gets its normal room for the home-indicator line again.
