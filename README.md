@@ -118,7 +118,7 @@ If a build fails with `Rollup failed to resolve import "/src/main.jsx"`, a file 
 
 Open the site in Safari, tap **Share, Add to Home Screen**. The app runs full screen with a see-through status bar (`apple-mobile-web-app-status-bar-style` in `index.html`) and its own icon and launch images (`public/`). iPhone reads these when the app is first added, so after changing them (the icon, the status bar, the launch images), back up your data, delete the Home Screen app, add it again, and restore.
 
-With the see-through status bar, some iPhones report the page as shorter than the screen by the height of the status bar. The app doesn't try to correct for it (earlier versions did, and the correction made the bottom of the screen blink). Instead the page behind the app is painted in the tab bar's own color, so if the phone leaves a strip under the tab bar it simply looks like a little extra space below it.
+With the see-through status bar, some iPhones report the page as shorter than the screen by the height of the status bar, which left the tab bar floating above the bottom. In the installed app, one style rule (near the top of the stylesheet's page rules, in `App.jsx`) gives the app the tallest height the phone offers. It is only a style rule: no code measures the screen and there are no timers (earlier versions measured the screen, and that made the bottom of the screen blink). Where all the heights agree it changes nothing, and it doesn't apply in a normal Safari tab. The page behind the app is painted in the tab bar's own color.
 
 ## Your data
 
@@ -130,7 +130,7 @@ Tasks are saved in your browser's `localStorage` on the device you use. Nothing 
 
 ### Keeping your data safe
 
-- **Back up regularly:** Settings, **Back up & restore** downloads a JSON backup you can restore later (it includes your categories, their colors, the default category and your settings), and **Settings, Export** gives you an Excel copy.
+- **Back up regularly:** Settings, **Back up & restore** downloads a JSON backup you can restore later (it includes your categories, their colors, the default category and your settings). The file is always named `clear-the-day-backup.json`, and it is the only kind of file **Restore from a backup file** accepts (a spreadsheet or any other file gets a message saying so).
 - **Automatic snapshots:** the app saves one snapshot per day (the last 7 are kept). Restore one from Settings, Back up & restore.
 - **Never change `STORAGE_KEY`** in `src/App.jsx` (it's `clear-the-deck:v4`), and don't change how `src/storage.js` names keys. Either change makes existing data look lost, because the app looks for it in a new place. If the shape of the saved data changes, migrate it when loading instead. An optional check script, `scripts/check-storage.mjs`, confirms this before a release; the app doesn't need it to run.
 - **Don't overwrite `src/storage.js` or `src/App.jsx` wholesale** when updating from another source without comparing them first (`git diff`).
@@ -153,7 +153,7 @@ clear-the-deck/
     └── App.jsx         # the whole app: the looks, styles, views, logic, pictures
 ```
 
-`App.jsx` is one large file on purpose, in this order: Excel export, the looks (themes), helpers, styles, shared components, then one section per screen (Today, Inbox, Future, Radar, Plan tomorrow, Dashboard, the sheets, the app itself). Search for the section banners (for example `TODAY`, `INBOX`, `PLAN TOMORROW`) to jump around. The pictures are embedded in it as images, so there are no separate image files to keep in step.
+`App.jsx` is one large file on purpose, in this order: saving a file, the looks (themes), helpers, styles, shared components, then one section per screen (Today, Inbox, Future, Radar, Plan tomorrow, Dashboard, the sheets, the app itself). Search for the section banners (for example `TODAY`, `INBOX`, `PLAN TOMORROW`) to jump around. The pictures are embedded in it as images, so there are no separate image files to keep in step.
 
 ### Changing a look
 

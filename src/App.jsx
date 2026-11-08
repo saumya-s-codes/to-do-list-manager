@@ -1,7 +1,7 @@
 /**
  * Clear the Day: a mobile-first task app (Today, Inbox, Future, Watching, Dashboard, Completed)
  * with six themes. Everything lives in this one file on purpose: themes, styles, views and logic.
- * Data is saved in the browser (see storage.js), and can be exported to Excel from Settings.
+ * Data is saved in the browser (see storage.js), and can be backed up and restored from Settings.
  */
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
@@ -13,115 +13,9 @@ const APP_VERSION = "10.28";
 
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
-/* ════════════════ EXPORT (Excel) ════════════════ */
-const HEADERS = ["Title", "List", "Category", "Effort", "Impact", "Matrix", "Due date", "Created", "Completed", "Completed from"];
-const WIDTHS = [46, 12, 14, 10, 10, 16, 12, 12, 12, 16];
-const LISTS = ["Today", "Inbox", "Future", "Someday", "Watching", "Done"];
-const QUAD = { "quick-high": "Quick Wins", "deep-high": "Major Focus", "quick-low": "Admin / Fillers", "deep-low": "Deferral" };
-const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : "");
-const day = (ms) => (ms ? new Date(ms).toLocaleDateString("en-CA") : "");   // yyyy-mm-dd, local time
+const listName = (s) => ({ today: "Today", inbox: "Inbox", watching: "Watching", future: "Future" }[s] || "");   // for the "Back in …" message
 
-function listOf(i) {
-  if (i.status === "done") return "Done";
-  if (i.status === "today") return "Today";
-  if (i.status === "inbox") return "Inbox";
-  if (i.status === "watching") return "Watching";
-  return i.someday ? "Someday" : "Future";
-}
-const listName = (s) => ({ today: "Today", inbox: "Inbox", watching: "Watching", future: "Future" }[s] || "");
-
-function toRow(i) {
-  const quad = i.effort && i.impact ? QUAD[`${i.effort}-${i.impact}`] || "" : "";
-  const from = i.status === "done" ? (i.someday && i.doneFrom === "future" ? "Someday" : listName(i.doneFrom)) : "";
-  return [i.title || "", listOf(i), i.category || "", cap(i.effort), cap(i.impact), quad, i.due || "", day(i.createdAt), day(i.doneAt), from];
-}
-
-// Today and Watching follow the order you set; the rest keep their saved order
-function ordered(items) {
-  const pos = (i, k) => (i[k] == null ? 1e9 : i[k]);
-  return [...items].sort((a, b) => {
-    if (a.status === "today" && b.status === "today") return pos(a, "pos") - pos(b, "pos");
-    if (a.status === "watching" && b.status === "watching") return pos(a, "wpos") - pos(b, "wpos");
-    return 0;
-  });
-}
-
-function buildTables(items) {
-  const all = ordered(items);
-  const byList = {};
-  LISTS.forEach((l) => { byList[l] = all.filter((i) => listOf(i) === l).map(toRow); });
-  const flat = [];
-  LISTS.forEach((l) => flat.push(...byList[l]));
-  return { all: flat, byList };
-}
-
-/* ───────────── a tiny zip writer (files stored uncompressed), so no extra library is needed ───────────── */
-const CRC_TABLE = (() => {
-  const t = new Uint32Array(256);
-  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
-  return t;
-})();
-const crc32 = (b) => { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = CRC_TABLE[(c ^ b[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
-function zipParts(files) {   // files: [{ name, data: Uint8Array }] -> array of pieces for a Blob
-  const enc = new TextEncoder();
-  const locals = [], centrals = [];
-  let offset = 0;
-  for (const f of files) {
-    const name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
-    const lh = new DataView(new ArrayBuffer(30));
-    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
-    lh.setUint16(12, 33, true); lh.setUint32(14, crc, true); lh.setUint32(18, size, true); lh.setUint32(22, size, true); lh.setUint16(26, name.length, true);
-    const ch = new DataView(new ArrayBuffer(46));
-    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
-    ch.setUint16(14, 33, true); ch.setUint32(16, crc, true); ch.setUint32(20, size, true); ch.setUint32(24, size, true); ch.setUint16(28, name.length, true); ch.setUint32(42, offset, true);
-    locals.push(new Uint8Array(lh.buffer), name, f.data);
-    centrals.push(new Uint8Array(ch.buffer), name);
-    offset += 30 + name.length + size;
-  }
-  const end = new DataView(new ArrayBuffer(22));
-  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
-  end.setUint32(12, centrals.reduce((n, a) => n + a.length, 0), true); end.setUint32(16, offset, true);
-  return [...locals, ...centrals, new Uint8Array(end.buffer)];
-}
-
-/* ───────────── XLSX (written by hand: a zip of small XML files) ───────────── */
-const esc = (s) => String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-const colName = (n) => { let s = ""; for (n += 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s; return s; };
-
-function sheetXml(rows) {
-  const cols = WIDTHS.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("");
-  const data = [HEADERS, ...rows].map((r, ri) => {
-    const cells = r.map((v, ci) => {
-      const ref = colName(ci) + (ri + 1);
-      if (v === "" || v == null) return "";
-      return `<c r="${ref}" t="inlineStr"${ri === 0 ? ' s="1"' : ""}><is><t xml:space="preserve">${esc(v)}</t></is></c>`;
-    }).join("");
-    return `<row r="${ri + 1}">${cells}</row>`;
-  }).join("");
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${cols}</cols><sheetData>${data}</sheetData></worksheet>`;
-}
-
-async function toXlsxBlob(items) {
-  const { all, byList } = buildTables(items);
-  const sheets = [["All items", all], ...LISTS.map((l) => [l, byList[l]])];
-  const parts = [];
-  const addFile = (name, text) => parts.push({ name, data: new TextEncoder().encode(text) });
-  addFile("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`);
-  addFile("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
-  addFile("xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map(([n], i) => `<sheet name="${esc(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets></workbook>`);
-  addFile("xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
-  addFile("xl/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEFE0CD"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`);
-  sheets.forEach(([, rows], i) => addFile(`xl/worksheets/sheet${i + 1}.xml`, sheetXml(rows)));
-  return new Blob(zipParts(parts), { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-}
-
-/* ───────────── saving the file ───────────── */
+/* ───────────── saving the file (used by Download a backup) ───────────── */
 async function saveFile(blob, filename) {
   // On phones, hand the file to the share sheet (so you can pick "Save to Files"); elsewhere it's a normal download
   const file = new File([blob], filename, { type: blob.type });
@@ -135,13 +29,6 @@ async function saveFile(blob, filename) {
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
-}
-
-// Exports everything as an Excel workbook. Resolves with the number of items exported.
-async function downloadExport(items) {
-  const stamp = new Date().toLocaleDateString("en-CA");
-  await saveFile(await toXlsxBlob(items), `clear-the-day-${stamp}.xlsx`);
-  return items.length;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -555,7 +442,7 @@ async function listSnapshots() {
 const CSS = `
 .cd-outer{position:fixed;inset:0;display:flex;justify-content:center;align-items:stretch;background:var(--chrome-bg,#F6F3EC);overflow:hidden;overscroll-behavior:none}
 .cd, .cd *{box-sizing:border-box}
-.cd{position:relative;width:100%;max-width:430px;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+.cd{position:relative;width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;overflow:hidden;
   background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
 @media(min-width:520px){.cd-outer{align-items:center;padding:20px 0;background:var(--outer-bg,#CFC8BC)}.cd{height:min(880px,calc(100vh - 40px));border-radius:38px;box-shadow:0 30px 80px rgba(0,0,0,.35)}}
 :where(.cd) button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -606,7 +493,7 @@ const CSS = `
 .cd-empty{text-align:center;color:var(--muted);padding:30px 10px}
 .cd-empty b{display:block;color:var(--text);font-family:var(--font-display-sm,var(--font-display));font-weight:var(--display-weight-sm,var(--display-weight));text-transform:var(--display-transform);font-size:19px;margin-bottom:4px}
 
-.cd-nav{display:flex;border-top:1px solid var(--line);background:var(--nav-bg);padding:8px 4px calc(2px + env(safe-area-inset-bottom));backdrop-filter:blur(10px)}
+.cd-nav{display:flex;border-top:1px solid var(--line);background:var(--nav-bg);padding:8px 4px calc(10px + env(safe-area-inset-bottom));backdrop-filter:blur(10px)}
 .cd-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);position:relative;padding:4px 0}
 .cd-tab.on{color:var(--nav-active);font-weight:600}
 .cd-badge{position:absolute;top:-1px;left:calc(50% + 6px);min-width:17px;height:17px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:10.5px;font-weight:700;display:grid;place-items:center;padding:0 4px}
@@ -848,8 +735,6 @@ const CSS = `
 .cd-selwrap.pill .cd-select{background:var(--card);box-shadow:var(--shadow);border:1px solid var(--line)}
 .cd-mini{background:var(--panel);border-color:var(--line)}
 /* Settings: all five themes in a compact grid, so nothing needs to scroll */
-.cd-setrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.cd-setrow .cd-ghost{margin-top:0}
 .cd-version{text-align:center;color:var(--muted);font-size:12px;margin-top:14px}
 @keyframes cd-pulse{0%,100%{opacity:.25}50%{opacity:1}}
 /* ───── v2.1: Inbox controls, effects ───── */
@@ -1116,6 +1001,9 @@ const CSS = `
 .cd-todempty{padding:20px 12px;margin:0 12px 8px;border:1.5px dashed var(--line);border-radius:var(--radius-md);font-size:13px;color:var(--muted);text-align:center}
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;width:100%}   /* the page itself can't scroll, so iOS can't shove the app around when the keyboard opens */
+/* In the installed iPhone app the phone can report the page as shorter than the screen (by the status bar's height), which left the tab bar floating above the bottom.
+   This is a plain style rule, with no code or timers: the app takes the tallest height the phone offers. Where all the heights agree it changes nothing. */
+@media all and (display-mode: standalone){.cd-outer{inset:0 0 auto 0;height:max(100%,100vh,100lvh,100dvh)}}
 .cd button,.cd select{touch-action:manipulation}
 .cd-nav{-webkit-backdrop-filter:blur(10px)}
 .cd-scroll{animation:cd-fade .18s ease-out}
@@ -2923,10 +2811,12 @@ function BackupSheet({ ctx, close }) {
   useEffect(() => { let alive = true; listSnapshots().then((l) => { if (alive) setSnaps(l); }); return () => { alive = false; }; }, []);
   const readFile = (file) => {
     if (!file) return;
+    const wrong = () => ctx.toast("That isn’t a Clear the Day backup. Choose clear-the-day-backup.json");
+    if (!/\.json$/i.test(file.name || "")) { wrong(); return; }
     const r = new FileReader();
     r.onload = () => {
       try { const j = JSON.parse(String(r.result)); if (ctx.restoreState(j.state || j)) close(); }
-      catch { ctx.toast("Couldn’t read that file"); }
+      catch { wrong(); }
     };
     r.readAsText(file);
   };
@@ -3151,10 +3041,7 @@ function Settings({ ctx, themeId, close }) {
       </div>
       <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "cats" })}><FolderIcon size={18} /> Manage categories</button>
       <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "backup" })}><Download size={18} /> Back up &amp; restore</button>
-      <div className="cd-setrow">
-        <button className="cd-ghost" onClick={() => ctx.exportData()}><Download size={18} /> Export</button>
-        <button className="cd-ghost" style={{ color: "var(--danger)" }} onClick={() => { ctx.resetData("empty"); close(); }}><Trash2 size={18} /> Clear all</button>
-      </div>
+      <button className="cd-ghost" style={{ color: "var(--danger)", marginTop: 14 }} onClick={() => { ctx.resetData("empty"); close(); }}><Trash2 size={18} /> Clear all</button>
       <div className="cd-version">Clear the Day · Version {APP_VERSION}</div>
     </Sheet>
   );
@@ -3589,7 +3476,7 @@ export default function App() {
         { label: "Undo", run: () => update(() => prev) });
     },
     addCategory: (name) => update((s) => (s.categories.some((c) => c.toLowerCase() === name.toLowerCase()) ? {} : { categories: [...s.categories, name] })),
-    // A backup is the whole app state as a JSON file. It uses the same save/share path as the Excel export.
+    // A backup is the whole app state as a JSON file. It is saved through the phone's share sheet (Save to Files) or a normal download.
     backupData: async () => {
       const payload = { app: "clear-the-deck", version: APP_VERSION, savedAt: new Date().toISOString(),
         state: { items, categories, categoryColors: state.categoryColors || {}, todaySort: state.todaySort || "mine", defaultCategory: withDefault(state).def, themeId: state.themeId, cleanedOn: state.cleanedOn } };
@@ -3609,11 +3496,6 @@ export default function App() {
         ...(st.themeId && THEMES[st.themeId] ? { themeId: st.themeId } : {}), ...(st.cleanedOn ? { cleanedOn: st.cleanedOn } : {}) }));
       toast("Backup restored", { label: "Undo", run: () => update(() => prev) });
       return true;
-    },
-    exportData: async () => {
-      if (!items.length) { toast("Nothing to export yet"); return; }
-      try { const n = await downloadExport(items); toast(`Exported ${n} ${n === 1 ? "item" : "items"}`); }
-      catch (e) { if (!e || e.name !== "AbortError") toast("Couldn't export. Try again"); }
     },
     resetData: (kind) => {
       const prev = { items, categories };

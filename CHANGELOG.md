@@ -1,5 +1,13 @@
 # Changelog
 
+## 10.28
+- **Export is gone.** Settings no longer has an Export button, and the code that built the Excel file is removed. It saved a spreadsheet that the app can't read back, which is easy to mistake for a backup. **Back up & restore** is now the only way to save a copy, and it's unchanged. **Clear all** now sits on its own line, full width.
+- **A clearer message when Restore gets the wrong file.** Choosing anything other than the `.json` backup (a spreadsheet, for example) now says "That isn't a Clear the Day backup. Choose clear-the-day-backup.json" instead of "Couldn't read that file".
+
+## 10.27
+- **The tab bar is back at the bottom of the screen in the installed app, with no code involved.** On your phone the page was ending 62 points short of the screen, so the tab bar floated above the bottom. A single style rule now gives the installed app the tallest height the phone offers. Nothing measures the screen and no timer runs; where all the heights agree it changes nothing, and it doesn't apply in a normal Safari tab. The earlier stretching blinked while the app was measuring the screen, so this keeps the stretch and drops the measuring. If the blink comes back, the stretch itself is the cause and this will be removed.
+- The Home Screen app now has its `manifest.webmanifest` again (it had gone missing). Add the app to the Home Screen again to pick it up.
+
 ## 10.26
 - **The screen-fit workaround is gone.** The app no longer measures the screen or stretches the page to make up for the phone reporting it as shorter than it is. That stretching is what made the bottom 62 points of the screen blink and slice the tab bar. Now the app just uses the page the phone gives it, and the page behind it is painted in the tab bar's own color, so if the phone leaves a strip under the tab bar, it simply looks like a little extra space. The tab bar can sit slightly higher than before on phones that report the shorter page.
 - **The hidden Display check is gone**, along with the logging behind it (the screen log, confetti smoothness and slow-save timing). It did its job: it was only there to track this glitch down.
