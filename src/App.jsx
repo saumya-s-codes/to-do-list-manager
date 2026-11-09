@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.34";
+const APP_VERSION = "10.35";
 
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
@@ -489,8 +489,8 @@ const CSS = `
 .cd-row-main{flex:1;min-width:0;display:block;text-align:left}
 .cd-row-title{display:block;font-weight:500;line-height:1.3;overflow-wrap:anywhere}
 .cd-row.done{opacity:.5;transition:opacity .2s}
-.cd-row.gone{overflow:hidden;pointer-events:none;animation:cd-vanish .38s ease-in forwards}
-@keyframes cd-vanish{0%{opacity:.5;max-height:140px;transform:none}55%{opacity:0;max-height:140px}100%{opacity:0;max-height:0;transform:translateX(-24px);padding-top:0;padding-bottom:0;margin-top:0;margin-bottom:0;border-width:0}}
+.cd-row.gone{pointer-events:none;animation:cd-vanish .26s ease-in forwards}   /* fade and slide only: animating the height redraws the card's hand-drawn outline on every frame and makes the confetti stutter */
+@keyframes cd-vanish{0%{opacity:.5;transform:none}100%{opacity:0;transform:translateX(-24px)}}
 .cd-row.done .cd-row-title{text-decoration:line-through;color:var(--muted)}
 .cd-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:3px;color:var(--muted);font-size:12.5px}
 .cd-cattext{display:inline-flex;align-items:center;gap:5px;font-weight:600}
@@ -3159,9 +3159,9 @@ function Confetti({ big = false }) {
       flashes.push({ x, y, age: 0 });
     };
     const rain = (n) => { for (let i = 0; i < n; i++) piece(rnd(0, W), rnd(-40, -8), rnd(-70, 70), rnd(30, 170)); };
-    const volleys = [0], perVolley = big ? 170 : 45;
+    const volleys = [0], perVolley = big ? 130 : 35;
     volleys.forEach((t) => { [-1, 1].forEach((side) => { events.push({ t, run: () => cannon(side, perVolley) }); total += perVolley; }); });
-    const showerN = big ? 240 : 40, showerOver = big ? 2.4 : 1.2;
+    const showerN = big ? 170 : 30, showerOver = big ? 2.4 : 1.2;
     for (let i = 0; i < showerN; i += 5) { events.push({ t: (i / showerN) * showerOver, run: () => rain(5) }); total += 5; }
     events.sort((a, b) => a.t - b.t);
     cv.dataset.pieces = String(total); cv.dataset.volleys = String(volleys.length);
@@ -3523,7 +3523,7 @@ export default function App() {
         setJustDone((prev) => { const n = new Set(prev); n.delete(id); return n; });
         setVanishing((prev) => { const n = new Set(prev); n.delete(id); return n; });
         vanishTimers.current.delete(id);
-      }, 380);
+      }, 270);
     }, 1000);
     vanishTimers.current.set(id, t);
   };
