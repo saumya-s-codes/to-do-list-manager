@@ -1,5 +1,17 @@
 # Changelog
 
+## 10.34
+- **Restore takes almost any file, and shows what it found first.** It now looks at what is inside the file instead of its name or ending. It reads this app's own backup (`.json`), spreadsheets (`.xlsx` from Excel, Numbers or Sheets, and `.csv` with commas, semicolons or tabs, including the old Export files), another app's JSON list, and plain text lists with one task per line. Columns are matched by name, with common alternatives (Text, Status, Task, Due and so on). Before anything changes, a card says what was found, for example "Found 8 tasks in "export.csv" · Today 2 · Inbox 1 · …". **Add to what's here** is the default for spreadsheets and lists (tasks already here are skipped, so importing twice never doubles anything); **Replace everything here with these** is a separate button, a full backup shows **Restore this backup**, and **Cancel** changes nothing. Everything has Undo. Tasks on Today or Future with no effort or impact wait in the Inbox, as everywhere else. A file with no tasks in it gets a message that lists what works.
+- **Settings shows that it is saving.** At the bottom: "Saved on this phone · 2:14 PM · 48 tasks", or a red "Not saving on this phone" if saving fails.
+- **The once-a-day backup reminder no longer covers other messages.** It waits for the current message to clear and then appears.
+
+## 10.33
+- **Saving works again.** `src/storage.js` had been replaced by a different file (a task-list helper with a CSV restore) that never created the `window.storage` the app saves and loads with. So nothing was ever kept, and the app showed the sample tasks on every launch. The correct file is restored. It saves under exactly the same key as before and still reads data an older version saved under the old prefix. Only `src/storage.js` has to be replaced; the app doesn't need adding to the Home Screen again.
+- `src/exportData.js` is no longer used and can be deleted.
+
+## 10.32
+- **The "can't be saved" warning now says why**, for example "(QuotaExceededError)" or "(it was not there when read back)", so a screenshot of it shows the cause. This is a code-only change: no re-adding the app.
+
 ## 10.31
 - **The app now warns you if your changes can't be saved.** Before, a failed save was silent: everything looked fine, and the data was gone the next time the app opened. After each save the app now reads the data back to confirm it was really stored. If the phone refuses to keep it, or pretends to and keeps nothing, a message appears (once per launch) pointing you to Back up & restore, Download a backup. Nothing changes when saving works.
 

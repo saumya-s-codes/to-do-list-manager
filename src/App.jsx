@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 // Shown at the bottom of Settings. Bump this whenever you ship an update (it lives here so replacing App.jsx is enough).
-const APP_VERSION = "10.31";
+const APP_VERSION = "10.34";
 
 const CHROME_COLOR = "#F6F3EC";   // fallback tint while loading: a soft neutral cream
 
@@ -389,15 +389,17 @@ async function loadState() {
   }
 }
 // If the phone refuses to keep the data, say so (once per launch) instead of failing silently: everything would look fine and be gone next time.
-const SAVE = { onFail: null, told: false };
+const SAVE = { onFail: null, told: false, lastOk: 0, count: 0 };
 async function saveState(s) {
   try {
     const json = JSON.stringify(s);
     await window.storage.set(STORAGE_KEY, json);
-    const back = await window.storage.get(STORAGE_KEY);   // read it back: was it really stored?
-    if (!back || back.value !== json) throw new Error("not stored");
-  } catch {
-    if (!SAVE.told && SAVE.onFail) { SAVE.told = true; SAVE.onFail(); }
+    let back = null;
+    try { back = await window.storage.get(STORAGE_KEY); } catch { /* treated as "not there" below */ }   // read it back: was it really stored?
+    if (!back || back.value !== json) throw new Error("it was not there when read back");
+    SAVE.lastOk = Date.now(); SAVE.count = Array.isArray(s.items) ? s.items.length : 0;   // shown in Settings, so you can see it is saving
+  } catch (e) {
+    if (!SAVE.told && SAVE.onFail) { SAVE.told = true; SAVE.onFail(String((e && (e.name && e.name !== "Error" ? e.name + ": " : "") + (e.message || "")) || e).slice(0, 90)); }
   }
 }
 // ONE automatic backup, replaced every day: it is taken the first time the app opens each day, and it replaces the previous day's.
@@ -2811,20 +2813,179 @@ function PlanTomorrow({ ctx, items, close }) {
   );
 }
 
+
+/* ═════════════════════════════════════════════════════════════════════
+   READING A BACKUP, OR ANY TASK LIST
+   Reads a file by what is INSIDE it, not by its name: this app's own backup (.json), a spreadsheet (.xlsx or .csv, from this app or another),
+   another app's JSON list, or a plain text list (one task per line). Nothing changes until you confirm what was found.
+   ═════════════════════════════════════════════════════════════════════ */
+const normKey = (s) => String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9]/g, "");
+const FIELD_NAMES = {
+  title: ["title", "text", "task", "name", "item", "todo", "description", "summary", "what"],
+  list: ["list", "status", "state", "section", "bucket", "column", "where"],
+  category: ["category", "cat", "project", "area", "group", "tag", "label"],
+  effort: ["effort", "size"],
+  impact: ["impact", "priority"],
+  due: ["due", "duedate", "date", "deadline", "dueon"],
+  created: ["created", "createdat", "createdon", "added", "addedon"],
+  done: ["completed", "completedat", "completedon", "done", "doneat", "finished", "complete"],
+  from: ["completedfrom", "donefrom"],
+  urgency: ["urgency"],
+  someday: ["someday"],
+  id: ["id"],
+};
+const FIELD_OF = (() => { const m = {}; Object.entries(FIELD_NAMES).forEach(([f, names]) => names.forEach((n) => { if (!(n in m)) m[n] = f; })); return m; })();
+const recordFrom = (obj) => { const r = {}; Object.keys(obj).forEach((k) => { const f = FIELD_OF[normKey(k)]; if (f && r[f] === undefined && obj[k] !== null && obj[k] !== "") r[f] = obj[k]; }); return r; };
+
+// Comma, semicolon or tab separated; quotes may hold commas and line breaks; a leading byte-order mark is ignored
+function parseCsv(text) {
+  text = text.replace(/^\uFEFF/, "");
+  const first = text.split(/\r\n|\n|\r/, 1)[0] || "";
+  const count = (ch) => first.split(ch).length - 1;
+  const delim = [",", ";", "\t"].sort((a, b) => count(b) - count(a))[0];
+  const rows = []; let row = [], cell = "", q = false;
+  const endRow = () => { row.push(cell); cell = ""; if (row.some((x) => x.trim() !== "")) rows.push(row); row = []; };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+    else if (c === '"' && cell === "") q = true;
+    else if (c === delim) { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; endRow(); }
+    else cell += c;
+  }
+  if (cell !== "" || row.length) endRow();
+  return rows;
+}
+
+// An .xlsx is a zip of small XML files (ones saved by Excel or Numbers are compressed; this app's own are not)
+async function xlsxRows(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf), dec = new TextDecoder();
+  let e = u8.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error("not a zip");
+  const n = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true); const files = {};
+  for (let k = 0; k < n; k++) {
+    const nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+    files[dec.decode(u8.subarray(p + 46, p + 46 + nlen))] = { method: dv.getUint16(p + 10, true), size: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true) };
+    p += 46 + nlen + elen + clen;
+  }
+  const read = async (name) => {
+    const f = files[name]; if (!f) return null;
+    const start = f.off + 30 + dv.getUint16(f.off + 26, true) + dv.getUint16(f.off + 28, true);
+    let data = u8.subarray(start, start + f.size);
+    if (f.method === 8) data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+    return dec.decode(data);
+  };
+  const xml = (t) => new DOMParser().parseFromString(t, "application/xml");
+  const sst = await read("xl/sharedStrings.xml");
+  const shared = sst ? [...xml(sst).getElementsByTagName("si")].map((si) => [...si.getElementsByTagName("t")].map((t) => t.textContent).join("")) : [];
+  const sheetName = files["xl/worksheets/sheet1.xml"] ? "xl/worksheets/sheet1.xml" : Object.keys(files).filter((k) => /^xl\/worksheets\/[^/]+\.xml$/.test(k)).sort()[0];
+  const sheet = sheetName && await read(sheetName); if (!sheet) throw new Error("no sheet");
+  const colIndex = (ref) => ref.replace(/[0-9]/g, "").split("").reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+  return [...xml(sheet).getElementsByTagName("row")].map((r) => {
+    const out = [];
+    [...r.getElementsByTagName("c")].forEach((c) => {
+      const t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0], is = c.getElementsByTagName("is")[0];
+      out[colIndex(c.getAttribute("r") || "A1")] = t === "inlineStr" ? [...(is ? is.getElementsByTagName("t") : [])].map((x) => x.textContent).join("") : t === "s" ? (shared[Number(v && v.textContent)] || "") : (v ? v.textContent : "");
+    });
+    return Array.from(out, (x) => (x == null ? "" : x));
+  }).filter((r) => r.some((x) => String(x).trim() !== ""));
+}
+
+const toDay = (v) => {   // "2026-11-08", "11/8/2026", an ISO time, a number of milliseconds, or an Excel date number -> "yyyy-mm-dd"
+  if (v == null || v === "") return null;
+  let d = null;
+  if (typeof v === "number" || /^\d+(\.\d+)?$/.test(String(v).trim())) { const n = Number(v); d = n > 1e11 ? new Date(n) : n > 20000 && n < 90000 ? new Date(Math.round((n - 25569) * 864e5)) : null; if (d) return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; return null; }
+  const m = String(v).trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
+  d = new Date(String(v)); return isNaN(d) ? null : iso(d);
+};
+const toMs = (v) => { const day = toDay(v); if (!day) return null; const t = typeof v === "number" || /^\d{11,}$/.test(String(v).trim()) ? Number(v) : parseDay(day).getTime(); return t || null; };
+const yesNo = (v) => { const t = String(v).trim().toLowerCase(); return /^(true|yes|y|1|x|✓|✔|done)$/.test(t) ? true : /^(false|no|n|0)$/.test(t) ? false : null; };
+
+// One row or object (with whatever column names it had) -> a task of this app
+function taskFrom(rec, cats) {
+  const title = String(rec.title == null ? "" : rec.title).replace(/\s+/g, " ").trim();
+  if (!title) return null;
+  const L = normKey(rec.list);
+  let status = "inbox", someday = false;
+  if (L === "today") status = "today"; else if (L === "future") status = "future"; else if (L === "someday") { status = "future"; someday = true; }
+  else if (L === "watching" || L === "watch") status = "watching"; else if (["done", "completed", "complete", "finished"].includes(L)) status = "done";
+  const flag = rec.done === undefined ? null : yesNo(rec.done);
+  const doneAt = rec.done !== undefined && flag === null ? toMs(rec.done) : null;
+  if (flag === true || doneAt) status = "done";
+  if (flag === false && status === "done") status = "inbox";
+  const sd = rec.someday !== undefined ? yesNo(rec.someday) : null; if (sd && status !== "done" && status !== "watching") { status = "future"; someday = true; }
+  const word = (v, a, b) => { const t = normKey(v); return t === a || t === b ? t : null; };
+  const effort = word(rec.effort, "quick", "deep") || (/^(short|small|fast)$/.test(normKey(rec.effort)) ? "quick" : /^(long|big)$/.test(normKey(rec.effort)) ? "deep" : null);
+  const impact = word(rec.impact, "high", "low");
+  const from = normKey(rec.from);
+  let cat = rec.category == null ? "" : String(rec.category).trim(); if (cat) cat = cats.find((c) => c.toLowerCase() === cat.toLowerCase()) || cat;
+  const due = status === "done" || someday ? null : toDay(rec.due);
+  const it = {
+    id: typeof rec.id === "string" && rec.id ? rec.id : uid(), title, category: cat || null,
+    effort: status === "watching" ? null : effort, impact, status, someday, due,
+    urgency: ["now", "next", "later"].includes(normKey(rec.urgency)) && !someday && status !== "done" && status !== "watching" ? normKey(rec.urgency) : null,
+    createdAt: toMs(rec.created) || Date.now(), doneAt: null, doneFrom: null,
+  };
+  if (status === "done") { it.doneAt = doneAt || Date.now(); it.doneFrom = from === "someday" ? "future" : ["today", "inbox", "future", "watching"].includes(from) ? from : "today"; if (from === "someday") it.someday = true; }
+  return it;
+}
+
+const summaryOf = (items) => {
+  const n = { Today: 0, Inbox: 0, Future: 0, Someday: 0, Watching: 0, Done: 0 };
+  items.forEach((i) => { n[i.status === "done" ? "Done" : i.status === "today" ? "Today" : i.status === "inbox" ? "Inbox" : i.status === "watching" ? "Watching" : i.someday ? "Someday" : "Future"]++; });
+  return Object.entries(n).filter(([, c]) => c).map(([k, c]) => `${k} ${c}`).join(" · ");
+};
+
+// Looks inside the file and returns { kind: "backup", state } for this app's own backup, or { kind: "list", items, newCats } for anything else
+async function readAnyFile(file) {
+  if (!file) throw new Error("no file");
+  if (file.size > 8e6) throw new Error("too big");
+  const buf = await file.arrayBuffer(), head = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
+  const result = (kind, extra) => ({ kind, name: file.name || "that file", ...extra });
+  const finish = (records, cats) => {
+    const used = []; const items = records.map((r) => taskFrom(r, [...cats, ...used])).filter(Boolean);
+    items.forEach((i) => { if (i.category && ![...cats, ...used].some((c) => c.toLowerCase() === i.category.toLowerCase())) used.push(i.category); });
+    if (!items.length) throw new Error("no tasks");
+    const unfinished = items.filter((i) => (i.status === "today" || i.status === "future") && !i.someday && (!i.effort || !i.impact)).length;
+    return result("list", { items, newCats: used, count: items.length, summary: summaryOf(items), waiting: unfinished });
+  };
+  if (head[0] === 0x50 && head[1] === 0x4b) {   // "PK": a zip, so an .xlsx
+    const rows = await xlsxRows(buf); const header = rows[0] || [];
+    if (!header.some((h) => FIELD_OF[normKey(h)] === "title")) throw new Error("no title column");
+    return finish(rows.slice(1).map((r) => recordFrom(Object.fromEntries(header.map((h, i) => [h, r[i]])))), []);
+  }
+  const text = new TextDecoder().decode(buf).replace(/^\uFEFF/, "");
+  if (text.includes("\u0000")) throw new Error("not text");
+  const t = text.trim();
+  if (t[0] === "{" || t[0] === "[") {
+    let j; try { j = JSON.parse(t); } catch { j = null; }
+    if (j) {
+      const st = j && (j.state || j);
+      if (st && Array.isArray(st.items) && Array.isArray(st.categories)) return result("backup", { state: st, count: st.items.length, summary: summaryOf(st.items) });
+      const arr = Array.isArray(j) ? j : ["items", "tasks", "todos", "data", "list"].map((k) => j[k] || (j.state && j.state[k])).find(Array.isArray);
+      if (arr) return finish(arr.map((o) => (o && typeof o === "object" ? recordFrom(o) : { title: o })), []);
+    }
+  }
+  const rows = parseCsv(text);
+  if (rows.length >= 2 && rows[0].some((h) => FIELD_OF[normKey(h)] === "title")) {
+    const header = rows[0];
+    return finish(rows.slice(1).map((r) => recordFrom(Object.fromEntries(header.map((h, i) => [h, r[i]])))), []);
+  }
+  // a plain list: one task per line (bullets, numbers and [ ] / [x] boxes are tidied up); every line waits in the Inbox
+  const lines = text.split(/\r\n|\n|\r/).map((l) => l.trim()).filter(Boolean);
+  const recs = lines.map((l) => { const box = l.match(/^[-*•]?\s*\[( |x|X)\]\s*/); const body = l.replace(/^[-*•]\s+|^\d+[.)]\s+|^[-*•]?\s*\[( |x|X)\]\s*/, ""); return { title: body, ...(box && /x/i.test(box[1]) ? { done: "true" } : {}) }; });
+  return finish(recs, []);
+}
+
 function BackupSheet({ ctx, close }) {
   const [snaps, setSnaps] = useState(null);
   const [found] = useState(() => findStoredCandidates());
   useEffect(() => { let alive = true; listSnapshots().then((l) => { if (alive) setSnaps(l); }); return () => { alive = false; }; }, []);
+  const [found2, setFound2] = useState(null);   // what was found in the chosen file, waiting for you to confirm
   const readFile = (file) => {
     if (!file) return;
-    const wrong = () => ctx.toast("That isn’t a Clear the Day backup. Choose clear-the-day-backup.json");
-    if (!/\.json$/i.test(file.name || "")) { wrong(); return; }
-    const r = new FileReader();
-    r.onload = () => {
-      try { const j = JSON.parse(String(r.result)); if (ctx.restoreState(j.state || j)) close(); }
-      catch { wrong(); }
-    };
-    r.readAsText(file);
+    readAnyFile(file).then(setFound2).catch(() => ctx.toast("I couldn’t find any tasks in that file. It can be a Clear the Day backup (.json), a spreadsheet (.xlsx or .csv) or a list with one task per line (.txt)."));
   };
   return (
     <Sheet title="Back up & restore" onClose={close}>
@@ -2834,10 +2995,35 @@ function BackupSheet({ ctx, close }) {
       </div>
       <button className="cd-ghost" style={{ marginTop: 0 }} onClick={() => ctx.backupData()}><Download size={18} /> Download a backup</button>
       <div className="cd-sub" style={{ margin: "6px 2px 4px", fontSize: 12.5 }}>It is always saved as <b>clear-the-day-backup.json</b>. If Files asks, choose <b>Replace</b> so you only keep one copy.</div>
-      <label className="cd-ghost" style={{ cursor: "pointer" }}>
-        <RotateCcw size={18} /> Restore from a backup file
-        <input type="file" accept=".json,application/json" hidden onChange={(e) => { readFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
-      </label>
+      {found2 ? (
+        <div className="cd-catlist" style={{ marginTop: 12 }}>
+          <div style={{ padding: "12px 14px" }}>
+            <div style={{ fontWeight: 700, marginBottom: 2 }}>Found {found2.count} {found2.count === 1 ? "task" : "tasks"} in “{found2.name}”</div>
+            <div className="cd-sub" style={{ marginBottom: found2.waiting ? 4 : 10 }}>{found2.summary}</div>
+            {found2.waiting > 0 && <div className="cd-sub" style={{ marginBottom: 10 }}>{found2.waiting} {found2.waiting === 1 ? "has" : "have"} no effort or impact yet, so {found2.waiting === 1 ? "it" : "they"} will wait in your Inbox.</div>}
+            {found2.kind === "backup" ? (
+              <>
+                <button className="cd-primary" onClick={() => { if (ctx.restoreState(found2.state)) close(); }}>Restore this backup</button>
+                <div className="cd-sub" style={{ margin: "6px 2px 0", fontSize: 12.5 }}>This replaces what is in the app now. You can undo it.</div>
+              </>
+            ) : (
+              <>
+                <button className="cd-primary" onClick={() => { ctx.importItems(found2.items, found2.newCats, "add"); close(); }}>Add to what’s here</button>
+                <button className="cd-ghost" onClick={() => { ctx.importItems(found2.items, found2.newCats, "replace"); close(); }}>Replace everything here with these</button>
+              </>
+            )}
+            <button className="cd-ghost" style={{ marginTop: 8 }} onClick={() => setFound2(null)}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <label className="cd-ghost" style={{ cursor: "pointer" }}>
+            <RotateCcw size={18} /> Restore from a file
+            <input type="file" hidden onChange={(e) => { readFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+          </label>
+          <div className="cd-sub" style={{ margin: "6px 2px 4px", fontSize: 12.5 }}>Any of these works: a Clear the Day backup (.json), a spreadsheet (.xlsx or .csv), or a list with one task per line (.txt). You see what was found before anything changes.</div>
+        </>
+      )}
       <div className="cd-fl" style={{ marginTop: 18 }}>Saved data found on this device</div>
       <div className="cd-catlist">
         {found.length === 0 && <div className="cd-sub">Nothing else found.</div>}
@@ -3048,6 +3234,9 @@ function Settings({ ctx, themeId, close }) {
       <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "cats" })}><FolderIcon size={18} /> Manage categories</button>
       <button className="cd-ghost" onClick={() => ctx.setSheet({ type: "backup" })}><Download size={18} /> Back up &amp; restore</button>
       <button className="cd-ghost" style={{ color: "var(--danger)", marginTop: 14 }} onClick={() => { ctx.resetData("empty"); close(); }}><Trash2 size={18} /> Clear all</button>
+      <div className="cd-version" style={SAVE.told ? { color: "var(--danger)", fontWeight: 600 } : undefined}>
+        {SAVE.told ? "Not saving on this phone. Download a backup now." : SAVE.lastOk ? `Saved on this phone · ${new Date(SAVE.lastOk).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · ${SAVE.count} ${SAVE.count === 1 ? "task" : "tasks"}` : "Not saved yet"}
+      </div>
       <div className="cd-version">Clear the Day · Version {APP_VERSION}</div>
     </Sheet>
   );
@@ -3241,7 +3430,7 @@ export default function App() {
 
   // Warn if saving ever fails
   useEffect(() => {
-    SAVE.onFail = () => { setToastMsg({ m: "Your changes can’t be saved on this phone right now. Use Settings, Back up & restore, Download a backup so nothing is lost." }); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToastMsg(null), 12000); };
+    SAVE.onFail = (why) => { setToastMsg({ m: `Your changes can’t be saved on this phone right now (${why}). Use Settings, Back up & restore, Download a backup so nothing is lost.` }); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToastMsg(null), 12000); };
     return () => { SAVE.onFail = null; };
   }, []);
 
@@ -3285,14 +3474,17 @@ export default function App() {
     const s = stateRef.current;
     const stale = !s.lastBackupAt || Date.now() - s.lastBackupAt > 7 * 864e5;
     if (!stale || s.items.length < 10 || s.backupNudgeOn === iso()) return;
-    const t = setTimeout(() => {
-      if (toastRef.current && toastRef.current.a) return;   // an Undo is on screen: don't replace it (the nudge tries again next time the app opens)
+    let t, tries = 0;
+    const nudge = () => {
+      if (toastRef.current && tries++ < 3) { t = setTimeout(nudge, 6000); return; }   // another message (an Undo, a warning) is on screen: wait for it to clear instead of replacing it
+      if (toastRef.current) return;                                                     // still busy after a few tries: skip it today
       setState((x) => ({ ...x, backupNudgeOn: iso() }));
       setToastMsg({ m: s.lastBackupAt ? "It’s been over a week since your last backup." : "You haven’t backed up your tasks yet.",
         a: { label: "Back up", run: () => setSheet({ type: "backup" }) } });
       clearTimeout(toastTimer.current);
       toastTimer.current = setTimeout(() => setToastMsg(null), 5000);
-    }, 2500);
+    };
+    t = setTimeout(nudge, 2500);
     return () => clearTimeout(t);
   }, [loaded]);
 
@@ -3508,6 +3700,22 @@ export default function App() {
         ...(st.themeId && THEMES[st.themeId] ? { themeId: st.themeId } : {}), ...(st.cleanedOn ? { cleanedOn: st.cleanedOn } : {}) }));
       toast("Backup restored", { label: "Undo", run: () => update(() => prev) });
       return true;
+    },
+    // Tasks read from a spreadsheet, list or another app's file: add them to what is here, or replace what is here. Either way it can be undone.
+    importItems: (incoming, newCats, mode) => {
+      const prev = { items, categories, categoryColors: state.categoryColors || {} };
+      lockedRef.current = false;
+      let add = incoming.map(normalizeItem);   // tidied the same way as everything else, so "already here" is judged fairly
+      if (mode === "add") {
+        const have = new Set(items.map((i) => i.id));
+        const sig = (i) => [i.title.toLowerCase(), i.status, i.someday ? 1 : 0, i.category || "", i.createdAt].join("|");
+        const same = new Set(items.map(sig));
+        add = add.map((i) => (have.has(i.id) ? { ...i, id: uid() } : i)).filter((i) => !same.has(sig(i)));   // skip anything already here
+      }
+      const cats = [...categories]; newCats.forEach((c) => { if (!cats.some((x) => x.toLowerCase() === c.toLowerCase())) cats.push(c); });
+      update((s) => ({ items: (mode === "replace" ? [] : s.items).concat(add), categories: cats }));
+      toast(add.length ? `${mode === "replace" ? "Restored" : "Added"} ${add.length} ${add.length === 1 ? "task" : "tasks"}` : "Everything in that file is already here", add.length ? { label: "Undo", run: () => update(() => prev) } : undefined);
+      return add.length;
     },
     resetData: (kind) => {
       const prev = { items, categories };

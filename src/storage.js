@@ -1,114 +1,47 @@
 // storage.js - Clear the Day
+//
+// Gives the app the small `window.storage` it saves with (get / set / delete / list), kept in the phone's localStorage.
+// (The app was first built to run as a Claude artifact, which provides its own window.storage; in a normal browser,
+// this file provides the same thing.)
+//
+// IMPORTANT: keys are saved exactly as the app names them. Never change how keys are named, or everything already
+// saved on a phone will look lost. scripts/check-storage.mjs guards the two lines marked CHECK below.
 
-export function getStoredTasks() {
-  try {
-    const tasks = localStorage.getItem('tasks');
-    return tasks ? JSON.parse(tasks) : [];
-  } catch (e) {
-    console.error("Failed to load tasks from storage", e);
-    return [];
-  }
-}
+const OLD_PREFIX = "clear-the-deck:";   // CHECK: older versions saved every key with this in front; it is still read as a fallback
 
-export function saveTasks(tasks) {
-  try {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-  } catch (e) {
-    console.error("Failed to save tasks to storage", e);
-  }
-}
+const storage = {
+  // Resolves with { key, value }. Like the artifact version, a missing key throws.
+  async get(key) {
+    let value = localStorage.getItem(key);
+    if (value === null) value = localStorage.getItem(OLD_PREFIX + key);   // data saved by an older version
+    if (value === null) throw new Error("Key not found: " + key);
+    return { key, value, shared: false };
+  },
 
-// Robust CSV line parser that correctly handles commas inside quotes
-function parseCSVLine(line) {
-  const result = [];
-  let insideQuote = false;
-  let entry = '';
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"' || char === "'") {
-      insideQuote = !insideQuote;
-    } else if (char === ',' && !insideQuote) {
-      result.push(entry.trim().replace(/^["']|["']$/g, ''));
-      entry = '';
-    } else {
-      entry += char;
+  // Throws if the phone refuses to keep it (for example, storage is full or blocked), so the app can say so.
+  async set(key, value) {
+    localStorage.setItem(key, value);   // CHECK: keys are saved exactly as the app names them
+    return { key, value, shared: false };
+  },
+
+  async delete(key) {
+    const had = localStorage.getItem(key) !== null;
+    localStorage.removeItem(key);
+    return { key, deleted: had, shared: false };
+  },
+
+  // The keys that start with a prefix (no prefix: all of them).
+  async list(prefix = "") {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k !== null && k.startsWith(prefix)) keys.push(k);
     }
-  }
-  result.push(entry.trim().replace(/^["']|["']$/g, ''));
-  return result;
-}
+    return { keys, prefix, shared: false };
+  },
+};
 
-export function restoreFromCsv(file, onComplete) {
-  if (!file) {
-    if (onComplete) onComplete(false, "No file selected.");
-    return;
-  }
+// Use the artifact's own window.storage if there is one; otherwise this one.
+if (typeof window !== "undefined" && !window.storage) window.storage = storage;
 
-  const reader = new FileReader();
-
-  reader.onload = (event) => {
-    try {
-      const text = event.target.result;
-      const lines = text.split(/\r\n|\n/).filter(line => line.trim().length > 0);
-      
-      if (lines.length < 2) {
-        if (onComplete) onComplete(false, "CSV file is empty or missing data rows.");
-        return;
-      }
-
-      // Parse headers from the first line
-      const headers = parseCSVLine(lines[0]);
-      const tasks = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        const values = parseCSVLine(lines[i]);
-        const task = {};
-
-        headers.forEach((header, index) => {
-          let val = values[index] !== undefined ? values[index] : '';
-          
-          // Convert string booleans back to actual booleans
-          if (val === 'true') val = true;
-          if (val === 'false') val = false;
-          
-          task[header] = val;
-        });
-
-        // Ensure task has minimum required fields and normalize properties
-        if (task.text || task.title || task.id) {
-          tasks.push({
-            id: task.id || String(Date.now() + i),
-            text: task.text || task.title || 'Untitled Task',
-            completed: task.completed === true || task.completed === 'true',
-            dueDate: task.dueDate || null,
-            ...task
-          });
-        }
-      }
-
-      if (tasks.length === 0) {
-        if (onComplete) onComplete(false, "No valid tasks found in the CSV file.");
-        return;
-      }
-
-      // Save parsed tasks to localStorage
-      localStorage.setItem('tasks', JSON.stringify(tasks));
-      
-      if (onComplete) onComplete(true, `Successfully restored ${tasks.length} tasks!`);
-      
-      // Refresh app to load restored tasks
-      setTimeout(() => window.location.reload(), 1000);
-
-    } catch (error) {
-      console.error("Failed to parse CSV backup:", error);
-      if (onComplete) onComplete(false, "Could not read CSV file. Format may be invalid.");
-    }
-  };
-
-  reader.onerror = () => {
-    if (onComplete) onComplete(false, "Error reading file.");
-  };
-
-  reader.readAsText(file);
-}
+export default storage;
